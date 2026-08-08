@@ -215,10 +215,21 @@ export default async function Home() {
                       />
                     </div>
                   </div>
-
-                  <button className="mt-6 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50">
-                    View Hostel →
-                  </button>
+                 {hostel.hostel_name === "Hostel 1" ? (
+  <a
+    href="/hostel-1"
+    className="mt-6 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50"
+  >
+    View Hostel →
+  </a>
+) : (
+  <button
+    disabled
+    className="mt-6 w-full cursor-not-allowed rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-400"
+  >
+    View Hostel →
+  </button>
+)}
                 </div>
               );
             })}
