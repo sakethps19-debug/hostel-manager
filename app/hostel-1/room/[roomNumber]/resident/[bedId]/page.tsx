@@ -245,12 +245,12 @@ export default async function ResidentPage({
 
         <section className="mt-8 flex flex-wrap gap-3">
 
-          <button
-            disabled
-            className="cursor-not-allowed rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-400"
-          >
-            Edit Details
-          </button>
+        <a
+  href={`/hostel-1/room/${roomNumber}/resident/${bedId}/edit`}
+  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+>
+  Edit Details
+</a>
 
           <button
             disabled
