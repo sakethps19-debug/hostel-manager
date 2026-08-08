@@ -155,10 +155,12 @@ export default async function HostelOnePage() {
                             Rs. {Number(room.monthly_rent).toLocaleString("en-IN")}
                           </p>
                         </div>
-
-                        <button className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold">
-                          View Beds →
-                        </button>
+                        <a
+  href={`/hostel-1/room/${room.room_number}`}
+  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
+>
+  View Beds →
+</a>
                       </div>
                     </div>
                   ))}
