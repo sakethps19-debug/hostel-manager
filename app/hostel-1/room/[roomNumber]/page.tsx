@@ -206,11 +206,12 @@ export default async function RoomPage({ params }: PageProps) {
                     )}
                   </div>
                   {isOccupied ? (
-  <button
-    className="mt-6 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"
-  >
-    View Resident
-  </button>
+                  <a
+  href={`/hostel-1/room/${roomNumber}/resident/${bed.bed_id}`}
+  className="mt-6 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50"
+>
+  View Resident
+</a>
 ) : (
   <a
     href={`/hostel-1/room/${roomNumber}/book/${bed.bed_id}`}
