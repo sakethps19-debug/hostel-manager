@@ -1,37 +1,61 @@
-const hostels = [
-  {
-    name: "Hostel A",
-    beds: 45,
-    occupied: 34,
-    vacant: 11,
-    floors: 5,
-    rooms: 20,
-  },
-  {
-    name: "Hostel B",
-    beds: 44,
-    occupied: 37,
-    vacant: 7,
-    floors: 4,
-    rooms: 20,
-  },
-  {
-    name: "Hostel C",
-    beds: 36,
-    occupied: 28,
-    vacant: 8,
-    floors: 3,
-    rooms: 18,
-  },
-];
+ type HostelDashboardRow = {
+  hostel_id: number;
+  hostel_name: string;
+  floors: number;
+  rooms: number;
+  total_beds: number;
+  occupied_beds: number;
+  vacant_beds: number;
+};
 
-export default function Home() {
-  const totalBeds = hostels.reduce((sum, hostel) => sum + hostel.beds, 0);
-  const occupiedBeds = hostels.reduce(
-    (sum, hostel) => sum + hostel.occupied,
+async function getHostelDashboard(): Promise<HostelDashboardRow[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_hostel_dashboard`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load hostel dashboard: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.json();
+}
+
+export default async function Home() {
+  const hostels = await getHostelDashboard();
+
+  const totalBeds = hostels.reduce(
+    (sum, hostel) => sum + Number(hostel.total_beds),
     0
   );
-  const vacantBeds = hostels.reduce((sum, hostel) => sum + hostel.vacant, 0);
+
+  const occupiedBeds = hostels.reduce(
+    (sum, hostel) => sum + Number(hostel.occupied_beds),
+    0
+  );
+
+  const vacantBeds = hostels.reduce(
+    (sum, hostel) => sum + Number(hostel.vacant_beds),
+    0
+  );
 
   const occupancy =
     totalBeds === 0 ? 0 : Math.round((occupiedBeds / totalBeds) * 100);
@@ -39,7 +63,6 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-indigo-600">
@@ -60,7 +83,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Summary Cards */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm font-medium text-slate-500">Total Beds</p>
@@ -97,7 +119,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Quick Actions */}
         <section className="mt-8 grid gap-4 sm:grid-cols-2">
           <button className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-left transition hover:bg-indigo-100">
             <p className="text-lg font-semibold text-indigo-900">
@@ -116,7 +137,6 @@ export default function Home() {
           </button>
         </section>
 
-        {/* Hostel Cards */}
         <section className="mt-10">
           <div className="mb-5">
             <h2 className="text-xl font-bold">Hostels</h2>
@@ -127,42 +147,54 @@ export default function Home() {
 
           <div className="grid gap-5 lg:grid-cols-3">
             {hostels.map((hostel) => {
-              const hostelOccupancy = Math.round(
-                (hostel.occupied / hostel.beds) * 100
-              );
+              const hostelOccupancy =
+                Number(hostel.total_beds) === 0
+                  ? 0
+                  : Math.round(
+                      (Number(hostel.occupied_beds) /
+                        Number(hostel.total_beds)) *
+                        100
+                    );
 
               return (
                 <div
-                  key={hostel.name}
+                  key={hostel.hostel_id}
                   className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-bold">{hostel.name}</h3>
+                      <h3 className="text-xl font-bold">
+                        {hostel.hostel_name}
+                      </h3>
+
                       <p className="mt-1 text-sm text-slate-500">
                         {hostel.floors} floors · {hostel.rooms} rooms
                       </p>
                     </div>
 
                     <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-                      {hostel.vacant} vacant
+                      {hostel.vacant_beds} vacant
                     </span>
                   </div>
 
                   <div className="mt-6 grid grid-cols-3 gap-3 text-center">
                     <div className="rounded-xl bg-slate-50 p-3">
-                      <p className="text-xl font-bold">{hostel.beds}</p>
+                      <p className="text-xl font-bold">
+                        {hostel.total_beds}
+                      </p>
                       <p className="mt-1 text-xs text-slate-500">Beds</p>
                     </div>
 
                     <div className="rounded-xl bg-slate-50 p-3">
-                      <p className="text-xl font-bold">{hostel.occupied}</p>
+                      <p className="text-xl font-bold">
+                        {hostel.occupied_beds}
+                      </p>
                       <p className="mt-1 text-xs text-slate-500">Occupied</p>
                     </div>
 
                     <div className="rounded-xl bg-emerald-50 p-3">
                       <p className="text-xl font-bold text-emerald-600">
-                        {hostel.vacant}
+                        {hostel.vacant_beds}
                       </p>
                       <p className="mt-1 text-xs text-emerald-700">Vacant</p>
                     </div>
@@ -193,7 +225,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Status Legend */}
         <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-4 text-sm font-semibold text-slate-700">
             Bed Status
@@ -228,7 +259,7 @@ export default function Home() {
         </section>
 
         <footer className="py-8 text-center text-sm text-slate-400">
-          Hostel Manager · Prototype
+          Hostel Manager · Live Database
         </footer>
       </div>
     </main>
