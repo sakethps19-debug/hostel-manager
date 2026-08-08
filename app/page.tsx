@@ -77,10 +77,18 @@ export default async function Home() {
               Bed availability and occupancy dashboard
             </p>
           </div>
+         <div className="flex flex-wrap gap-3">
+  <a
+    href="/history"
+    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+  >
+    Booking History
+  </a>
 
-          <button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
-            + New Booking
-          </button>
+  <button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+    + New Booking
+  </button>
+</div>
         </div>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
