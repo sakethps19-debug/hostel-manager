@@ -7,6 +7,8 @@ type ResidentDetails = {
   mobile_number: string | null;
   email: string | null;
   emergency_contact: string | null;
+  id_proof_type: string | null;
+id_proof_number: string | null;
   notes: string | null;
   start_date: string;
   end_date: string;
@@ -158,7 +160,15 @@ export default async function ResidentPage({
                   resident.emergency_contact || "Not provided"
                 }
               />
+<DetailRow
+  label="ID Proof Type"
+  value={resident.id_proof_type || "Not provided"}
+/>
 
+<DetailRow
+  label="ID Proof Number / Value"
+  value={resident.id_proof_number || "Not provided"}
+/>
             </div>
 
           </div>
