@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-
+import VacateButton from "./VacateButton";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -259,12 +259,10 @@ export default async function ResidentPage({
             Extend Booking
           </button>
 
-          <button
-            disabled
-            className="cursor-not-allowed rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-300"
-          >
-            Vacate Bed
-          </button>
+          <VacateButton
+  bookingId={resident.booking_id}
+  roomNumber={roomNumber}
+/>
 
         </section>
 
