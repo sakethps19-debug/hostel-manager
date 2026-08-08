@@ -41,6 +41,8 @@ export default function BookingPage() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [email, setEmail] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
+  const [idProofType, setIdProofType] = useState("");
+const [idProofNumber, setIdProofNumber] = useState("");
   const [notes, setNotes] = useState("");
 
   const [startDate, setStartDate] = useState("");
@@ -59,7 +61,22 @@ export default function BookingPage() {
     event.preventDefault();
 
     setErrorMessage("");
+if (!/^\d{10}$/.test(mobileNumber)) {
+  setErrorMessage(
+    "Mobile number must contain exactly 10 digits."
+  );
+  return;
+}
 
+if (!idProofType) {
+  setErrorMessage("Please select an ID proof type.");
+  return;
+}
+
+if (!idProofNumber.trim()) {
+  setErrorMessage("Please enter the ID proof number/value.");
+  return;
+}
     if (!fullName.trim()) {
       setErrorMessage("Please enter the resident's full name.");
       return;
@@ -119,6 +136,8 @@ export default function BookingPage() {
             p_mobile_number: mobileNumber,
             p_email: email,
             p_emergency_contact: emergencyContact,
+            p_id_proof_type: idProofType,
+p_id_proof_number: idProofNumber,
             p_notes: notes,
             p_start_date: startDate,
             p_end_date: endDate,
@@ -204,17 +223,25 @@ export default function BookingPage() {
                 />
               </Field>
 
-              <Field label="Mobile Number">
-                <input
-                  value={mobileNumber}
-                  onChange={(e) =>
-                    setMobileNumber(e.target.value)
-                  }
-                  className="input-style"
-                  placeholder="Mobile number"
-                  inputMode="tel"
-                />
-              </Field>
+              <Field label="Mobile Number *">
+  <input
+    type="tel"
+    value={mobileNumber}
+    onChange={(e) => {
+      const digits = e.target.value
+        .replace(/\D/g, "")
+        .slice(0, 10);
+
+      setMobileNumber(digits);
+    }}
+    className="input-style"
+    placeholder="10-digit mobile number"
+    inputMode="numeric"
+    pattern="[0-9]{10}"
+    maxLength={10}
+    required
+  />
+</Field>
 
               <Field label="Email">
                 <input
@@ -238,6 +265,30 @@ export default function BookingPage() {
                 />
               </Field>
 
+   <Field label="ID Proof Type *">
+  <select
+    value={idProofType}
+    onChange={(e) => setIdProofType(e.target.value)}
+    className="input-style"
+    required
+  >
+    <option value="">Select ID proof</option>
+    <option value="Aadhaar Card">Aadhaar Card</option>
+    <option value="PAN Card">PAN Card</option>
+    <option value="Voter ID">Voter ID</option>
+    <option value="Driving License">Driving License</option>
+    <option value="Other">Other</option>
+  </select>
+</Field>       
+            <Field label="ID Proof Number / Value *">
+  <input
+    value={idProofNumber}
+    onChange={(e) => setIdProofNumber(e.target.value)}
+    className="input-style"
+    placeholder="Enter ID proof number"
+    required
+  />
+</Field>
             </div>
 
           </section>
