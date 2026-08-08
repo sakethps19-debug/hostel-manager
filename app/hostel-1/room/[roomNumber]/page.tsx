@@ -205,16 +205,20 @@ export default async function RoomPage({ params }: PageProps) {
                       </>
                     )}
                   </div>
-
-                  <button
-                    className={
-                      isOccupied
-                        ? "mt-6 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"
-                        : "mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
-                    }
-                  >
-                    {isOccupied ? "View Resident" : "Book This Bed"}
-                  </button>
+                  {isOccupied ? (
+  <button
+    className="mt-6 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"
+  >
+    View Resident
+  </button>
+) : (
+  <a
+    href={`/hostel-1/room/${roomNumber}/book/${bed.bed_id}`}
+    className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+  >
+    Book This Bed
+  </a>
+)}
                 </div>
               );
             })}
