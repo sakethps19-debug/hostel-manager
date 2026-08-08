@@ -1,65 +1,236 @@
-import Image from "next/image";
+const hostels = [
+  {
+    name: "Hostel A",
+    beds: 45,
+    occupied: 34,
+    vacant: 11,
+    floors: 5,
+    rooms: 20,
+  },
+  {
+    name: "Hostel B",
+    beds: 44,
+    occupied: 37,
+    vacant: 7,
+    floors: 4,
+    rooms: 20,
+  },
+  {
+    name: "Hostel C",
+    beds: 36,
+    occupied: 28,
+    vacant: 8,
+    floors: 3,
+    rooms: 18,
+  },
+];
 
 export default function Home() {
+  const totalBeds = hostels.reduce((sum, hostel) => sum + hostel.beds, 0);
+  const occupiedBeds = hostels.reduce(
+    (sum, hostel) => sum + hostel.occupied,
+    0
+  );
+  const vacantBeds = hostels.reduce((sum, hostel) => sum + hostel.vacant, 0);
+
+  const occupancy =
+    totalBeds === 0 ? 0 : Math.round((occupiedBeds / totalBeds) * 100);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-indigo-600">
+              Hostel Management
+            </p>
+
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Hostel Manager
+            </h1>
+
+            <p className="mt-2 text-slate-500">
+              Bed availability and occupancy dashboard
+            </p>
+          </div>
+
+          <button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+            + New Booking
+          </button>
+        </div>
+
+        {/* Summary Cards */}
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Total Beds</p>
+            <p className="mt-2 text-3xl font-bold">{totalBeds}</p>
+            <p className="mt-2 text-sm text-slate-400">
+              Across {hostels.length} hostels
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Occupied</p>
+            <p className="mt-2 text-3xl font-bold">{occupiedBeds}</p>
+            <p className="mt-2 text-sm text-slate-400">Currently booked beds</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Vacant</p>
+            <p className="mt-2 text-3xl font-bold text-emerald-600">
+              {vacantBeds}
+            </p>
+            <p className="mt-2 text-sm text-slate-400">Available for booking</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Occupancy</p>
+            <p className="mt-2 text-3xl font-bold">{occupancy}%</p>
+
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-indigo-600"
+                style={{ width: `${occupancy}%` }}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="mt-8 grid gap-4 sm:grid-cols-2">
+          <button className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-left transition hover:bg-indigo-100">
+            <p className="text-lg font-semibold text-indigo-900">
+              Find an Available Bed
+            </p>
+            <p className="mt-1 text-sm text-indigo-700">
+              Search availability by hostel, room type and dates.
+            </p>
+          </button>
+
+          <button className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:bg-slate-50">
+            <p className="text-lg font-semibold">View Upcoming Vacancies</p>
+            <p className="mt-1 text-sm text-slate-500">
+              See beds that will become available soon.
+            </p>
+          </button>
+        </section>
+
+        {/* Hostel Cards */}
+        <section className="mt-10">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold">Hostels</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Select a hostel to view floors, rooms and individual beds.
+            </p>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-3">
+            {hostels.map((hostel) => {
+              const hostelOccupancy = Math.round(
+                (hostel.occupied / hostel.beds) * 100
+              );
+
+              return (
+                <div
+                  key={hostel.name}
+                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold">{hostel.name}</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {hostel.floors} floors · {hostel.rooms} rooms
+                      </p>
+                    </div>
+
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                      {hostel.vacant} vacant
+                    </span>
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xl font-bold">{hostel.beds}</p>
+                      <p className="mt-1 text-xs text-slate-500">Beds</p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xl font-bold">{hostel.occupied}</p>
+                      <p className="mt-1 text-xs text-slate-500">Occupied</p>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 p-3">
+                      <p className="text-xl font-bold text-emerald-600">
+                        {hostel.vacant}
+                      </p>
+                      <p className="mt-1 text-xs text-emerald-700">Vacant</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="mb-2 flex justify-between text-sm">
+                      <span className="text-slate-500">Occupancy</span>
+                      <span className="font-semibold">
+                        {hostelOccupancy}%
+                      </span>
+                    </div>
+
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-indigo-600"
+                        style={{ width: `${hostelOccupancy}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <button className="mt-6 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50">
+                    View Hostel →
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Status Legend */}
+        <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-4 text-sm font-semibold text-slate-700">
+            Bed Status
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+          <div className="flex flex-wrap gap-5 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-emerald-500" />
+              Vacant
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-red-500" />
+              Occupied
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-amber-500" />
+              Vacating Soon
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-blue-500" />
+              Future Booking
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-slate-400" />
+              Maintenance
+            </div>
+          </div>
+        </section>
+
+        <footer className="py-8 text-center text-sm text-slate-400">
+          Hostel Manager · Prototype
+        </footer>
+      </div>
+    </main>
   );
 }
