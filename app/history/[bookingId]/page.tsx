@@ -177,6 +177,7 @@ export default async function BookingHistoryDetailsPage({
             <Row label="Room" value={`Room ${booking.room_number}`} />
             <Row label="Bed" value={booking.bed_number} />
             <Row label="Bed ID" value={booking.bed_code || "Not set"} />
+          </Card>
 
         </section>
 
