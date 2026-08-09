@@ -128,6 +128,13 @@ export default async function Home() {
           </div>
          <div className="flex flex-wrap gap-3">
   <a
+    href="/residents"
+    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+  >
+    Residents
+  </a>
+
+  <a
     href="/history"
     className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
   >
