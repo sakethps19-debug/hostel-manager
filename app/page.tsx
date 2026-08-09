@@ -60,7 +60,9 @@ export default async function Home() {
   );
 
   const occupancy =
-    totalBeds === 0 ? 0 : Math.round((occupiedBeds / totalBeds) * 100);
+    totalBeds === 0
+      ? 0
+      : Math.round((occupiedBeds / totalBeds) * 1000) / 10;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -172,8 +174,8 @@ export default async function Home() {
                   : Math.round(
                       (Number(hostel.occupied_beds) /
                         Number(hostel.total_beds)) *
-                        100
-                    );
+                        1000
+                    ) / 10;
 
               return (
                 <div
