@@ -266,6 +266,11 @@ export default async function RoomPage({ params }: PageProps) {
                           </div>
                         </div>
                       </>
+                    ) : status === "maintenance" ? (
+                      <p className="text-sm text-slate-500">
+                        This bed is currently under maintenance and not
+                        available for booking.
+                      </p>
                     ) : status === "reserved" ? (
                       <>
                         <p className="text-sm text-slate-500">
@@ -309,13 +314,29 @@ export default async function RoomPage({ params }: PageProps) {
                     >
                       View Resident
                     </a>
-                  ) : (
+                  ) : status === "maintenance" ? (
                     <a
-                      href={`/${hostelSlug}/room/${roomNumber}/book/${bed.bed_id}`}
-                      className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+                      href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/maintenance`}
+                      className="mt-6 block w-full rounded-xl bg-slate-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"
                     >
-                      Book This Bed
+                      View Maintenance
                     </a>
+                  ) : (
+                    <>
+                      <a
+                        href={`/${hostelSlug}/room/${roomNumber}/book/${bed.bed_id}`}
+                        className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+                      >
+                        Book This Bed
+                      </a>
+
+                      <a
+                        href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/maintenance`}
+                        className="mt-2 block w-full rounded-xl border border-slate-200 px-4 py-2 text-center text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                      >
+                        Mark for Maintenance
+                      </a>
+                    </>
                   )}
                 </div>
               );
