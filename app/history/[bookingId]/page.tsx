@@ -25,6 +25,25 @@ type BookingDetails = {
   created_at: string;
 };
 
+type Deduction = {
+  category: string;
+  amount: number;
+  notes: string | null;
+};
+
+type Settlement = {
+  settlement_id: number;
+  settlement_date: string;
+  outstanding_rent: number;
+  other_charges: number;
+  deposit_held: number;
+  deductions_total: number;
+  refund_amount: number;
+  final_balance: number;
+  notes: string | null;
+  deductions: Deduction[];
+};
+
 type PageProps = {
   params: Promise<{
     bookingId: string;
@@ -67,6 +86,36 @@ async function getBookingDetails(
   return data.length ? data[0] : null;
 }
 
+async function getSettlement(bookingId: string): Promise<Settlement | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_booking_settlement`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_booking_id: Number(bookingId) }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const data: Settlement[] = await response.json();
+  return data.length > 0 && data[0].settlement_id ? data[0] : null;
+}
+
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString(
     "en-IN",
@@ -92,6 +141,11 @@ export default async function BookingHistoryDetailsPage({
   if (!booking) {
     notFound();
   }
+
+  const settlement =
+    booking.booking_status === "completed"
+      ? await getSettlement(bookingId)
+      : null;
 
   const active =
     booking.booking_status === "confirmed" ||
@@ -204,6 +258,83 @@ export default async function BookingHistoryDetailsPage({
           />
 
         </section>
+
+        {settlement && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h2 className="text-xl font-bold">
+              Final Settlement
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Settled on {formatDate(settlement.settlement_date)}
+            </p>
+
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <Info
+                label="Outstanding Rent"
+                value={money(settlement.outstanding_rent)}
+              />
+              <Info
+                label="Other Charges"
+                value={money(settlement.other_charges)}
+              />
+              <Info
+                label="Deposit Held"
+                value={money(settlement.deposit_held)}
+              />
+              <Info
+                label="Deductions"
+                value={money(settlement.deductions_total)}
+              />
+            </div>
+
+            {settlement.deductions.length > 0 && (
+              <div className="mt-5">
+                <p className="text-xs font-medium text-slate-400">
+                  Deduction Breakdown
+                </p>
+                <div className="mt-2 space-y-2">
+                  {settlement.deductions.map((d, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2 text-sm"
+                    >
+                      <span>
+                        {d.category}
+                        {d.notes ? ` — ${d.notes}` : ""}
+                      </span>
+                      <span className="font-semibold">
+                        {money(d.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5 rounded-xl bg-slate-50 p-5">
+              {settlement.final_balance >= 0 ? (
+                <div className="flex justify-between text-lg font-bold text-emerald-600">
+                  <span>Refund Amount</span>
+                  <span>{money(settlement.refund_amount)}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-lg font-bold text-red-600">
+                  <span>Amount Owed by Resident</span>
+                  <span>{money(Math.abs(settlement.final_balance))}</span>
+                </div>
+              )}
+            </div>
+
+            {settlement.notes && (
+              <p className="mt-4 text-sm text-slate-600">
+                {settlement.notes}
+              </p>
+            )}
+
+          </section>
+        )}
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
