@@ -13,6 +13,7 @@ type UpcomingVacancyRow = {
   end_date: string;
   days_left: number;
   monthly_rent: number;
+  is_notice_given: boolean;
 };
 
 async function getUpcomingVacancies(): Promise<UpcomingVacancyRow[]> {
@@ -126,6 +127,11 @@ export default async function VacanciesPage() {
 
                       <td className="px-6 py-5 whitespace-nowrap">
                         {formatDate(vacancy.end_date)}
+                        {vacancy.is_notice_given && (
+                          <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                            Notice Given
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-6 py-5">

@@ -1,22 +1,30 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
+import { deriveBedStatus } from "@/lib/bedStatus";
+import OccupancyProgressBar from "@/components/OccupancyProgressBar";
+import OccupancyLegend from "@/components/OccupancyLegend";
+import RoomOccupancyCard from "@/components/RoomOccupancyCard";
 
-type RoomRow = {
+type BedGridRow = {
+  bed_id: number;
+  bed_code: string | null;
+  bed_number: string;
+  room_number: string;
   floor_number: number;
   floor_name: string | null;
-  room_number: string;
   sharing_type: number;
   monthly_rent: number;
-  total_beds: number;
-  occupied_beds: number;
-  vacant_beds: number;
+  bed_status: string;
+  occupant_name: string | null;
+  notice_given_at: string | null;
+  is_future_booking: boolean;
 };
 
 type PageProps = {
   params: Promise<{ hostelSlug: string }>;
 };
 
-async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
+async function getHostelBedGrid(hostelName: string): Promise<BedGridRow[]> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -25,7 +33,7 @@ async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
   }
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_hostel_rooms`,
+    `${supabaseUrl}/rest/v1/rpc/get_hostel_bed_grid`,
     {
       method: "POST",
       headers: {
@@ -55,18 +63,44 @@ export default async function HostelPage({ params }: PageProps) {
     notFound();
   }
 
-  const rooms = await getHostelRooms(hostelName);
+  const beds = await getHostelBedGrid(hostelName);
 
-  const totalBeds = rooms.reduce((sum, room) => sum + room.total_beds, 0);
-  const occupiedBeds = rooms.reduce(
-    (sum, room) => sum + room.occupied_beds,
-    0
-  );
-  const vacantBeds = rooms.reduce((sum, room) => sum + room.vacant_beds, 0);
+  const totalBeds = beds.length;
+
+  const statusCounts = {
+    available: 0,
+    occupied: 0,
+    vacating_soon: 0,
+    reserved: 0,
+    maintenance: 0,
+  };
+
+  for (const bed of beds) {
+    const status = deriveBedStatus(bed);
+    statusCounts[status] += 1;
+  }
+
+  const occupiedTotal = statusCounts.occupied + statusCounts.vacating_soon;
+  const occupancy =
+    totalBeds === 0 ? 0 : Math.round((occupiedTotal / totalBeds) * 1000) / 10;
 
   const floors = Array.from(
-    new Set(rooms.map((room) => room.floor_number))
+    new Set(beds.map((bed) => bed.floor_number))
   ).sort((a, b) => a - b);
+
+  const rooms = Array.from(
+    new Map(
+      beds.map((bed) => [
+        `${bed.floor_number}|${bed.room_number}`,
+        {
+          floorNumber: bed.floor_number,
+          roomNumber: bed.room_number,
+          sharingType: bed.sharing_type,
+          monthlyRent: bed.monthly_rent,
+        },
+      ])
+    ).values()
+  );
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -104,24 +138,39 @@ export default async function HostelPage({ params }: PageProps) {
           </a>
         </div>
 
-        <section className="mb-10 grid gap-4 sm:grid-cols-3">
-          <StatCard label="Total Beds" value={totalBeds} />
-          <StatCard label="Occupied" value={occupiedBeds} />
-          <StatCard label="Vacant" value={vacantBeds} green />
+        <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCard label="Total Beds" value={totalBeds} />
+            <StatCard label="Occupied" value={statusCounts.occupied} />
+            <StatCard label="Available" value={statusCounts.available} green />
+            <StatCard label="Vacating Soon" value={statusCounts.vacating_soon} />
+            <StatCard label="Reserved" value={statusCounts.reserved} />
+            <StatCard label="Maintenance" value={statusCounts.maintenance} />
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 flex justify-between text-sm">
+              <span className="text-slate-500">Occupancy</span>
+              <span className="font-semibold">{occupancy}%</span>
+            </div>
+            <OccupancyProgressBar percent={occupancy} />
+          </div>
+
+          <div className="mt-5">
+            <OccupancyLegend />
+          </div>
         </section>
 
         <div id="floors" className="space-y-10 scroll-mt-6">
           {floors.map((floor) => {
-            const floorRooms = rooms.filter(
-              (room) => room.floor_number === floor
-            );
+            const floorBeds = beds.filter((b) => b.floor_number === floor);
+            const floorRooms = rooms.filter((r) => r.floorNumber === floor);
+            const floorName = floorBeds[0]?.floor_name || `Floor ${floor}`;
 
             return (
               <section key={floor}>
                 <div className="mb-4">
-                  <h2 className="text-2xl font-bold">
-                    {floorRooms[0]?.floor_name || `Floor ${floor}`}
-                  </h2>
+                  <h2 className="text-2xl font-bold">{floorName}</h2>
 
                   <p className="text-sm text-slate-500">
                     {floorRooms.length} room
@@ -130,66 +179,25 @@ export default async function HostelPage({ params }: PageProps) {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {floorRooms.map((room) => (
-                    <div
-                      key={room.room_number}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-xl font-bold">
-                            Room {room.room_number}
-                          </h3>
+                  {floorRooms.map((room) => {
+                    const roomBeds = floorBeds
+                      .filter((b) => b.room_number === room.roomNumber)
+                      .map((b) => ({
+                        bedId: b.bed_id,
+                        status: deriveBedStatus(b),
+                      }));
 
-                          <p className="mt-1 text-sm text-slate-500">
-                            {room.sharing_type} Sharing
-                          </p>
-                        </div>
-
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-                          {room.vacant_beds} vacant
-                        </span>
-                      </div>
-
-                      <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-                        <RoomStat
-                          value={room.total_beds}
-                          label="Beds"
-                        />
-
-                        <RoomStat
-                          value={room.occupied_beds}
-                          label="Occupied"
-                        />
-
-                        <RoomStat
-                          value={room.vacant_beds}
-                          label="Vacant"
-                          green
-                        />
-                      </div>
-
-                      <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-                        <div>
-                          <p className="text-xs text-slate-400">
-                            Monthly Fee
-                          </p>
-
-                          <p className="text-lg font-bold">
-                            {Number(room.monthly_rent) > 0
-                              ? `Rs. ${Number(room.monthly_rent).toLocaleString("en-IN")}`
-                              : "Rate not set"}
-                          </p>
-                        </div>
-                        <a
-                          href={`/${hostelSlug}/room/${room.room_number}`}
-                          className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
-                        >
-                          View Beds →
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                    return (
+                      <RoomOccupancyCard
+                        key={room.roomNumber}
+                        roomNumber={room.roomNumber}
+                        sharingType={room.sharingType}
+                        monthlyRent={room.monthlyRent}
+                        beds={roomBeds}
+                        href={`/${hostelSlug}/room/${room.roomNumber}`}
+                      />
+                    );
+                  })}
                 </div>
               </section>
             );
@@ -210,44 +218,16 @@ function StatCard({
   green?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-
-      <p
-        className={`mt-2 text-3xl font-bold ${
-          green ? "text-emerald-600" : ""
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function RoomStat({
-  value,
-  label,
-  green = false,
-}: {
-  value: number;
-  label: string;
-  green?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-xl p-3 ${
-        green ? "bg-emerald-50" : "bg-slate-50"
-      }`}
-    >
-      <p
-        className={`text-lg font-bold ${
-          green ? "text-emerald-600" : ""
-        }`}
-      >
-        {value}
-      </p>
-
+    <div className="rounded-xl bg-slate-50 p-4">
       <p className="text-xs text-slate-500">{label}</p>
+
+      <p
+        className={`mt-1 text-2xl font-bold ${
+          green ? "text-emerald-600" : ""
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
