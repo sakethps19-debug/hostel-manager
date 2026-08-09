@@ -60,6 +60,17 @@ type PaymentHistoryRow = {
   reversed_reason: string | null;
 };
 
+type ProfileExtra = {
+  date_of_birth: string | null;
+  gender: string | null;
+  photo_url: string | null;
+  employer_or_college: string | null;
+  occupation_or_course: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_mobile: string | null;
+};
+
 type PageProps = {
   params: Promise<{
     hostelSlug: string;
@@ -207,6 +218,85 @@ async function getDepositSummary(
   return data.length > 0 ? data[0] : null;
 }
 
+async function getProfileExtra(
+  residentId: number
+): Promise<ProfileExtra | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_resident_profile_extra`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_resident_id: residentId }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load additional profile details: ${await response.text()}`
+    );
+  }
+
+  const data: ProfileExtra[] = await response.json();
+  return data.length > 0 ? data[0] : null;
+}
+
+function computeProfileCompleteness(
+  resident: ResidentDetails,
+  extra: ProfileExtra | null
+) {
+  const hasMobile = Boolean(resident.mobile_number);
+  const hasAddress = Boolean(resident.home_address);
+  const hasIdProof = Boolean(resident.id_proof_number);
+  const hasDeposit = Number(resident.security_deposit || 0) > 0;
+  const hasEmergencyContact = Boolean(
+    (extra?.emergency_contact_name && extra?.emergency_contact_mobile) ||
+      resident.emergency_contact
+  );
+  const hasPhoto = Boolean(extra?.photo_url);
+
+  const checklist = [
+    { label: "Mobile Number", done: hasMobile },
+    { label: "Home Address", done: hasAddress },
+    { label: "ID Proof", done: hasIdProof },
+    { label: "Security Deposit", done: hasDeposit },
+    { label: "Emergency Contact", done: hasEmergencyContact },
+    { label: "Photo", done: hasPhoto },
+  ];
+
+  const percent = Math.round(
+    (checklist.filter((item) => item.done).length / checklist.length) * 100
+  );
+
+  return { percent, checklist };
+}
+
+function formatDobAge(dob: string) {
+  const birth = new Date(`${dob}T00:00:00`);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return `${birth.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })} (${age} yrs)`;
+}
+
 function getDepositStatusClasses(status: string) {
   if (status === "Held") return "bg-emerald-50 text-emerald-700";
   if (status === "Refunded") return "bg-slate-100 text-slate-600";
@@ -267,6 +357,8 @@ export default async function ResidentPage({
   const ledger = await getBookingLedger(resident.booking_id);
   const payments = await getPaymentHistory(resident.booking_id);
   const deposit = await getDepositSummary(resident.booking_id);
+  const profileExtra = await getProfileExtra(resident.resident_id);
+  const completeness = computeProfileCompleteness(resident, profileExtra);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -324,7 +416,43 @@ export default async function ResidentPage({
           </div>
         )}
 
-        <section className="mt-10 grid gap-5 md:grid-cols-2">
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-700">
+              Profile {completeness.percent}% Complete
+            </p>
+          </div>
+
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={`h-full rounded-full ${
+                completeness.percent === 100
+                  ? "bg-emerald-500"
+                  : completeness.percent >= 50
+                  ? "bg-amber-500"
+                  : "bg-red-500"
+              }`}
+              style={{ width: `${completeness.percent}%` }}
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {completeness.checklist.map((item) => (
+              <span
+                key={item.label}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  item.done
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {item.done ? "✓" : "○"} {item.label}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-5 grid gap-5 md:grid-cols-2">
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
@@ -352,7 +480,17 @@ export default async function ResidentPage({
               <DetailRow
                 label="Emergency Contact"
                 value={
-                  resident.emergency_contact || "Not provided"
+                  profileExtra?.emergency_contact_name
+                    ? `${profileExtra.emergency_contact_name}${
+                        profileExtra.emergency_contact_relationship
+                          ? ` (${profileExtra.emergency_contact_relationship})`
+                          : ""
+                      }${
+                        profileExtra.emergency_contact_mobile
+                          ? ` · ${profileExtra.emergency_contact_mobile}`
+                          : ""
+                      }`
+                    : resident.emergency_contact || "Not provided"
                 }
               />
 <DetailRow
@@ -412,6 +550,42 @@ export default async function ResidentPage({
               />
 
             </div>
+
+          </div>
+
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <h2 className="text-xl font-bold">
+            Additional Details
+          </h2>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+
+            <DetailRow
+              label="Date of Birth"
+              value={
+                profileExtra?.date_of_birth
+                  ? formatDobAge(profileExtra.date_of_birth)
+                  : "Not provided"
+              }
+            />
+
+            <DetailRow
+              label="Gender"
+              value={profileExtra?.gender || "Not provided"}
+            />
+
+            <DetailRow
+              label="Employer / College"
+              value={profileExtra?.employer_or_college || "Not provided"}
+            />
+
+            <DetailRow
+              label="Occupation / Course"
+              value={profileExtra?.occupation_or_course || "Not provided"}
+            />
 
           </div>
 

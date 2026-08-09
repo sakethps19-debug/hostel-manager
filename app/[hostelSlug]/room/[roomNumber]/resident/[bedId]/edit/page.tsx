@@ -22,6 +22,17 @@ id_proof_number: string | null;
   hostel_name: string;
 };
 
+type ProfileExtra = {
+  date_of_birth: string | null;
+  gender: string | null;
+  photo_url: string | null;
+  employer_or_college: string | null;
+  occupation_or_course: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_mobile: string | null;
+};
+
 export default function EditResidentPage() {
   const params = useParams();
   const router = useRouter();
@@ -48,6 +59,15 @@ const [idProofNumber, setIdProofNumber] = useState("");
   const [endDate, setEndDate] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [securityDeposit, setSecurityDeposit] = useState("");
+
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("");
+  const [employerOrCollege, setEmployerOrCollege] = useState("");
+  const [occupationOrCourse, setOccupationOrCourse] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
+  const [emergencyContactMobile, setEmergencyContactMobile] = useState("");
 
   useEffect(() => {
     async function loadDetails() {
@@ -103,6 +123,38 @@ setIdProofNumber(resident.id_proof_number || "");
         setEndDate(resident.end_date);
         setMonthlyRent(String(resident.monthly_rent));
         setSecurityDeposit(String(resident.security_deposit || 0));
+
+        const extraResponse = await fetch(
+          `${supabaseUrl}/rest/v1/rpc/get_resident_profile_extra`,
+          {
+            method: "POST",
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              p_resident_id: resident.resident_id,
+            }),
+          }
+        );
+
+        if (extraResponse.ok) {
+          const extraData: ProfileExtra[] = await extraResponse.json();
+          const extra = extraData.length > 0 ? extraData[0] : null;
+
+          if (extra) {
+            setDateOfBirth(extra.date_of_birth || "");
+            setGender(extra.gender || "");
+            setEmployerOrCollege(extra.employer_or_college || "");
+            setOccupationOrCourse(extra.occupation_or_course || "");
+            setEmergencyContactName(extra.emergency_contact_name || "");
+            setEmergencyContactRelationship(
+              extra.emergency_contact_relationship || ""
+            );
+            setEmergencyContactMobile(extra.emergency_contact_mobile || "");
+          }
+        }
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -217,6 +269,35 @@ p_id_proof_number: idProofNumber,
         }
 
         throw new Error(error);
+      }
+
+      const extraResponse = await fetch(
+        `${supabaseUrl}/rest/v1/rpc/update_resident_profile_extra`,
+        {
+          method: "POST",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            p_resident_id: details.resident_id,
+            p_date_of_birth: dateOfBirth || null,
+            p_gender: gender || null,
+            p_employer_or_college: employerOrCollege || null,
+            p_occupation_or_course: occupationOrCourse || null,
+            p_emergency_contact_name: emergencyContactName || null,
+            p_emergency_contact_relationship:
+              emergencyContactRelationship || null,
+            p_emergency_contact_mobile: emergencyContactMobile || null,
+          }),
+        }
+      );
+
+      if (!extraResponse.ok) {
+        throw new Error(
+          `Core details saved, but additional details failed to save: ${await extraResponse.text()}`
+        );
       }
 
       router.push(
@@ -365,6 +446,89 @@ p_id_proof_number: idProofNumber,
                   className="input-style"
                   rows={2}
                   placeholder="Workplace or college address"
+                />
+              </Field>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">
+              Additional Details
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Optional — helps complete the resident profile.
+            </p>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <Field label="Date of Birth">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Gender">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="input-style"
+                >
+                  <option value="">Not specified</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="Employer / College">
+                <input
+                  value={employerOrCollege}
+                  onChange={(e) => setEmployerOrCollege(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Occupation / Course">
+                <input
+                  value={occupationOrCourse}
+                  onChange={(e) => setOccupationOrCourse(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Name">
+                <input
+                  value={emergencyContactName}
+                  onChange={(e) => setEmergencyContactName(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Relationship">
+                <input
+                  value={emergencyContactRelationship}
+                  onChange={(e) =>
+                    setEmergencyContactRelationship(e.target.value)
+                  }
+                  className="input-style"
+                  placeholder="e.g. Father, Mother, Sibling"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Mobile">
+                <input
+                  type="tel"
+                  value={emergencyContactMobile}
+                  onChange={(e) =>
+                    setEmergencyContactMobile(
+                      e.target.value.replace(/\D/g, "").slice(0, 10)
+                    )
+                  }
+                  className="input-style"
+                  inputMode="numeric"
+                  maxLength={10}
                 />
               </Field>
             </div>
