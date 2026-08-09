@@ -44,6 +44,17 @@ type Settlement = {
   deductions: Deduction[];
 };
 
+type TransferRecord = {
+  transfer_id: number;
+  old_booking_id: number;
+  new_booking_id: number;
+  transfer_date: string;
+  reason: string;
+  new_hostel_name: string;
+  new_room_number: string;
+  new_bed_code: string | null;
+};
+
 type PageProps = {
   params: Promise<{
     bookingId: string;
@@ -116,6 +127,35 @@ async function getSettlement(bookingId: string): Promise<Settlement | null> {
   return data.length > 0 && data[0].settlement_id ? data[0] : null;
 }
 
+async function getTransferHistory(residentId: number): Promise<TransferRecord[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_transfer_history`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_resident_id: residentId }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+}
+
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString(
     "en-IN",
@@ -146,6 +186,14 @@ export default async function BookingHistoryDetailsPage({
     booking.booking_status === "completed"
       ? await getSettlement(bookingId)
       : null;
+
+  const transfers = await getTransferHistory(booking.resident_id);
+  const outgoingTransfer = transfers.find(
+    (t) => t.old_booking_id === booking.booking_id
+  );
+  const incomingTransfer = transfers.find(
+    (t) => t.new_booking_id === booking.booking_id
+  );
 
   const active =
     booking.booking_status === "confirmed" ||
@@ -190,6 +238,44 @@ export default async function BookingHistoryDetailsPage({
           </span>
 
         </div>
+
+        {outgoingTransfer && (
+          <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+            <p className="font-semibold text-blue-800">
+              Transferred on {formatDate(outgoingTransfer.transfer_date)}
+            </p>
+            <p className="mt-1 text-sm text-blue-700">
+              Moved to {outgoingTransfer.new_hostel_name} / Room{" "}
+              {outgoingTransfer.new_room_number} ·{" "}
+              {outgoingTransfer.new_bed_code || "-"} ({outgoingTransfer.reason}
+              ).{" "}
+              <a
+                href={`/history/${outgoingTransfer.new_booking_id}`}
+                className="font-semibold underline"
+              >
+                View new booking →
+              </a>
+            </p>
+          </div>
+        )}
+
+        {incomingTransfer && (
+          <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+            <p className="font-semibold text-blue-800">
+              Started via transfer on{" "}
+              {formatDate(incomingTransfer.transfer_date)}
+            </p>
+            <p className="mt-1 text-sm text-blue-700">
+              {incomingTransfer.reason}.{" "}
+              <a
+                href={`/history/${incomingTransfer.old_booking_id}`}
+                className="font-semibold underline"
+              >
+                View previous booking →
+              </a>
+            </p>
+          </div>
+        )}
 
         <section className="mt-10 grid gap-5 md:grid-cols-2">
 

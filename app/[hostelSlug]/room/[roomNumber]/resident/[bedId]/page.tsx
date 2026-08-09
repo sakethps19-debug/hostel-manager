@@ -60,6 +60,21 @@ type PaymentHistoryRow = {
   reversed_reason: string | null;
 };
 
+type TransferRecord = {
+  transfer_id: number;
+  transfer_date: string;
+  reason: string;
+  notes: string | null;
+  old_hostel_name: string;
+  old_room_number: string;
+  old_bed_code: string | null;
+  new_hostel_name: string;
+  new_room_number: string;
+  new_bed_code: string | null;
+  rent_before: number | null;
+  rent_after: number | null;
+};
+
 type ProfileExtra = {
   date_of_birth: string | null;
   gender: string | null;
@@ -252,6 +267,39 @@ async function getProfileExtra(
   return data.length > 0 ? data[0] : null;
 }
 
+async function getTransferHistory(
+  residentId: number
+): Promise<TransferRecord[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_transfer_history`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_resident_id: residentId }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load transfer history: ${await response.text()}`
+    );
+  }
+
+  return response.json();
+}
+
 function computeProfileCompleteness(
   resident: ResidentDetails,
   extra: ProfileExtra | null
@@ -359,6 +407,7 @@ export default async function ResidentPage({
   const deposit = await getDepositSummary(resident.booking_id);
   const profileExtra = await getProfileExtra(resident.resident_id);
   const completeness = computeProfileCompleteness(resident, profileExtra);
+  const transfers = await getTransferHistory(resident.resident_id);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -804,6 +853,43 @@ export default async function ResidentPage({
 
         </section>
 
+        {transfers.length > 0 && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Transfer History</h2>
+
+            <div className="mt-5 space-y-4">
+              {transfers.map((transfer) => (
+                <div
+                  key={transfer.transfer_id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+                  <p className="text-xs font-medium text-slate-400">
+                    {formatDate(transfer.transfer_date)} · {transfer.reason}
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {transfer.old_hostel_name} / Room{" "}
+                    {transfer.old_room_number} ·{" "}
+                    {transfer.old_bed_code || "-"} → {transfer.new_hostel_name}{" "}
+                    / Room {transfer.new_room_number} ·{" "}
+                    {transfer.new_bed_code || "-"}
+                  </p>
+                  {transfer.rent_before !== transfer.rent_after && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Rent changed from {formatMoney(transfer.rent_before)} to{" "}
+                      {formatMoney(transfer.rent_after)}
+                    </p>
+                  )}
+                  {transfer.notes && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      {transfer.notes}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
           <h2 className="text-xl font-bold">
@@ -824,6 +910,15 @@ export default async function ResidentPage({
 >
   Edit Details
 </a>
+
+          {!resident.notice_given_at && (
+            <a
+              href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/transfer`}
+              className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Transfer to Another Bed
+            </a>
+          )}
 
           {!resident.notice_given_at && (
             <GiveNoticeButton bookingId={resident.booking_id} />
