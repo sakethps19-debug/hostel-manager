@@ -1,6 +1,7 @@
 import { slugifyHostelName } from "@/lib/hostel";
 import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
+import AlertCard from "@/components/AlertCard";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -21,6 +22,15 @@ type RentSummary = {
   outstanding_total: number;
   overdue_residents_count: number;
   security_deposit_agreed_total: number;
+};
+
+type OperationalAlerts = {
+  overdue_rent_count: number;
+  vacating_7_days_count: number;
+  vacating_30_days_count: number;
+  deposit_pending_count: number;
+  missing_id_proof_count: number;
+  maintenance_count: number;
 };
 
 async function getHostelDashboard(): Promise<HostelDashboardRow[]> {
@@ -86,6 +96,38 @@ async function getRentSummary(): Promise<RentSummary | null> {
   return data.length > 0 ? data[0] : null;
 }
 
+async function getOperationalAlerts(): Promise<OperationalAlerts | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_operational_alerts`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load operational alerts: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data: OperationalAlerts[] = await response.json();
+  return data.length > 0 ? data[0] : null;
+}
+
 function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
@@ -93,6 +135,7 @@ function formatMoney(value: number) {
 export default async function Home() {
   const hostels = await getHostelDashboard();
   const rentSummary = await getRentSummary();
+  const alerts = await getOperationalAlerts();
 
   const totalBeds = hostels.reduce(
     (sum, hostel) => sum + Number(hostel.total_beds),
@@ -229,6 +272,80 @@ export default async function Home() {
             <OccupancyLegend />
           </div>
         </section>
+
+        {alerts && (
+          <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="mb-4 text-sm font-semibold text-slate-700">
+              Needs Attention
+            </p>
+
+            {alerts.overdue_rent_count === 0 &&
+            alerts.vacating_7_days_count === 0 &&
+            alerts.deposit_pending_count === 0 &&
+            alerts.missing_id_proof_count === 0 &&
+            alerts.maintenance_count === 0 ? (
+              <p className="text-sm text-emerald-600">
+                All caught up — nothing needs attention right now.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {alerts.overdue_rent_count > 0 && (
+                  <AlertCard
+                    count={alerts.overdue_rent_count}
+                    label="Residents with overdue rent"
+                    href="/rent/overdue"
+                    tone="red"
+                  />
+                )}
+
+                {alerts.vacating_7_days_count > 0 && (
+                  <AlertCard
+                    count={alerts.vacating_7_days_count}
+                    label="Vacating within 7 days"
+                    href="/vacancies"
+                    tone="amber"
+                  />
+                )}
+
+                {alerts.vacating_30_days_count > 0 && (
+                  <AlertCard
+                    count={alerts.vacating_30_days_count}
+                    label="Vacating within 30 days"
+                    href="/vacancies"
+                    tone="amber"
+                  />
+                )}
+
+                {alerts.deposit_pending_count > 0 && (
+                  <AlertCard
+                    count={alerts.deposit_pending_count}
+                    label="Deposit pending"
+                    href="/residents"
+                    tone="blue"
+                  />
+                )}
+
+                {alerts.missing_id_proof_count > 0 && (
+                  <AlertCard
+                    count={alerts.missing_id_proof_count}
+                    label="Missing ID proof"
+                    href="/residents"
+                    tone="blue"
+                  />
+                )}
+
+                {alerts.maintenance_count > 0 && (
+                  <AlertCard
+                    count={alerts.maintenance_count}
+                    label="Beds under maintenance"
+                    href="/"
+                    tone="slate"
+                  />
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         {rentSummary && (
           <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
