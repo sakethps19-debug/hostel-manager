@@ -56,16 +56,42 @@ export default function BookingSearchTable({
   bookings: BookingHistoryRow[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedHostel, setSelectedHostel] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState("");
+
+  const hostelOptions = useMemo(
+    () =>
+      Array.from(new Set(bookings.map((booking) => booking.hostel_name))).sort(),
+    [bookings]
+  );
+
+  const roomOptions = useMemo(() => {
+    const rooms = bookings
+      .filter(
+        (booking) =>
+          !selectedHostel || booking.hostel_name === selectedHostel
+      )
+      .map((booking) => booking.room_number);
+
+    return Array.from(new Set(rooms)).sort();
+  }, [bookings, selectedHostel]);
 
   const filteredBookings = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
-    if (!query) return bookings;
+    return bookings.filter((booking) => {
+      const matchesName =
+        !query || booking.full_name.toLowerCase().includes(query);
 
-    return bookings.filter((booking) =>
-      booking.full_name.toLowerCase().includes(query)
-    );
-  }, [bookings, searchTerm]);
+      const matchesHostel =
+        !selectedHostel || booking.hostel_name === selectedHostel;
+
+      const matchesRoom =
+        !selectedRoom || booking.room_number === selectedRoom;
+
+      return matchesName && matchesHostel && matchesRoom;
+    });
+  }, [bookings, searchTerm, selectedHostel, selectedRoom]);
 
   return (
     <section className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -77,20 +103,51 @@ export default function BookingSearchTable({
           {filteredBookings.length === 1 ? "" : "s"}
         </p>
 
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search residents by name..."
-          className="mt-4 w-full max-w-sm rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-        />
+        <div className="mt-4 flex flex-wrap gap-3">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search residents by name..."
+            className="w-full max-w-sm rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+
+          <select
+            value={selectedHostel}
+            onChange={(e) => {
+              setSelectedHostel(e.target.value);
+              setSelectedRoom("");
+            }}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">All Hostels</option>
+            {hostelOptions.map((hostel) => (
+              <option key={hostel} value={hostel}>
+                {hostel}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedRoom}
+            onChange={(e) => setSelectedRoom(e.target.value)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">All Rooms</option>
+            {roomOptions.map((room) => (
+              <option key={room} value={room}>
+                Room {room}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {filteredBookings.length === 0 ? (
         <div className="px-6 py-16 text-center text-slate-500">
           {bookings.length === 0
             ? "No booking history available."
-            : "No residents match that search."}
+            : "No residents match the current filters."}
         </div>
       ) : (
         <div className="overflow-x-auto">
