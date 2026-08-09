@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import GiveNoticeButton from "./GiveNoticeButton";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -21,6 +22,9 @@ id_proof_number: string | null;
   room_number: string;
   floor_number: number;
   hostel_name: string;
+  notice_given_at: string | null;
+  expected_vacate_date: string | null;
+  notice_notes: string | null;
 };
 
 type BookingLedger = {
@@ -293,11 +297,32 @@ export default async function ResidentPage({
             </p>
           </div>
 
-          <span className="w-fit rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
-            Active Booking
+          <span
+            className={`w-fit rounded-full px-4 py-2 text-sm font-semibold ${
+              resident.notice_given_at
+                ? "bg-amber-50 text-amber-700"
+                : "bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {resident.notice_given_at ? "Vacating Soon" : "Active Booking"}
           </span>
 
         </div>
+
+        {resident.notice_given_at && (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <p className="font-semibold text-amber-800">
+              Notice given on {formatDate(resident.notice_given_at)}
+            </p>
+            <p className="mt-1 text-sm text-amber-700">
+              Expected to vacate on{" "}
+              {resident.expected_vacate_date
+                ? formatDate(resident.expected_vacate_date)
+                : "not specified"}
+              {resident.notice_notes ? ` — ${resident.notice_notes}` : ""}
+            </p>
+          </div>
+        )}
 
         <section className="mt-10 grid gap-5 md:grid-cols-2">
 
@@ -625,6 +650,10 @@ export default async function ResidentPage({
 >
   Edit Details
 </a>
+
+          {!resident.notice_given_at && (
+            <GiveNoticeButton bookingId={resident.booking_id} />
+          )}
 
           <a
             href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/settle`}

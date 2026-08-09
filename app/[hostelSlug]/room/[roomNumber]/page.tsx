@@ -10,6 +10,8 @@ type BedRow = {
   booking_start: string | null;
   booking_end: string | null;
   monthly_rent: number | null;
+  notice_given_at: string | null;
+  expected_vacate_date: string | null;
 };
 
 type RoomRow = {
@@ -183,6 +185,7 @@ export default async function RoomPage({ params }: PageProps) {
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {beds.map((bed) => {
               const isOccupied = bed.occupant_name !== null;
+              const isVacatingSoon = isOccupied && Boolean(bed.notice_given_at);
 
               return (
                 <div
@@ -206,12 +209,18 @@ export default async function RoomPage({ params }: PageProps) {
 
                     <span
                       className={
-                        isOccupied
+                        isVacatingSoon
+                          ? "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
+                          : isOccupied
                           ? "rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
                           : "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
                       }
                     >
-                      {isOccupied ? "Occupied" : "Vacant"}
+                      {isVacatingSoon
+                        ? "Vacating Soon"
+                        : isOccupied
+                        ? "Occupied"
+                        : "Vacant"}
                     </span>
                   </div>
 
