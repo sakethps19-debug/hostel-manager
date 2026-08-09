@@ -1,4 +1,6 @@
 import { slugifyHostelName } from "@/lib/hostel";
+import OccupancyProgressBar from "@/components/OccupancyProgressBar";
+import OccupancyLegend from "@/components/OccupancyLegend";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -8,6 +10,9 @@ type HostelDashboardRow = {
   total_beds: number;
   occupied_beds: number;
   vacant_beds: number;
+  vacating_soon_beds: number;
+  reserved_beds: number;
+  maintenance_beds: number;
 };
 
 type RentSummary = {
@@ -104,6 +109,21 @@ export default async function Home() {
     0
   );
 
+  const vacatingSoonBeds = hostels.reduce(
+    (sum, hostel) => sum + Number(hostel.vacating_soon_beds),
+    0
+  );
+
+  const reservedBeds = hostels.reduce(
+    (sum, hostel) => sum + Number(hostel.reserved_beds),
+    0
+  );
+
+  const maintenanceBeds = hostels.reduce(
+    (sum, hostel) => sum + Number(hostel.maintenance_beds),
+    0
+  );
+
   const occupancy =
     totalBeds === 0
       ? 0
@@ -150,39 +170,63 @@ export default async function Home() {
 </div>
         </div>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Total Beds</p>
-            <p className="mt-2 text-3xl font-bold">{totalBeds}</p>
-            <p className="mt-2 text-sm text-slate-400">
-              Across {hostels.length} hostels
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Occupied</p>
-            <p className="mt-2 text-3xl font-bold">{occupiedBeds}</p>
-            <p className="mt-2 text-sm text-slate-400">Currently booked beds</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Vacant</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-600">
-              {vacantBeds}
-            </p>
-            <p className="mt-2 text-sm text-slate-400">Available for booking</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Occupancy</p>
-            <p className="mt-2 text-3xl font-bold">{occupancy}%</p>
-
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-indigo-600"
-                style={{ width: `${occupancy}%` }}
-              />
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total Beds</p>
+              <p className="mt-1 text-2xl font-bold">{totalBeds}</p>
             </div>
+
+            <div>
+              <p className="text-sm font-medium text-slate-500">Occupied</p>
+              <p className="mt-1 text-2xl font-bold">{occupiedBeds}</p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-slate-500">Available</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">
+                {vacantBeds}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-slate-500">
+                Vacating Soon
+              </p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">
+                {vacatingSoonBeds}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-slate-500">Reserved</p>
+              <p className="mt-1 text-2xl font-bold text-blue-600">
+                {reservedBeds}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-slate-500">
+                Maintenance
+              </p>
+              <p className="mt-1 text-2xl font-bold text-slate-500">
+                {maintenanceBeds}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 flex justify-between text-sm">
+              <span className="text-slate-500">
+                Occupancy · Across {hostels.length} hostels
+              </span>
+              <span className="font-semibold">{occupancy}%</span>
+            </div>
+            <OccupancyProgressBar percent={occupancy} />
+          </div>
+
+          <div className="mt-5">
+            <OccupancyLegend />
           </div>
         </section>
 
@@ -347,7 +391,36 @@ export default async function Home() {
                       <p className="text-xl font-bold text-emerald-600">
                         {hostel.vacant_beds}
                       </p>
-                      <p className="mt-1 text-xs text-emerald-700">Vacant</p>
+                      <p className="mt-1 text-xs text-emerald-700">
+                        Available
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-xl bg-amber-50 p-3">
+                      <p className="text-lg font-bold text-amber-600">
+                        {hostel.vacating_soon_beds}
+                      </p>
+                      <p className="mt-1 text-xs text-amber-700">
+                        Vacating Soon
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-blue-50 p-3">
+                      <p className="text-lg font-bold text-blue-600">
+                        {hostel.reserved_beds}
+                      </p>
+                      <p className="mt-1 text-xs text-blue-700">Reserved</p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-lg font-bold text-slate-500">
+                        {hostel.maintenance_beds}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Maintenance
+                      </p>
                     </div>
                   </div>
 
@@ -359,12 +432,7 @@ export default async function Home() {
                       </span>
                     </div>
 
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-indigo-600"
-                        style={{ width: `${hostelOccupancy}%` }}
-                      />
-                    </div>
+                    <OccupancyProgressBar percent={hostelOccupancy} />
                   </div>
                  <a
     href={`/${slugifyHostelName(hostel.hostel_name)}`}
@@ -375,39 +443,6 @@ export default async function Home() {
                 </div>
               );
             })}
-          </div>
-        </section>
-
-        <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="mb-4 text-sm font-semibold text-slate-700">
-            Bed Status
-          </p>
-
-          <div className="flex flex-wrap gap-5 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-emerald-500" />
-              Vacant
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-red-500" />
-              Occupied
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-amber-500" />
-              Vacating Soon
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-blue-500" />
-              Future Booking
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-slate-400" />
-              Maintenance
-            </div>
           </div>
         </section>
 

@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
+import { deriveBedStatus, getBedStatusInfo } from "@/lib/bedStatus";
+import BedStatusIcon from "@/components/BedStatusIcon";
+import OccupancyLegend from "@/components/OccupancyLegend";
 
 type BedRow = {
   bed_id: number;
@@ -12,6 +15,8 @@ type BedRow = {
   monthly_rent: number | null;
   notice_given_at: string | null;
   expected_vacate_date: string | null;
+  is_future_booking: boolean;
+  future_start_date: string | null;
 };
 
 type RoomRow = {
@@ -174,18 +179,30 @@ export default async function RoomPage({ params }: PageProps) {
         </section>
 
         <section id="beds" className="mt-10 scroll-mt-6">
-          <h2 className="text-2xl font-bold">
-            Beds
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold">
+                Beds
+              </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Individual bed availability and resident details.
-          </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Individual bed availability and resident details.
+              </p>
+            </div>
+
+            <OccupancyLegend />
+          </div>
 
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {beds.map((bed) => {
               const isOccupied = bed.occupant_name !== null;
-              const isVacatingSoon = isOccupied && Boolean(bed.notice_given_at);
+              const status = deriveBedStatus({
+                occupant_name: bed.occupant_name,
+                notice_given_at: bed.notice_given_at,
+                is_future_booking: bed.is_future_booking,
+                bed_status: bed.bed_status,
+              });
+              const info = getBedStatusInfo(status);
 
               return (
                 <div
@@ -193,34 +210,24 @@ export default async function RoomPage({ params }: PageProps) {
                   className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 >
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-slate-400">
-                        BED ID
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <BedStatusIcon status={status} />
 
-                      <h3 className="mt-1 text-xl font-bold">
-                        {bed.bed_code || bed.bed_number}
-                      </h3>
+                      <div>
+                        <p className="text-xs font-medium text-slate-400">
+                          BED ID
+                        </p>
 
-                      <p className="mt-1 text-xs text-slate-400">
-                        {bed.bed_number}
-                      </p>
+                        <h3 className="text-xl font-bold">
+                          {bed.bed_code || bed.bed_number}
+                        </h3>
+                      </div>
                     </div>
 
                     <span
-                      className={
-                        isVacatingSoon
-                          ? "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
-                          : isOccupied
-                          ? "rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
-                          : "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                      }
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${info.badgeClasses}`}
                     >
-                      {isVacatingSoon
-                        ? "Vacating Soon"
-                        : isOccupied
-                        ? "Occupied"
-                        : "Vacant"}
+                      {info.label}
                     </span>
                   </div>
 
@@ -258,6 +265,22 @@ export default async function RoomPage({ params }: PageProps) {
                             </p>
                           </div>
                         </div>
+                      </>
+                    ) : status === "reserved" ? (
+                      <>
+                        <p className="text-sm text-slate-500">
+                          Reserved for a booking starting{" "}
+                          {bed.future_start_date
+                            ? formatDate(bed.future_start_date)
+                            : "soon"}
+                          .
+                        </p>
+
+                        <p className="mt-4 text-lg font-bold">
+                          {Number(room.monthly_rent) > 0
+                            ? `Rs. ${Number(room.monthly_rent).toLocaleString("en-IN")}`
+                            : "Rate not set"}
+                        </p>
                       </>
                     ) : (
                       <>
