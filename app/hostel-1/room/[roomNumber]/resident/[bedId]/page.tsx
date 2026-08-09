@@ -9,6 +9,8 @@ type ResidentDetails = {
   emergency_contact: string | null;
   id_proof_type: string | null;
 id_proof_number: string | null;
+  home_address: string | null;
+  work_college_address: string | null;
   notes: string | null;
   start_date: string;
   end_date: string;
@@ -168,6 +170,16 @@ export default async function ResidentPage({
 <DetailRow
   label="ID Proof Number / Value"
   value={resident.id_proof_number || "Not provided"}
+/>
+
+<DetailRow
+  label="Home Address"
+  value={resident.home_address || "Not provided"}
+/>
+
+<DetailRow
+  label="Work / College Address"
+  value={resident.work_college_address || "Not provided"}
 />
             </div>
 
