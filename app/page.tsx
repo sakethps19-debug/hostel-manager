@@ -10,6 +10,14 @@ type HostelDashboardRow = {
   vacant_beds: number;
 };
 
+type RentSummary = {
+  rent_due_this_month: number;
+  rent_collected_this_month: number;
+  outstanding_total: number;
+  overdue_residents_count: number;
+  security_deposit_agreed_total: number;
+};
+
 async function getHostelDashboard(): Promise<HostelDashboardRow[]> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -41,8 +49,45 @@ async function getHostelDashboard(): Promise<HostelDashboardRow[]> {
   return response.json();
 }
 
+async function getRentSummary(): Promise<RentSummary | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_rent_dashboard_summary`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load rent summary: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data: RentSummary[] = await response.json();
+  return data.length > 0 ? data[0] : null;
+}
+
+function formatMoney(value: number) {
+  return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
+}
+
 export default async function Home() {
   const hostels = await getHostelDashboard();
+  const rentSummary = await getRentSummary();
 
   const totalBeds = hostels.reduce(
     (sum, hostel) => sum + Number(hostel.total_beds),
@@ -133,6 +178,84 @@ export default async function Home() {
             </div>
           </div>
         </section>
+
+        {rentSummary && (
+          <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-700">
+                Rent Collection · This Month
+              </p>
+
+              <a
+                href="/rent/overdue"
+                className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+              >
+                View Overdue Rent →
+              </a>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-500">
+                  Rent Due
+                </p>
+                <p className="mt-2 text-2xl font-bold">
+                  {formatMoney(rentSummary.rent_due_this_month)}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-emerald-50 p-4">
+                <p className="text-xs font-medium text-emerald-700">
+                  Rent Collected
+                </p>
+                <p className="mt-2 text-2xl font-bold text-emerald-700">
+                  {formatMoney(rentSummary.rent_collected_this_month)}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-red-50 p-4">
+                <p className="text-xs font-medium text-red-700">
+                  Outstanding
+                </p>
+                <p className="mt-2 text-2xl font-bold text-red-700">
+                  {formatMoney(rentSummary.outstanding_total)}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-500">
+                  Collection %
+                </p>
+                <p className="mt-2 text-2xl font-bold">
+                  {rentSummary.rent_due_this_month > 0
+                    ? `${(
+                        (rentSummary.rent_collected_this_month /
+                          rentSummary.rent_due_this_month) *
+                        100
+                      ).toFixed(1)}%`
+                    : "-"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-5 text-sm text-slate-500">
+              <span>
+                <span className="font-semibold text-red-600">
+                  {rentSummary.overdue_residents_count}
+                </span>{" "}
+                resident{rentSummary.overdue_residents_count === 1 ? "" : "s"}{" "}
+                overdue
+              </span>
+
+              <span>
+                Security deposits agreed:{" "}
+                <span className="font-semibold text-slate-700">
+                  {formatMoney(rentSummary.security_deposit_agreed_total)}
+                </span>
+              </span>
+            </div>
+          </section>
+        )}
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2">
           <a
