@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import GiveNoticeButton from "./GiveNoticeButton";
+import ExtendStayButton from "./ExtendStayButton";
+import ReviseRentButton from "./ReviseRentButton";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -58,6 +60,15 @@ type PaymentHistoryRow = {
   notes: string | null;
   status: string;
   reversed_reason: string | null;
+};
+
+type RentRevisionRow = {
+  revision_id: number;
+  previous_rent: number;
+  new_rent: number;
+  effective_date: string;
+  reason: string | null;
+  notes: string | null;
 };
 
 type TransferRecord = {
@@ -300,6 +311,32 @@ async function getTransferHistory(
   return response.json();
 }
 
+async function getRentHistory(bookingId: number): Promise<RentRevisionRow[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_rent_history`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_booking_id: bookingId }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load rent history: ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
 function computeProfileCompleteness(
   resident: ResidentDetails,
   extra: ProfileExtra | null
@@ -408,6 +445,7 @@ export default async function ResidentPage({
   const profileExtra = await getProfileExtra(resident.resident_id);
   const completeness = computeProfileCompleteness(resident, profileExtra);
   const transfers = await getTransferHistory(resident.resident_id);
+  const rentHistory = await getRentHistory(resident.booking_id);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -674,6 +712,32 @@ export default async function ResidentPage({
 
         </section>
 
+        {rentHistory.length > 0 && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Rent History</h2>
+
+            <div className="mt-5 space-y-3">
+              {rentHistory.map((rev) => (
+                <div
+                  key={rev.revision_id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+                  <p className="text-xs font-medium text-slate-400">
+                    Effective from {formatDate(rev.effective_date)}
+                    {rev.reason ? ` · ${rev.reason}` : ""}
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {formatMoney(rev.previous_rent)} → {formatMoney(rev.new_rent)}
+                  </p>
+                  {rev.notes && (
+                    <p className="mt-1 text-sm text-slate-500">{rev.notes}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {deposit && (
           <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
@@ -918,6 +982,34 @@ export default async function ResidentPage({
             >
               Transfer to Another Bed
             </a>
+          )}
+
+          {!resident.notice_given_at && (
+            <ExtendStayButton
+              resident={{
+                booking_id: resident.booking_id,
+                full_name: resident.full_name,
+                mobile_number: resident.mobile_number,
+                email: resident.email,
+                emergency_contact: resident.emergency_contact,
+                id_proof_type: resident.id_proof_type,
+                id_proof_number: resident.id_proof_number,
+                home_address: resident.home_address,
+                work_college_address: resident.work_college_address,
+                notes: resident.notes,
+                start_date: resident.start_date,
+                end_date: resident.end_date,
+                monthly_rent: resident.monthly_rent,
+                security_deposit: resident.security_deposit,
+              }}
+            />
+          )}
+
+          {!resident.notice_given_at && (
+            <ReviseRentButton
+              bookingId={resident.booking_id}
+              currentRent={resident.monthly_rent}
+            />
           )}
 
           {!resident.notice_given_at && (
