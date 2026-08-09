@@ -43,6 +43,8 @@ export default function BookingPage() {
   const [emergencyContact, setEmergencyContact] = useState("");
   const [idProofType, setIdProofType] = useState("");
 const [idProofNumber, setIdProofNumber] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [workCollegeAddress, setWorkCollegeAddress] = useState("");
   const [notes, setNotes] = useState("");
 
   const [startDate, setStartDate] = useState("");
@@ -138,6 +140,8 @@ if (!idProofNumber.trim()) {
             p_emergency_contact: emergencyContact,
             p_id_proof_type: idProofType,
 p_id_proof_number: idProofNumber,
+            p_home_address: homeAddress,
+            p_work_college_address: workCollegeAddress,
             p_notes: notes,
             p_start_date: startDate,
             p_end_date: endDate,
@@ -279,7 +283,7 @@ p_id_proof_number: idProofNumber,
     <option value="Driving License">Driving License</option>
     <option value="Other">Other</option>
   </select>
-</Field>       
+</Field>
             <Field label="ID Proof Number / Value *">
   <input
     value={idProofNumber}
@@ -289,6 +293,26 @@ p_id_proof_number: idProofNumber,
     required
   />
 </Field>
+
+              <Field label="Home Address">
+                <textarea
+                  value={homeAddress}
+                  onChange={(e) => setHomeAddress(e.target.value)}
+                  className="input-style"
+                  rows={2}
+                  placeholder="Permanent / home address"
+                />
+              </Field>
+
+              <Field label="Work / College Address">
+                <textarea
+                  value={workCollegeAddress}
+                  onChange={(e) => setWorkCollegeAddress(e.target.value)}
+                  className="input-style"
+                  rows={2}
+                  placeholder="Workplace or college address"
+                />
+              </Field>
             </div>
 
           </section>

@@ -9,6 +9,8 @@ type BookingDetails = {
   emergency_contact: string | null;
   id_proof_type: string | null;
   id_proof_number: string | null;
+  home_address: string | null;
+  work_college_address: string | null;
   notes: string | null;
   hostel_name: string;
   floor_number: number;
@@ -157,6 +159,14 @@ export default async function BookingHistoryDetailsPage({
             <Row
               label="ID Proof Number / Value"
               value={booking.id_proof_number || "Not provided"}
+            />
+            <Row
+              label="Home Address"
+              value={booking.home_address || "Not provided"}
+            />
+            <Row
+              label="Work / College Address"
+              value={booking.work_college_address || "Not provided"}
             />
           </Card>
 

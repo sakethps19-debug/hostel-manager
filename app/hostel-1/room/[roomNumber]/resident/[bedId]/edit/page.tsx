@@ -12,6 +12,8 @@ type ResidentDetails = {
   emergency_contact: string | null;
  id_proof_type: string | null;
 id_proof_number: string | null;
+  home_address: string | null;
+  work_college_address: string | null;
   notes: string | null;
   start_date: string;
   end_date: string;
@@ -37,6 +39,8 @@ export default function EditResidentPage() {
   const [emergencyContact, setEmergencyContact] = useState("");
  const [idProofType, setIdProofType] = useState("");
 const [idProofNumber, setIdProofNumber] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [workCollegeAddress, setWorkCollegeAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -90,6 +94,8 @@ const [idProofNumber, setIdProofNumber] = useState("");
         setEmergencyContact(resident.emergency_contact || "");
        setIdProofType(resident.id_proof_type || "");
 setIdProofNumber(resident.id_proof_number || "");
+        setHomeAddress(resident.home_address || "");
+        setWorkCollegeAddress(resident.work_college_address || "");
         setNotes(resident.notes || "");
         setStartDate(resident.start_date);
         setEndDate(resident.end_date);
@@ -188,6 +194,8 @@ if (!idProofNumber.trim()) {
             p_emergency_contact: emergencyContact,
            p_id_proof_type: idProofType,
 p_id_proof_number: idProofNumber,
+            p_home_address: homeAddress,
+            p_work_college_address: workCollegeAddress,
             p_notes: notes,
             p_start_date: startDate,
             p_end_date: endDate,
@@ -337,6 +345,26 @@ p_id_proof_number: idProofNumber,
     required
   />
 </Field>
+
+              <Field label="Home Address">
+                <textarea
+                  value={homeAddress}
+                  onChange={(e) => setHomeAddress(e.target.value)}
+                  className="input-style"
+                  rows={2}
+                  placeholder="Permanent / home address"
+                />
+              </Field>
+
+              <Field label="Work / College Address">
+                <textarea
+                  value={workCollegeAddress}
+                  onChange={(e) => setWorkCollegeAddress(e.target.value)}
+                  className="input-style"
+                  rows={2}
+                  placeholder="Workplace or college address"
+                />
+              </Field>
             </div>
           </section>
 
