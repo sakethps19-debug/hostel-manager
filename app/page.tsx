@@ -131,21 +131,27 @@ export default async function Home() {
         </section>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2">
-          <button className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-left transition hover:bg-indigo-100">
+          <a
+            href="/find-bed"
+            className="block rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-left transition hover:bg-indigo-100"
+          >
             <p className="text-lg font-semibold text-indigo-900">
               Find an Available Bed
             </p>
             <p className="mt-1 text-sm text-indigo-700">
-              Search availability by hostel, room type and dates.
+              Search vacant beds by sharing type and rent.
             </p>
-          </button>
+          </a>
 
-          <button className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:bg-slate-50">
+          <a
+            href="/vacancies"
+            className="block rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:bg-slate-50"
+          >
             <p className="text-lg font-semibold">View Upcoming Vacancies</p>
             <p className="mt-1 text-sm text-slate-500">
               See beds that will become available soon.
             </p>
-          </button>
+          </a>
         </section>
 
         <section className="mt-10">
