@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { resolveHostelName } from "@/lib/hostel";
+
 type BedRow = {
   bed_id: number;
   bed_number: string;
@@ -8,13 +11,57 @@ type BedRow = {
   monthly_rent: number | null;
 };
 
+type RoomRow = {
+  floor_number: number;
+  room_number: string;
+  sharing_type: number;
+  monthly_rent: number;
+  total_beds: number;
+  occupied_beds: number;
+  vacant_beds: number;
+};
+
 type PageProps = {
   params: Promise<{
+    hostelSlug: string;
     roomNumber: string;
   }>;
 };
 
-async function getRoomBeds(roomNumber: string): Promise<BedRow[]> {
+async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_hostel_rooms`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_hostel_name: hostelName }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to load rooms: ${errorText}`);
+  }
+
+  return response.json();
+}
+
+async function getRoomBeds(
+  hostelName: string,
+  roomNumber: string
+): Promise<BedRow[]> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -32,7 +79,7 @@ async function getRoomBeds(roomNumber: string): Promise<BedRow[]> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        p_hostel_name: "Hostel 1",
+        p_hostel_name: hostelName,
         p_room_number: roomNumber,
       }),
       cache: "no-store",
@@ -55,33 +102,23 @@ function formatDate(date: string) {
   });
 }
 
-function getRoomDetails(roomNumber: string) {
-  const lastTwoDigits = roomNumber.slice(-2);
-
-  switch (lastTwoDigits) {
-    case "01":
-      return { sharing: 3, fee: 7000 };
-    case "02":
-    case "03":
-    case "04":
-    case "07":
-      return { sharing: 4, fee: 6000 };
-    case "05":
-    case "06":
-      return { sharing: 5, fee: 5500 };
-    default:
-      return { sharing: 0, fee: 0 };
-  }
-}
-
 export default async function RoomPage({ params }: PageProps) {
-  const { roomNumber } = await params;
+  const { hostelSlug, roomNumber } = await params;
 
-  const beds = await getRoomBeds(roomNumber);
+  const hostelName = await resolveHostelName(hostelSlug);
 
-  const { sharing, fee } = getRoomDetails(roomNumber);
+  if (!hostelName) {
+    notFound();
+  }
 
-  const floorNumber = roomNumber.charAt(0);
+  const rooms = await getHostelRooms(hostelName);
+  const room = rooms.find((r) => r.room_number === roomNumber);
+
+  if (!room) {
+    notFound();
+  }
+
+  const beds = await getRoomBeds(hostelName, roomNumber);
 
   const occupied = beds.filter(
     (bed) => bed.occupant_name !== null
@@ -94,16 +131,16 @@ export default async function RoomPage({ params }: PageProps) {
       <div className="mx-auto max-w-6xl">
 
         <a
-          href="/hostel-1"
+          href={`/${hostelSlug}`}
           className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
         >
-          ← Back to Hostel 1
+          ← Back to {hostelName}
         </a>
 
         <div className="mt-7 flex items-end justify-between gap-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-              Hostel 1 · Floor {floorNumber}
+              {hostelName} · Floor {room.floor_number}
             </p>
 
             <h1 className="mt-2 text-4xl font-bold">
@@ -111,7 +148,8 @@ export default async function RoomPage({ params }: PageProps) {
             </h1>
 
             <p className="mt-2 text-slate-500">
-              {sharing} Sharing · Rs. {fee.toLocaleString("en-IN")} per bed / month
+              {room.sharing_type} Sharing · Rs.{" "}
+              {Number(room.monthly_rent).toLocaleString("en-IN")} per bed / month
             </p>
           </div>
 
@@ -211,7 +249,7 @@ export default async function RoomPage({ params }: PageProps) {
                         </p>
 
                         <p className="mt-4 text-lg font-bold">
-                          Rs. {fee.toLocaleString("en-IN")}
+                          Rs. {Number(room.monthly_rent).toLocaleString("en-IN")}
                         </p>
 
                         <p className="text-xs text-slate-400">
@@ -221,20 +259,20 @@ export default async function RoomPage({ params }: PageProps) {
                     )}
                   </div>
                   {isOccupied ? (
-                  <a
-  href={`/hostel-1/room/${roomNumber}/resident/${bed.bed_id}`}
-  className="mt-6 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50"
->
-  View Resident
-</a>
-) : (
-  <a
-    href={`/hostel-1/room/${roomNumber}/book/${bed.bed_id}`}
-    className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
-  >
-    Book This Bed
-  </a>
-)}
+                    <a
+                      href={`/${hostelSlug}/room/${roomNumber}/resident/${bed.bed_id}`}
+                      className="mt-6 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50"
+                    >
+                      View Resident
+                    </a>
+                  ) : (
+                    <a
+                      href={`/${hostelSlug}/room/${roomNumber}/book/${bed.bed_id}`}
+                      className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+                    >
+                      Book This Bed
+                    </a>
+                  )}
                 </div>
               );
             })}

@@ -1,3 +1,5 @@
+import { slugifyHostelName } from "@/lib/hostel";
+
 type UpcomingVacancyRow = {
   booking_id: number;
   bed_id: number;
@@ -143,7 +145,7 @@ export default async function VacanciesPage() {
 
                       <td className="px-6 py-5 text-right">
                         <a
-                          href={`/hostel-1/room/${vacancy.room_number}/resident/${vacancy.bed_id}`}
+                          href={`/${slugifyHostelName(vacancy.hostel_name)}/room/${vacancy.room_number}/resident/${vacancy.bed_id}`}
                           className="font-semibold text-indigo-600 hover:text-indigo-700"
                         >
                           View →

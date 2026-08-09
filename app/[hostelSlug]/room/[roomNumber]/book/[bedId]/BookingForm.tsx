@@ -1,48 +1,29 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
-function getStandardFee(roomNumber: string) {
-  const ending = roomNumber.slice(-2);
-
-  switch (ending) {
-    case "01":
-      return 7000;
-
-    case "02":
-    case "03":
-    case "04":
-    case "07":
-      return 6000;
-
-    case "05":
-    case "06":
-      return 5500;
-
-    default:
-      return 0;
-  }
-}
-
-export default function BookingPage() {
-  const params = useParams();
+export default function BookingForm({
+  hostelSlug,
+  hostelName,
+  roomNumber,
+  bedId,
+  standardFee,
+}: {
+  hostelSlug: string;
+  hostelName: string;
+  roomNumber: string;
+  bedId: number;
+  standardFee: number;
+}) {
   const router = useRouter();
-
-  const roomNumber = String(params.roomNumber);
-  const bedId = Number(params.bedId);
-
-  const standardFee = useMemo(
-    () => getStandardFee(roomNumber),
-    [roomNumber]
-  );
 
   const [fullName, setFullName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [email, setEmail] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [idProofType, setIdProofType] = useState("");
-const [idProofNumber, setIdProofNumber] = useState("");
+  const [idProofNumber, setIdProofNumber] = useState("");
   const [homeAddress, setHomeAddress] = useState("");
   const [workCollegeAddress, setWorkCollegeAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -63,22 +44,23 @@ const [idProofNumber, setIdProofNumber] = useState("");
     event.preventDefault();
 
     setErrorMessage("");
-if (!/^\d{10}$/.test(mobileNumber)) {
-  setErrorMessage(
-    "Mobile number must contain exactly 10 digits."
-  );
-  return;
-}
+    if (!/^\d{10}$/.test(mobileNumber)) {
+      setErrorMessage(
+        "Mobile number must contain exactly 10 digits."
+      );
+      return;
+    }
 
-if (!idProofType) {
-  setErrorMessage("Please select an ID proof type.");
-  return;
-}
+    if (!idProofType) {
+      setErrorMessage("Please select an ID proof type.");
+      return;
+    }
 
-if (!idProofNumber.trim()) {
-  setErrorMessage("Please enter the ID proof number/value.");
-  return;
-}
+    if (!idProofNumber.trim()) {
+      setErrorMessage("Please enter the ID proof number/value.");
+      return;
+    }
+
     if (!fullName.trim()) {
       setErrorMessage("Please enter the resident's full name.");
       return;
@@ -139,7 +121,7 @@ if (!idProofNumber.trim()) {
             p_email: email,
             p_emergency_contact: emergencyContact,
             p_id_proof_type: idProofType,
-p_id_proof_number: idProofNumber,
+            p_id_proof_number: idProofNumber,
             p_home_address: homeAddress,
             p_work_college_address: workCollegeAddress,
             p_notes: notes,
@@ -163,7 +145,7 @@ p_id_proof_number: idProofNumber,
         throw new Error(error);
       }
 
-      router.push(`/hostel-1/room/${roomNumber}`);
+      router.push(`/${hostelSlug}/room/${roomNumber}`);
       router.refresh();
 
     } catch (error) {
@@ -182,7 +164,7 @@ p_id_proof_number: idProofNumber,
       <div className="mx-auto max-w-4xl">
 
         <a
-          href={`/hostel-1/room/${roomNumber}`}
+          href={`/${hostelSlug}/room/${roomNumber}`}
           className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
         >
           ← Back to Room {roomNumber}
@@ -191,7 +173,7 @@ p_id_proof_number: idProofNumber,
         <div className="mt-7">
 
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-            Hostel 1 · Room {roomNumber}
+            {hostelName} · Room {roomNumber}
           </p>
 
           <h1 className="mt-2 text-4xl font-bold">
@@ -414,7 +396,7 @@ p_id_proof_number: idProofNumber,
           <div className="flex justify-end gap-3">
 
             <a
-              href={`/hostel-1/room/${roomNumber}`}
+              href={`/${hostelSlug}/room/${roomNumber}`}
               className="rounded-xl border border-slate-200 px-6 py-3 font-semibold hover:bg-white"
             >
               Cancel

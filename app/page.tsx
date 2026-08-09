@@ -1,4 +1,6 @@
- type HostelDashboardRow = {
+import { slugifyHostelName } from "@/lib/hostel";
+
+type HostelDashboardRow = {
   hostel_id: number;
   hostel_name: string;
   floors: number;
@@ -86,7 +88,7 @@ export default async function Home() {
   </a>
 
   <a
-    href="/hostel-1"
+    href={hostels.length ? `/${slugifyHostelName(hostels[0].hostel_name)}` : "/"}
     className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
   >
     + New Booking
@@ -232,21 +234,12 @@ export default async function Home() {
                       />
                     </div>
                   </div>
-                 {hostel.hostel_name === "Hostel 1" ? (
-  <a
-    href="/hostel-1"
+                 <a
+    href={`/${slugifyHostelName(hostel.hostel_name)}`}
     className="mt-6 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50"
   >
     View Hostel →
   </a>
-) : (
-  <button
-    disabled
-    className="mt-6 w-full cursor-not-allowed rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-400"
-  >
-    View Hostel →
-  </button>
-)}
                 </div>
               );
             })}

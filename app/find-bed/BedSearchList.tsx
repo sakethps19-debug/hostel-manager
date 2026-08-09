@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { slugifyHostelName } from "@/lib/hostel";
 
 type AvailableBedRow = {
   bed_id: number;
@@ -95,7 +96,7 @@ export default function BedSearchList({
               </p>
 
               <a
-                href={`/hostel-1/room/${bed.room_number}/book/${bed.bed_id}`}
+                href={`/${slugifyHostelName(bed.hostel_name)}/room/${bed.room_number}/book/${bed.bed_id}`}
                 className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 Book This Bed

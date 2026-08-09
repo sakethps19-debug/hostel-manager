@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { resolveHostelName } from "@/lib/hostel";
+
 type RoomRow = {
   floor_number: number;
   room_number: string;
@@ -8,7 +11,11 @@ type RoomRow = {
   vacant_beds: number;
 };
 
-async function getHostelRooms(): Promise<RoomRow[]> {
+type PageProps = {
+  params: Promise<{ hostelSlug: string }>;
+};
+
+async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -25,21 +32,29 @@ async function getHostelRooms(): Promise<RoomRow[]> {
         Authorization: `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ p_hostel_name: "Hostel 1" }),
+      body: JSON.stringify({ p_hostel_name: hostelName }),
       cache: "no-store",
     }
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Unable to load Hostel 1: ${errorText}`);
+    throw new Error(`Unable to load ${hostelName}: ${errorText}`);
   }
 
   return response.json();
 }
 
-export default async function HostelOnePage() {
-  const rooms = await getHostelRooms();
+export default async function HostelPage({ params }: PageProps) {
+  const { hostelSlug } = await params;
+
+  const hostelName = await resolveHostelName(hostelSlug);
+
+  if (!hostelName) {
+    notFound();
+  }
+
+  const rooms = await getHostelRooms(hostelName);
 
   const totalBeds = rooms.reduce((sum, room) => sum + room.total_beds, 0);
   const occupiedBeds = rooms.reduce(
@@ -48,7 +63,9 @@ export default async function HostelOnePage() {
   );
   const vacantBeds = rooms.reduce((sum, room) => sum + room.vacant_beds, 0);
 
-  const floors = [1, 2, 3, 4];
+  const floors = Array.from(
+    new Set(rooms.map((room) => room.floor_number))
+  ).sort((a, b) => a - b);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -68,11 +85,13 @@ export default async function HostelOnePage() {
             </p>
 
             <h1 className="mt-1 text-4xl font-bold">
-              Hostel 1
+              {hostelName}
             </h1>
 
             <p className="mt-2 text-slate-500">
-              4 floors · 28 rooms · {totalBeds} beds
+              {floors.length} floor{floors.length === 1 ? "" : "s"} ·{" "}
+              {rooms.length} room{rooms.length === 1 ? "" : "s"} ·{" "}
+              {totalBeds} beds
             </p>
           </div>
 
@@ -104,7 +123,8 @@ export default async function HostelOnePage() {
                   </h2>
 
                   <p className="text-sm text-slate-500">
-                    Rooms {floor}01–{floor}07
+                    {floorRooms.length} room
+                    {floorRooms.length === 1 ? "" : "s"}
                   </p>
                 </div>
 
@@ -159,11 +179,11 @@ export default async function HostelOnePage() {
                           </p>
                         </div>
                         <a
-  href={`/hostel-1/room/${room.room_number}`}
-  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
->
-  View Beds →
-</a>
+                          href={`/${hostelSlug}/room/${room.room_number}`}
+                          className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
+                        >
+                          View Beds →
+                        </a>
                       </div>
                     </div>
                   ))}
