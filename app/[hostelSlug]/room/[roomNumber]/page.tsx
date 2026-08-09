@@ -4,6 +4,7 @@ import { resolveHostelName } from "@/lib/hostel";
 type BedRow = {
   bed_id: number;
   bed_number: string;
+  bed_code: string | null;
   bed_status: string;
   occupant_name: string | null;
   booking_start: string | null;
@@ -191,12 +192,16 @@ export default async function RoomPage({ params }: PageProps) {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-xs font-medium text-slate-400">
-                        BED
+                        BED ID
                       </p>
 
                       <h3 className="mt-1 text-xl font-bold">
-                        {bed.bed_number}
+                        {bed.bed_code || bed.bed_number}
                       </h3>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {bed.bed_number}
+                      </p>
                     </div>
 
                     <span

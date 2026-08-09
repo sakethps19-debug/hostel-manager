@@ -8,12 +8,14 @@ export default function BookingForm({
   hostelName,
   roomNumber,
   bedId,
+  bedCode,
   standardFee,
 }: {
   hostelSlug: string;
   hostelName: string;
   roomNumber: string;
   bedId: number;
+  bedCode: string | null;
   standardFee: number;
 }) {
   const router = useRouter();
@@ -181,7 +183,7 @@ export default function BookingForm({
           </h1>
 
           <p className="mt-2 text-slate-500">
-            Bed ID {bedId}
+            Bed ID {bedCode || bedId}
           </p>
 
         </div>

@@ -14,6 +14,7 @@ type BookingHistoryRow = {
   floor_number: number;
   room_number: string;
   bed_number: string;
+  bed_code: string | null;
   start_date: string;
   end_date: string;
   monthly_rent: number;
@@ -181,7 +182,7 @@ export default function BookingSearchTable({
                     <p className="font-medium">{booking.hostel_name}</p>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      Room {booking.room_number} · {booking.bed_number}
+                      Room {booking.room_number} · {booking.bed_code || booking.bed_number}
                     </p>
                   </td>
 

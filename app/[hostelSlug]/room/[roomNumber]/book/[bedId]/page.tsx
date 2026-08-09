@@ -7,6 +7,11 @@ type RoomRow = {
   monthly_rent: number;
 };
 
+type BedRow = {
+  bed_id: number;
+  bed_code: string | null;
+};
+
 type PageProps = {
   params: Promise<{
     hostelSlug: string;
@@ -45,6 +50,42 @@ async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
   return response.json();
 }
 
+async function getRoomBeds(
+  hostelName: string,
+  roomNumber: string
+): Promise<BedRow[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_room_beds`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_hostel_name: hostelName,
+        p_room_number: roomNumber,
+      }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to load beds: ${error}`);
+  }
+
+  return response.json();
+}
+
 export default async function BookingPage({ params }: PageProps) {
   const { hostelSlug, roomNumber, bedId } = await params;
 
@@ -61,12 +102,16 @@ export default async function BookingPage({ params }: PageProps) {
     notFound();
   }
 
+  const beds = await getRoomBeds(hostelName, roomNumber);
+  const bed = beds.find((b) => b.bed_id === Number(bedId));
+
   return (
     <BookingForm
       hostelSlug={hostelSlug}
       hostelName={hostelName}
       roomNumber={roomNumber}
       bedId={Number(bedId)}
+      bedCode={bed?.bed_code || null}
       standardFee={Number(room.monthly_rent)}
     />
   );

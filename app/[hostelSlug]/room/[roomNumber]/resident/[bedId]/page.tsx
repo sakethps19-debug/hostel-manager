@@ -18,6 +18,7 @@ id_proof_number: string | null;
   security_deposit: number | null;
   booking_status: string;
   bed_number: string;
+  bed_code: string | null;
   room_number: string;
   floor_number: number;
   hostel_name: string;
@@ -207,6 +208,11 @@ export default async function ResidentPage({
               <DetailRow
                 label="Bed"
                 value={resident.bed_number}
+              />
+
+              <DetailRow
+                label="Bed ID"
+                value={resident.bed_code || "Not set"}
               />
 
               <DetailRow
