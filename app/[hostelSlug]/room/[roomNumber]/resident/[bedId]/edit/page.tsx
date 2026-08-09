@@ -19,12 +19,14 @@ id_proof_number: string | null;
   end_date: string;
   monthly_rent: number;
   security_deposit: number | null;
+  hostel_name: string;
 };
 
 export default function EditResidentPage() {
   const params = useParams();
   const router = useRouter();
 
+  const hostelSlug = String(params.hostelSlug);
   const roomNumber = String(params.roomNumber);
   const bedId = Number(params.bedId);
 
@@ -218,7 +220,7 @@ p_id_proof_number: idProofNumber,
       }
 
       router.push(
-        `/hostel-1/room/${roomNumber}/resident/${bedId}`
+        `/${hostelSlug}/room/${roomNumber}/resident/${bedId}`
       );
       router.refresh();
     } catch (error) {
@@ -245,7 +247,7 @@ p_id_proof_number: idProofNumber,
       <div className="mx-auto max-w-4xl">
 
         <a
-          href={`/hostel-1/room/${roomNumber}/resident/${bedId}`}
+          href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`}
           className="text-sm font-semibold text-indigo-600"
         >
           ← Back to Resident Details
@@ -253,7 +255,7 @@ p_id_proof_number: idProofNumber,
 
         <div className="mt-7">
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-            Hostel 1 · Room {roomNumber}
+            {details?.hostel_name} · Room {roomNumber}
           </p>
 
           <h1 className="mt-2 text-4xl font-bold">
@@ -443,7 +445,7 @@ p_id_proof_number: idProofNumber,
           <div className="flex justify-end gap-3">
 
             <a
-              href={`/hostel-1/room/${roomNumber}/resident/${bedId}`}
+              href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`}
               className="rounded-xl border border-slate-200 px-6 py-3 font-semibold"
             >
               Cancel

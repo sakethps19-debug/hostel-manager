@@ -5,9 +5,11 @@ import { useState } from "react";
 
 export default function VacateButton({
   bookingId,
+  hostelSlug,
   roomNumber,
 }: {
   bookingId: number;
+  hostelSlug: string;
   roomNumber: string;
 }) {
   const router = useRouter();
@@ -55,7 +57,7 @@ export default function VacateButton({
         throw new Error(error);
       }
 
-      router.push(`/hostel-1/room/${roomNumber}`);
+      router.push(`/${hostelSlug}/room/${roomNumber}`);
       router.refresh();
     } catch (error) {
       setErrorMessage(

@@ -25,6 +25,7 @@ id_proof_number: string | null;
 
 type PageProps = {
   params: Promise<{
+    hostelSlug: string;
     roomNumber: string;
     bedId: string;
   }>;
@@ -88,7 +89,7 @@ function formatMoney(value: number | null) {
 export default async function ResidentPage({
   params,
 }: PageProps) {
-  const { roomNumber, bedId } = await params;
+  const { hostelSlug, roomNumber, bedId } = await params;
 
   const resident = await getResidentDetails(bedId);
 
@@ -101,7 +102,7 @@ export default async function ResidentPage({
       <div className="mx-auto max-w-5xl">
 
         <a
-          href={`/hostel-1/room/${roomNumber}`}
+          href={`/${hostelSlug}/room/${roomNumber}`}
           className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
         >
           ← Back to Room {roomNumber}
@@ -268,7 +269,7 @@ export default async function ResidentPage({
         <section className="mt-8 flex flex-wrap gap-3">
 
         <a
-  href={`/hostel-1/room/${roomNumber}/resident/${bedId}/edit`}
+  href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/edit`}
   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
 >
   Edit Details
@@ -276,6 +277,7 @@ export default async function ResidentPage({
 
           <VacateButton
   bookingId={resident.booking_id}
+  hostelSlug={hostelSlug}
   roomNumber={roomNumber}
 />
 
