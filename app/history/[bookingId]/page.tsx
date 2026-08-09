@@ -7,6 +7,8 @@ type BookingDetails = {
   mobile_number: string | null;
   email: string | null;
   emergency_contact: string | null;
+  id_proof_type: string | null;
+  id_proof_number: string | null;
   notes: string | null;
   hostel_name: string;
   floor_number: number;
@@ -147,6 +149,14 @@ export default async function BookingHistoryDetailsPage({
             <Row
               label="Emergency Contact"
               value={booking.emergency_contact || "Not provided"}
+            />
+            <Row
+              label="ID Proof Type"
+              value={booking.id_proof_type || "Not provided"}
+            />
+            <Row
+              label="ID Proof Number / Value"
+              value={booking.id_proof_number || "Not provided"}
             />
           </Card>
 
