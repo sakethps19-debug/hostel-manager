@@ -76,9 +76,12 @@ export default async function HostelOnePage() {
             </p>
           </div>
 
-          <button className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white shadow-sm">
+          <a
+            href="#floors"
+            className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white shadow-sm"
+          >
             + New Booking
-          </button>
+          </a>
         </div>
 
         <section className="mb-10 grid gap-4 sm:grid-cols-3">
@@ -87,7 +90,7 @@ export default async function HostelOnePage() {
           <StatCard label="Vacant" value={vacantBeds} green />
         </section>
 
-        <div className="space-y-10">
+        <div id="floors" className="space-y-10 scroll-mt-6">
           {floors.map((floor) => {
             const floorRooms = rooms.filter(
               (room) => room.floor_number === floor

@@ -47,6 +47,14 @@ async function getRoomBeds(roomNumber: string): Promise<BedRow[]> {
   return response.json();
 }
 
+function formatDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function getRoomDetails(roomNumber: string) {
   const lastTwoDigits = roomNumber.slice(-2);
 
@@ -107,9 +115,12 @@ export default async function RoomPage({ params }: PageProps) {
             </p>
           </div>
 
-          <button className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-indigo-700">
+          <a
+            href="#beds"
+            className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-indigo-700"
+          >
             + New Booking
-          </button>
+          </a>
         </div>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -118,7 +129,7 @@ export default async function RoomPage({ params }: PageProps) {
           <StatCard label="Vacant" value={vacant} green />
         </section>
 
-        <section className="mt-10">
+        <section id="beds" className="mt-10 scroll-mt-6">
           <h2 className="text-2xl font-bold">
             Beds
           </h2>
@@ -175,7 +186,9 @@ export default async function RoomPage({ params }: PageProps) {
                               From
                             </p>
                             <p className="mt-1">
-                              {bed.booking_start}
+                              {bed.booking_start
+                                ? formatDate(bed.booking_start)
+                                : "-"}
                             </p>
                           </div>
 
@@ -184,7 +197,9 @@ export default async function RoomPage({ params }: PageProps) {
                               Until
                             </p>
                             <p className="mt-1">
-                              {bed.booking_end}
+                              {bed.booking_end
+                                ? formatDate(bed.booking_end)
+                                : "-"}
                             </p>
                           </div>
                         </div>
