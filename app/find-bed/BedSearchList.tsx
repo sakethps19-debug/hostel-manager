@@ -6,6 +6,7 @@ import { slugifyHostelName } from "@/lib/hostel";
 type AvailableBedRow = {
   bed_id: number;
   bed_number: string;
+  bed_code: string | null;
   hostel_name: string;
   floor_number: number;
   room_number: string;
@@ -75,7 +76,7 @@ export default function BedSearchList({
                   </p>
 
                   <h3 className="mt-1 text-xl font-bold">
-                    Room {bed.room_number} · {bed.bed_number}
+                    Room {bed.room_number} · {bed.bed_code || bed.bed_number}
                   </h3>
                 </div>
 

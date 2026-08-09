@@ -8,12 +8,14 @@ export default function BookingForm({
   hostelName,
   roomNumber,
   bedId,
+  bedCode,
   standardFee,
 }: {
   hostelSlug: string;
   hostelName: string;
   roomNumber: string;
   bedId: number;
+  bedCode: string | null;
   standardFee: number;
 }) {
   const router = useRouter();
@@ -32,7 +34,7 @@ export default function BookingForm({
   const [endDate, setEndDate] = useState("");
 
   const [monthlyRent, setMonthlyRent] = useState(
-    String(standardFee)
+    standardFee > 0 ? String(standardFee) : ""
   );
 
   const [securityDeposit, setSecurityDeposit] = useState("0");
@@ -181,7 +183,7 @@ export default function BookingForm({
           </h1>
 
           <p className="mt-2 text-slate-500">
-            Bed ID {bedId}
+            Bed ID {bedCode || bedId}
           </p>
 
         </div>
@@ -346,8 +348,9 @@ export default function BookingForm({
                 />
 
                 <p className="mt-2 text-xs text-slate-400">
-                  Standard rate: Rs.{" "}
-                  {standardFee.toLocaleString("en-IN")}
+                  {standardFee > 0
+                    ? `Standard rate: Rs. ${standardFee.toLocaleString("en-IN")}`
+                    : "No standard rate set for this room — enter manually."}
                 </p>
 
               </Field>

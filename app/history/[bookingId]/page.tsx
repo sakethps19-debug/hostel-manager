@@ -16,6 +16,7 @@ type BookingDetails = {
   floor_number: number;
   room_number: string;
   bed_number: string;
+  bed_code: string | null;
   start_date: string;
   end_date: string;
   monthly_rent: number;
@@ -120,7 +121,7 @@ export default async function BookingHistoryDetailsPage({
 
             <p className="mt-2 text-slate-500">
               {booking.hostel_name} · Room {booking.room_number} ·{" "}
-              {booking.bed_number}
+              {booking.bed_code || booking.bed_number}
             </p>
           </div>
 
@@ -175,7 +176,7 @@ export default async function BookingHistoryDetailsPage({
             <Row label="Floor" value={`Floor ${booking.floor_number}`} />
             <Row label="Room" value={`Room ${booking.room_number}`} />
             <Row label="Bed" value={booking.bed_number} />
-          </Card>
+            <Row label="Bed ID" value={booking.bed_code || "Not set"} />
 
         </section>
 

@@ -3,6 +3,7 @@ import { resolveHostelName } from "@/lib/hostel";
 
 type RoomRow = {
   floor_number: number;
+  floor_name: string | null;
   room_number: string;
   sharing_type: number;
   monthly_rent: number;
@@ -119,7 +120,7 @@ export default async function HostelPage({ params }: PageProps) {
               <section key={floor}>
                 <div className="mb-4">
                   <h2 className="text-2xl font-bold">
-                    Floor {floor}
+                    {floorRooms[0]?.floor_name || `Floor ${floor}`}
                   </h2>
 
                   <p className="text-sm text-slate-500">
@@ -175,7 +176,9 @@ export default async function HostelPage({ params }: PageProps) {
                           </p>
 
                           <p className="text-lg font-bold">
-                            Rs. {Number(room.monthly_rent).toLocaleString("en-IN")}
+                            {Number(room.monthly_rent) > 0
+                              ? `Rs. ${Number(room.monthly_rent).toLocaleString("en-IN")}`
+                              : "Rate not set"}
                           </p>
                         </div>
                         <a
