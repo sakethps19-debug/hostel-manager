@@ -3,8 +3,10 @@ import BedSearchList from "./BedSearchList";
 type AvailableBedRow = {
   bed_id: number;
   bed_number: string;
+  bed_code: string | null;
   hostel_name: string;
   floor_number: number;
+  floor_name: string | null;
   room_number: string;
   sharing_type: number;
   monthly_rent: number;
