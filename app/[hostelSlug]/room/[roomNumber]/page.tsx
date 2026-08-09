@@ -13,6 +13,7 @@ type BedRow = {
 
 type RoomRow = {
   floor_number: number;
+  floor_name: string | null;
   room_number: string;
   sharing_type: number;
   monthly_rent: number;
@@ -140,7 +141,7 @@ export default async function RoomPage({ params }: PageProps) {
         <div className="mt-7 flex items-end justify-between gap-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-              {hostelName} · Floor {room.floor_number}
+              {hostelName} · {room.floor_name || `Floor ${room.floor_number}`}
             </p>
 
             <h1 className="mt-2 text-4xl font-bold">
@@ -148,8 +149,10 @@ export default async function RoomPage({ params }: PageProps) {
             </h1>
 
             <p className="mt-2 text-slate-500">
-              {room.sharing_type} Sharing · Rs.{" "}
-              {Number(room.monthly_rent).toLocaleString("en-IN")} per bed / month
+              {room.sharing_type} Sharing
+              {Number(room.monthly_rent) > 0
+                ? ` · Rs. ${Number(room.monthly_rent).toLocaleString("en-IN")} per bed / month`
+                : " · Rate not set"}
             </p>
           </div>
 
@@ -249,12 +252,16 @@ export default async function RoomPage({ params }: PageProps) {
                         </p>
 
                         <p className="mt-4 text-lg font-bold">
-                          Rs. {Number(room.monthly_rent).toLocaleString("en-IN")}
+                          {Number(room.monthly_rent) > 0
+                            ? `Rs. ${Number(room.monthly_rent).toLocaleString("en-IN")}`
+                            : "Rate not set"}
                         </p>
 
-                        <p className="text-xs text-slate-400">
-                          per month
-                        </p>
+                        {Number(room.monthly_rent) > 0 && (
+                          <p className="text-xs text-slate-400">
+                            per month
+                          </p>
+                        )}
                       </>
                     )}
                   </div>
