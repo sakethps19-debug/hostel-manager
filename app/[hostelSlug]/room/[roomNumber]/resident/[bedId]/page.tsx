@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import VacateButton from "./VacateButton";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -33,6 +32,14 @@ type BookingLedger = {
   balance_outstanding: number;
   last_payment_date: string | null;
   payment_status: string;
+};
+
+type DepositSummary = {
+  deposit_agreed: number;
+  deposit_received: number;
+  deposit_refunded: number;
+  deposit_balance: number;
+  deposit_status: string;
 };
 
 type PaymentHistoryRow = {
@@ -162,6 +169,50 @@ async function getPaymentHistory(
   return response.json();
 }
 
+async function getDepositSummary(
+  bookingId: number
+): Promise<DepositSummary | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are missing.");
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/get_deposit_summary`,
+    {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_booking_id: bookingId }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load deposit summary: ${await response.text()}`
+    );
+  }
+
+  const data: DepositSummary[] = await response.json();
+  return data.length > 0 ? data[0] : null;
+}
+
+function getDepositStatusClasses(status: string) {
+  if (status === "Held") return "bg-emerald-50 text-emerald-700";
+  if (status === "Refunded") return "bg-slate-100 text-slate-600";
+  if (status === "Partially Received" || status === "Partially Refunded") {
+    return "bg-amber-50 text-amber-700";
+  }
+  if (status === "Deposit Expected") return "bg-red-50 text-red-700";
+  return "bg-slate-100 text-slate-600";
+}
+
 function formatMonth(date: string | null) {
   if (!date) return "-";
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
@@ -211,6 +262,7 @@ export default async function ResidentPage({
 
   const ledger = await getBookingLedger(resident.booking_id);
   const payments = await getPaymentHistory(resident.booking_id);
+  const deposit = await getDepositSummary(resident.booking_id);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -374,6 +426,45 @@ export default async function ResidentPage({
 
         </section>
 
+        {deposit && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h2 className="text-xl font-bold">
+              Security Deposit
+            </h2>
+
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <InfoCard
+                label="Deposit Agreed"
+                value={formatMoney(deposit.deposit_agreed)}
+              />
+
+              <InfoCard
+                label="Deposit Received"
+                value={formatMoney(deposit.deposit_received)}
+              />
+
+              <InfoCard
+                label="Deposit Balance"
+                value={formatMoney(deposit.deposit_balance)}
+              />
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-400">
+                  Deposit Status
+                </p>
+                <span
+                  className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${getDepositStatusClasses(
+                    deposit.deposit_status
+                  )}`}
+                >
+                  {deposit.deposit_status}
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -535,11 +626,12 @@ export default async function ResidentPage({
   Edit Details
 </a>
 
-          <VacateButton
-  bookingId={resident.booking_id}
-  hostelSlug={hostelSlug}
-  roomNumber={roomNumber}
-/>
+          <a
+            href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/settle`}
+            className="rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+          >
+            Vacate / Final Settlement
+          </a>
 
         </section>
 
