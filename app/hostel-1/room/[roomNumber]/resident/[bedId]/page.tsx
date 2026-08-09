@@ -274,13 +274,6 @@ export default async function ResidentPage({
   Edit Details
 </a>
 
-          <button
-            disabled
-            className="cursor-not-allowed rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-400"
-          >
-            Extend Booking
-          </button>
-
           <VacateButton
   bookingId={resident.booking_id}
   roomNumber={roomNumber}

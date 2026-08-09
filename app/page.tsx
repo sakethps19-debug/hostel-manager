@@ -85,9 +85,12 @@ export default async function Home() {
     Booking History
   </a>
 
-  <button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+  <a
+    href="/hostel-1"
+    className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+  >
     + New Booking
-  </button>
+  </a>
 </div>
         </div>
 
