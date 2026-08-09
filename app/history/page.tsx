@@ -12,6 +12,7 @@ type BookingHistoryRow = {
   floor_number: number;
   room_number: string;
   bed_number: string;
+  bed_code: string | null;
   start_date: string;
   end_date: string;
   monthly_rent: number;
