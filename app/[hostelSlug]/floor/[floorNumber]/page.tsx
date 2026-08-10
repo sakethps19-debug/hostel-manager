@@ -4,6 +4,7 @@ import { deriveBedStatus } from "@/lib/bedStatus";
 import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
 import RoomOccupancyCard from "@/components/RoomOccupancyCard";
+import StatTile from "@/components/StatTile";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type BedGridRow = {
@@ -113,12 +114,12 @@ export default async function FloorPage({ params }: PageProps) {
 
         <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard label="Total Beds" value={totalBeds} />
-            <StatCard label="Occupied" value={statusCounts.occupied} />
-            <StatCard label="Available" value={statusCounts.available} green />
-            <StatCard label="Vacating Soon" value={statusCounts.vacating_soon} />
-            <StatCard label="Reserved" value={statusCounts.reserved} />
-            <StatCard label="Maintenance" value={statusCounts.maintenance} />
+            <StatTile label="Total Beds" value={totalBeds} />
+            <StatTile label="Occupied" value={statusCounts.occupied} />
+            <StatTile label="Available" value={statusCounts.available} green />
+            <StatTile label="Vacating Soon" value={statusCounts.vacating_soon} />
+            <StatTile label="Reserved" value={statusCounts.reserved} />
+            <StatTile label="Maintenance" value={statusCounts.maintenance} />
           </div>
 
           <div className="mt-5">
@@ -164,29 +165,5 @@ export default async function FloorPage({ params }: PageProps) {
         </div>
       </div>
     </main>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  green = false,
-}: {
-  label: string;
-  value: number;
-  green?: boolean;
-}) {
-  return (
-    <div className="rounded-xl bg-slate-50 p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-
-      <p
-        className={`mt-1 text-2xl font-bold ${
-          green ? "text-emerald-600" : ""
-        }`}
-      >
-        {value}
-      </p>
-    </div>
   );
 }
