@@ -75,6 +75,7 @@ export default async function Home() {
   const today = await getTodaySnapshot();
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
+  const canManageResidents = hasPermission(role, "manageResidents");
   const canManageOperationalRecords = hasPermission(
     role,
     "manageOperationalRecords"
@@ -143,6 +144,9 @@ export default async function Home() {
     label="Operations"
     items={[
       { label: "Residents", href: "/residents" },
+      ...(canManageResidents
+        ? [{ label: "Emergency Directory", href: "/emergency-directory" }]
+        : []),
       { label: "Booking History", href: "/history" },
       ...(canManageOperationalRecords
         ? [
