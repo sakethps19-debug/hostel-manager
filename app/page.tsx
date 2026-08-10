@@ -206,6 +206,13 @@ export default async function Home() {
     </a>
   )}
 
+  <a
+    href="/change-password"
+    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+  >
+    Change Password
+  </a>
+
   <LogoutButton />
 
   {canManageBookings && (
