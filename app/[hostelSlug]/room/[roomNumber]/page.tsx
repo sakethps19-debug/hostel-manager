@@ -6,6 +6,7 @@ import OccupancyLegend from "@/components/OccupancyLegend";
 import StatCard from "@/components/StatCard";
 import StartCleaningButton from "@/components/StartCleaningButton";
 import MarkBedReadyButton from "@/components/MarkBedReadyButton";
+import ReleaseHoldButton from "@/components/ReleaseHoldButton";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -83,16 +84,23 @@ export default async function RoomPage({ params }: PageProps) {
     notFound();
   }
 
+  await callRpcServer("release_expired_holds").catch(() => {});
+
   const beds = await getRoomBeds(hostelName, roomNumber);
 
   const role = await getMyRole();
   const canManageMaintenance = hasPermission(role, "manageMaintenance");
+  const canManageOperationalRecords = hasPermission(
+    role,
+    "manageOperationalRecords"
+  );
 
   const statusCounts = {
     available: 0,
     occupied: 0,
     vacating_soon: 0,
     reserved: 0,
+    held: 0,
     vacant_cleaning: 0,
     maintenance: 0,
   };
@@ -147,12 +155,13 @@ export default async function RoomPage({ params }: PageProps) {
           </a>
         </div>
 
-        <section className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-7">
+        <section className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-8">
           <StatCard label="Total Beds" value={beds.length} />
           <StatCard label="Occupied" value={occupied} />
           <StatCard label="Vacant" value={vacant} green />
           <StatCard label="Vacating Soon" value={statusCounts.vacating_soon} />
           <StatCard label="Reserved" value={statusCounts.reserved} />
+          <StatCard label="Held" value={statusCounts.held} />
           <StatCard label="Cleaning" value={statusCounts.vacant_cleaning} />
           <StatCard label="Maintenance" value={statusCounts.maintenance} />
         </section>
@@ -255,6 +264,11 @@ export default async function RoomPage({ params }: PageProps) {
                         This bed is being cleaned and is not yet available
                         for booking.
                       </p>
+                    ) : status === "held" ? (
+                      <p className="text-sm text-slate-500">
+                        This bed is being held for a prospective resident and
+                        is not available for booking.
+                      </p>
                     ) : status === "reserved" ? (
                       <>
                         <p className="text-sm text-slate-500">
@@ -313,6 +327,17 @@ export default async function RoomPage({ params }: PageProps) {
                         Awaiting housekeeping
                       </p>
                     )
+                  ) : status === "held" ? (
+                    canManageOperationalRecords ? (
+                      <ReleaseHoldButton bedId={bed.bed_id} />
+                    ) : (
+                      <a
+                        href="/holds"
+                        className="mt-6 block w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-center text-sm font-semibold text-violet-700 hover:bg-violet-50"
+                      >
+                        View Hold
+                      </a>
+                    )
                   ) : status === "reserved" ? (
                     <a
                       href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/reservation`}
@@ -338,6 +363,15 @@ export default async function RoomPage({ params }: PageProps) {
 
                       {canManageMaintenance && (
                         <StartCleaningButton bedId={bed.bed_id} />
+                      )}
+
+                      {canManageOperationalRecords && (
+                        <a
+                          href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/hold/new`}
+                          className="mt-2 block w-full rounded-xl border border-violet-200 px-4 py-2 text-center text-xs font-semibold text-violet-600 hover:bg-violet-50"
+                        >
+                          Hold for Enquiry
+                        </a>
                       )}
                     </>
                   )}
