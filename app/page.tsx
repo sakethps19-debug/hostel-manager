@@ -73,6 +73,10 @@ function formatMoney(value: number) {
 }
 
 export default async function Home() {
+  await callRpcServer("capture_daily_occupancy_snapshot_if_missing").catch(
+    () => {}
+  );
+
   const hostels = await getHostelDashboard();
   const rentSummary = await getRentSummary();
   const alerts = await getOperationalAlerts();
@@ -176,6 +180,7 @@ export default async function Home() {
           ? [{ label: "Expenses", href: "/expenses" }]
           : []),
         { label: "P&L", href: "/reports/pnl" },
+        { label: "Occupancy History", href: "/reports/occupancy-history" },
       ]}
     />
   )}
