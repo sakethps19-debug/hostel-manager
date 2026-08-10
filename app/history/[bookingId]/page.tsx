@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import ResidentPhoto from "@/components/ResidentPhoto";
 import DocumentsSection from "@/components/DocumentsSection";
+import { getMyRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type BookingDetails = {
   booking_id: number;
@@ -141,7 +143,13 @@ export default async function BookingHistoryDetailsPage({
       : null;
 
   const transfers = await getTransferHistory(booking.resident_id);
-  const documents = await getResidentDocuments(booking.resident_id);
+
+  const role = await getMyRole();
+  const canManageDocuments = hasPermission(role, "manageDocuments");
+
+  const documents = canManageDocuments
+    ? await getResidentDocuments(booking.resident_id)
+    : [];
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
   );
@@ -173,18 +181,20 @@ export default async function BookingHistoryDetailsPage({
         <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
 
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <ResidentPhoto
-              residentId={booking.resident_id}
-              fullName={booking.full_name}
-              photo={
-                primaryPhoto
-                  ? {
-                      documentId: primaryPhoto.document_id,
-                      storagePath: primaryPhoto.storage_path,
-                    }
-                  : null
-              }
-            />
+            {canManageDocuments && (
+              <ResidentPhoto
+                residentId={booking.resident_id}
+                fullName={booking.full_name}
+                photo={
+                  primaryPhoto
+                    ? {
+                        documentId: primaryPhoto.document_id,
+                        storagePath: primaryPhoto.storage_path,
+                      }
+                    : null
+                }
+              />
+            )}
 
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
@@ -397,10 +407,12 @@ export default async function BookingHistoryDetailsPage({
           </section>
         )}
 
-        <DocumentsSection
-          residentId={booking.resident_id}
-          initialDocuments={otherDocuments}
-        />
+        {canManageDocuments && (
+          <DocumentsSection
+            residentId={booking.resident_id}
+            initialDocuments={otherDocuments}
+          />
+        )}
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 

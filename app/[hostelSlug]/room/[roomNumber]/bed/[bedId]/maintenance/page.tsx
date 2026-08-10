@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 import MaintenanceForm from "./MaintenanceForm";
 import CompleteMaintenanceButton from "./CompleteMaintenanceButton";
 
@@ -39,6 +40,8 @@ function formatDate(date: string) {
 }
 
 export default async function BedMaintenancePage({ params }: PageProps) {
+  await requirePermission("manageMaintenance");
+
   const { hostelSlug, roomNumber, bedId } = await params;
 
   const hostelName = await resolveHostelName(hostelSlug);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 import BookingForm from "./BookingForm";
 
 type RoomRow = {
@@ -38,6 +39,8 @@ async function getRoomBeds(
 }
 
 export default async function BookingPage({ params }: PageProps) {
+  await requirePermission("manageBookings");
+
   const { hostelSlug, roomNumber, bedId } = await params;
 
   const hostelName = await resolveHostelName(hostelSlug);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 import CancelReservationButton from "./CancelReservationButton";
 
 type FutureBooking = {
@@ -37,6 +38,8 @@ function formatDate(date: string) {
 }
 
 export default async function ReservationPage({ params }: PageProps) {
+  await requirePermission("manageBookings");
+
   const { hostelSlug, roomNumber, bedId } = await params;
 
   const hostelName = await resolveHostelName(hostelSlug);

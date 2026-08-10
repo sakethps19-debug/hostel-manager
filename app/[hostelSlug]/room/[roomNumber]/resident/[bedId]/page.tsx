@@ -6,6 +6,8 @@ import ReviseRentButton from "./ReviseRentButton";
 import DocumentsSection from "@/components/DocumentsSection";
 import ResidentPhoto from "@/components/ResidentPhoto";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { getMyRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -299,7 +301,15 @@ export default async function ResidentPage({
   const completeness = computeProfileCompleteness(resident, profileExtra);
   const transfers = await getTransferHistory(resident.resident_id);
   const rentHistory = await getRentHistory(resident.booking_id);
-  const documents = await getResidentDocuments(resident.resident_id);
+
+  const role = await getMyRole();
+  const canManageBookings = hasPermission(role, "manageBookings");
+  const canManagePayments = hasPermission(role, "managePayments");
+  const canManageDocuments = hasPermission(role, "manageDocuments");
+
+  const documents = canManageDocuments
+    ? await getResidentDocuments(resident.resident_id)
+    : [];
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
   );
@@ -321,18 +331,20 @@ export default async function ResidentPage({
         <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <ResidentPhoto
-              residentId={resident.resident_id}
-              fullName={resident.full_name}
-              photo={
-                primaryPhoto
-                  ? {
-                      documentId: primaryPhoto.document_id,
-                      storagePath: primaryPhoto.storage_path,
-                    }
-                  : null
-              }
-            />
+            {canManageDocuments && (
+              <ResidentPhoto
+                residentId={resident.resident_id}
+                fullName={resident.full_name}
+                photo={
+                  primaryPhoto
+                    ? {
+                        documentId: primaryPhoto.document_id,
+                        storagePath: primaryPhoto.storage_path,
+                      }
+                    : null
+                }
+              />
+            )}
 
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
@@ -553,10 +565,12 @@ export default async function ResidentPage({
 
         </section>
 
-        <DocumentsSection
-          residentId={resident.resident_id}
-          initialDocuments={otherDocuments}
-        />
+        {canManageDocuments && (
+          <DocumentsSection
+            residentId={resident.resident_id}
+            initialDocuments={otherDocuments}
+          />
+        )}
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
@@ -664,12 +678,14 @@ export default async function ResidentPage({
               Rent Ledger
             </h2>
 
-            <a
-              href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/new`}
-              className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
-            >
-              Record Payment
-            </a>
+            {canManagePayments && (
+              <a
+                href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/new`}
+                className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Record Payment
+              </a>
+            )}
           </div>
 
           {ledger && (
@@ -848,12 +864,14 @@ export default async function ResidentPage({
 
         <section className="mt-8 flex flex-wrap gap-3">
 
-        <a
-  href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/edit`}
-  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
->
-  Edit Details
-</a>
+        {canManageBookings && (
+          <a
+            href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/edit`}
+            className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Edit Details
+          </a>
+        )}
 
           <a
             href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/timeline`}
@@ -862,7 +880,7 @@ export default async function ResidentPage({
             View Timeline
           </a>
 
-          {!resident.notice_given_at && (
+          {canManageBookings && !resident.notice_given_at && (
             <a
               href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/transfer`}
               className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -871,7 +889,7 @@ export default async function ResidentPage({
             </a>
           )}
 
-          {!resident.notice_given_at && (
+          {canManageBookings && !resident.notice_given_at && (
             <ExtendStayButton
               resident={{
                 booking_id: resident.booking_id,
@@ -892,23 +910,25 @@ export default async function ResidentPage({
             />
           )}
 
-          {!resident.notice_given_at && (
+          {canManageBookings && !resident.notice_given_at && (
             <ReviseRentButton
               bookingId={resident.booking_id}
               currentRent={resident.monthly_rent}
             />
           )}
 
-          {!resident.notice_given_at && (
+          {canManageBookings && !resident.notice_given_at && (
             <GiveNoticeButton bookingId={resident.booking_id} />
           )}
 
-          <a
-            href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/settle`}
-            className="rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
-          >
-            Vacate / Final Settlement
-          </a>
+          {canManageBookings && (
+            <a
+              href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/settle`}
+              className="rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              Vacate / Final Settlement
+            </a>
+          )}
 
         </section>
 

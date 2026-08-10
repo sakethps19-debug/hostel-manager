@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 import TransferForm from "./TransferForm";
 
 type ResidentDetails = {
@@ -37,6 +38,8 @@ type PageProps = {
 };
 
 export default async function TransferResidentPage({ params }: PageProps) {
+  await requirePermission("manageBookings");
+
   const { hostelSlug, roomNumber, bedId } = await params;
 
   const residentRows = await callRpcServer<ResidentDetails[]>(

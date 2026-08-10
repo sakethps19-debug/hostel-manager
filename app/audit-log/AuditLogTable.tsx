@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { roleLabel } from "@/lib/permissions";
 
 type AuditLogRow = {
   audit_id: number;
@@ -8,6 +9,8 @@ type AuditLogRow = {
   entity_type: string;
   entity_id: number | null;
   details: Record<string, unknown>;
+  user_name: string | null;
+  user_role: string | null;
   created_at: string;
 };
 
@@ -73,6 +76,7 @@ export default function AuditLogTable({
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3">Time</th>
+                <th className="px-4 py-3">By</th>
                 <th className="px-4 py-3">Action</th>
                 <th className="px-4 py-3">Entity</th>
                 <th className="px-4 py-3">Details</th>
@@ -83,6 +87,14 @@ export default function AuditLogTable({
                 <tr key={entry.audit_id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatDateTime(entry.created_at)}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {entry.user_name || "System"}
+                    {entry.user_role && (
+                      <span className="ml-1 text-xs text-slate-400">
+                        ({roleLabel(entry.user_role)})
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-semibold">
                     {actionLabel(entry.action)}
