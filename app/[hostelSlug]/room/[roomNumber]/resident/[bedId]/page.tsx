@@ -5,6 +5,7 @@ import CopyTextButton from "@/components/CopyTextButton";
 import ReviseRentButton from "./ReviseRentButton";
 import DocumentsSection from "@/components/DocumentsSection";
 import ResidentPhoto from "@/components/ResidentPhoto";
+import IdProofViewer from "@/components/IdProofViewer";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -313,8 +314,21 @@ export default async function ResidentPage({
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
   );
+  const idProofFrontDoc = documents.find(
+    (d) =>
+      d.document_type === resident.id_proof_type &&
+      d.document_subtype === "Front"
+  );
+  const idProofBackDoc = documents.find(
+    (d) =>
+      d.document_type === resident.id_proof_type &&
+      d.document_subtype === "Back"
+  );
   const otherDocuments = documents.filter(
-    (d) => d.document_type !== "Resident Photo"
+    (d) =>
+      d.document_type !== "Resident Photo" &&
+      d.document_id !== idProofFrontDoc?.document_id &&
+      d.document_id !== idProofBackDoc?.document_id
   );
 
   return (
@@ -431,7 +445,7 @@ export default async function ResidentPage({
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
             <h2 className="text-xl font-bold">
-              Resident Details
+              Personal Details
             </h2>
 
             <div className="mt-6 space-y-5">
@@ -439,6 +453,20 @@ export default async function ResidentPage({
               <DetailRow
                 label="Full Name"
                 value={resident.full_name}
+              />
+
+              <DetailRow
+                label="Gender"
+                value={profileExtra?.gender || "Not provided"}
+              />
+
+              <DetailRow
+                label="Date of Birth"
+                value={
+                  profileExtra?.date_of_birth
+                    ? formatDobAge(profileExtra.date_of_birth)
+                    : "Not provided"
+                }
               />
 
               <DetailRow
@@ -452,65 +480,98 @@ export default async function ResidentPage({
               />
 
               <DetailRow
-                label="Emergency Contact"
+                label="Home Address"
+                value={resident.home_address || "Not provided"}
+              />
+
+              <DetailRow
+                label="Work / College Address"
+                value={resident.work_college_address || "Not provided"}
+              />
+
+              <DetailRow
+                label="Employer / College"
+                value={profileExtra?.employer_or_college || "Not provided"}
+              />
+
+              <DetailRow
+                label="Occupation / Course"
+                value={profileExtra?.occupation_or_course || "Not provided"}
+              />
+            </div>
+
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h2 className="text-xl font-bold">
+              Emergency Contact
+            </h2>
+
+            <div className="mt-6 space-y-5">
+
+              <DetailRow
+                label="Name"
                 value={
-                  profileExtra?.emergency_contact_name
-                    ? `${profileExtra.emergency_contact_name}${
-                        profileExtra.emergency_contact_relationship
-                          ? ` (${profileExtra.emergency_contact_relationship})`
-                          : ""
-                      }${
-                        profileExtra.emergency_contact_mobile
-                          ? ` · ${profileExtra.emergency_contact_mobile}`
-                          : ""
-                      }`
-                    : resident.emergency_contact || "Not provided"
+                  profileExtra?.emergency_contact_name || "Not provided"
                 }
               />
-<DetailRow
-  label="ID Proof Type"
-  value={resident.id_proof_type || "Not provided"}
-/>
 
-<DetailRow
-  label="ID Proof Number / Value"
-  value={resident.id_proof_number || "Not provided"}
-/>
+              <DetailRow
+                label="Relationship"
+                value={
+                  profileExtra?.emergency_contact_relationship ||
+                  "Not provided"
+                }
+              />
 
-<DetailRow
-  label="Home Address"
-  value={resident.home_address || "Not provided"}
-/>
-
-<DetailRow
-  label="Work / College Address"
-  value={resident.work_college_address || "Not provided"}
-/>
-
-<DetailRow
-  label="Date of Birth"
-  value={
-    profileExtra?.date_of_birth
-      ? formatDobAge(profileExtra.date_of_birth)
-      : "Not provided"
-  }
-/>
-
-<DetailRow
-  label="Gender"
-  value={profileExtra?.gender || "Not provided"}
-/>
-
-<DetailRow
-  label="Employer / College"
-  value={profileExtra?.employer_or_college || "Not provided"}
-/>
-
-<DetailRow
-  label="Occupation / Course"
-  value={profileExtra?.occupation_or_course || "Not provided"}
-/>
+              <DetailRow
+                label="Mobile"
+                value={
+                  profileExtra?.emergency_contact_mobile ||
+                  resident.emergency_contact ||
+                  "Not provided"
+                }
+              />
             </div>
+
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h2 className="text-xl font-bold">
+              Identity Proof
+            </h2>
+
+            <div className="mt-6 space-y-5">
+
+              <DetailRow
+                label="ID Proof Type"
+                value={resident.id_proof_type || "Not provided"}
+              />
+
+              <DetailRow
+                label="ID Proof Number / Value"
+                value={resident.id_proof_number || "Not provided"}
+              />
+            </div>
+
+            {canManageDocuments && (
+              <div className="mt-5 border-t border-slate-100 pt-5">
+                <IdProofViewer
+                  front={
+                    idProofFrontDoc
+                      ? { storagePath: idProofFrontDoc.storage_path }
+                      : null
+                  }
+                  back={
+                    idProofBackDoc
+                      ? { storagePath: idProofBackDoc.storage_path }
+                      : null
+                  }
+                />
+              </div>
+            )}
 
           </div>
 

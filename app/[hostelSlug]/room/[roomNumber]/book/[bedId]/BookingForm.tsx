@@ -43,6 +43,8 @@ export default function BookingForm({
   const enquiryId = searchParams.get("enquiryId");
 
   const [fullName, setFullName] = useState(searchParams.get("name") || "");
+  const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [mobileNumber, setMobileNumber] = useState(
     searchParams.get("mobile") || ""
   );
@@ -70,7 +72,8 @@ export default function BookingForm({
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [idProofFrontFile, setIdProofFrontFile] = useState<File | null>(null);
+  const [idProofBackFile, setIdProofBackFile] = useState<File | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -104,23 +107,42 @@ export default function BookingForm({
     setPhotoPreviewUrl(URL.createObjectURL(selected));
   }
 
-  function handleIdProofFileSelect(selected: File | null) {
+  function handleIdProofFrontSelect(selected: File | null) {
     setErrorMessage("");
-    setIdProofFile(null);
+    setIdProofFrontFile(null);
 
     if (!selected) return;
 
     if (!ID_DOC_ACCEPTED_TYPES.includes(selected.type)) {
-      setErrorMessage("ID proof document must be a JPG, PNG, WEBP, or PDF file.");
+      setErrorMessage("ID proof front must be a JPG, PNG, WEBP, or PDF file.");
       return;
     }
 
     if (selected.size > MAX_ID_DOC_SIZE_BYTES) {
-      setErrorMessage("ID proof document is larger than the 10 MB limit.");
+      setErrorMessage("ID proof front is larger than the 10 MB limit.");
       return;
     }
 
-    setIdProofFile(selected);
+    setIdProofFrontFile(selected);
+  }
+
+  function handleIdProofBackSelect(selected: File | null) {
+    setErrorMessage("");
+    setIdProofBackFile(null);
+
+    if (!selected) return;
+
+    if (!ID_DOC_ACCEPTED_TYPES.includes(selected.type)) {
+      setErrorMessage("ID proof back must be a JPG, PNG, WEBP, or PDF file.");
+      return;
+    }
+
+    if (selected.size > MAX_ID_DOC_SIZE_BYTES) {
+      setErrorMessage("ID proof back is larger than the 10 MB limit.");
+      return;
+    }
+
+    setIdProofBackFile(selected);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -156,8 +178,8 @@ export default function BookingForm({
       return;
     }
 
-    if (!idProofFile) {
-      setErrorMessage("Please upload the ID proof document.");
+    if (!idProofFrontFile) {
+      setErrorMessage("Please upload the front of the ID proof document.");
       return;
     }
 
@@ -255,11 +277,16 @@ export default function BookingForm({
           throw new Error("Could not locate the new resident record.");
         }
 
-        if (emergencyContactName.trim() || emergencyContactRelationship.trim()) {
+        if (
+          emergencyContactName.trim() ||
+          emergencyContactRelationship.trim() ||
+          gender ||
+          dateOfBirth
+        ) {
           await callRpcClient("update_resident_profile_extra", {
             p_resident_id: residentId,
-            p_date_of_birth: null,
-            p_gender: null,
+            p_date_of_birth: dateOfBirth || null,
+            p_gender: gender || null,
             p_employer_or_college: null,
             p_occupation_or_course: null,
             p_emergency_contact_name: emergencyContactName.trim() || null,
@@ -290,22 +317,22 @@ export default function BookingForm({
           file_name: photoFile.name,
         });
 
-        const idDocPath = buildResidentFilePath(
+        const idFrontPath = buildResidentFilePath(
           residentId,
           "documents",
-          idProofFile.name
+          idProofFrontFile.name
         );
-        await uploadResidentFile(idDocPath, idProofFile);
-        const idDocumentId = await callRpcClient<number>(
+        await uploadResidentFile(idFrontPath, idProofFrontFile);
+        const idFrontDocumentId = await callRpcClient<number>(
           "add_resident_document",
           {
             p_resident_id: residentId,
             p_document_type: idProofType,
-            p_document_subtype: null,
-            p_file_name: idProofFile.name,
-            p_storage_path: idDocPath,
-            p_file_size_bytes: idProofFile.size,
-            p_mime_type: idProofFile.type,
+            p_document_subtype: "Front",
+            p_file_name: idProofFrontFile.name,
+            p_storage_path: idFrontPath,
+            p_file_size_bytes: idProofFrontFile.size,
+            p_mime_type: idProofFrontFile.type,
             p_notes: "Captured during booking",
             p_is_primary: false,
           }
@@ -313,13 +340,48 @@ export default function BookingForm({
         await logAuditEvent(
           "document_uploaded",
           "resident_document",
-          idDocumentId,
+          idFrontDocumentId,
           {
             resident_id: residentId,
             document_type: idProofType,
-            file_name: idProofFile.name,
+            document_subtype: "Front",
+            file_name: idProofFrontFile.name,
           }
         );
+
+        if (idProofBackFile) {
+          const idBackPath = buildResidentFilePath(
+            residentId,
+            "documents",
+            idProofBackFile.name
+          );
+          await uploadResidentFile(idBackPath, idProofBackFile);
+          const idBackDocumentId = await callRpcClient<number>(
+            "add_resident_document",
+            {
+              p_resident_id: residentId,
+              p_document_type: idProofType,
+              p_document_subtype: "Back",
+              p_file_name: idProofBackFile.name,
+              p_storage_path: idBackPath,
+              p_file_size_bytes: idProofBackFile.size,
+              p_mime_type: idProofBackFile.type,
+              p_notes: "Captured during booking",
+              p_is_primary: false,
+            }
+          );
+          await logAuditEvent(
+            "document_uploaded",
+            "resident_document",
+            idBackDocumentId,
+            {
+              resident_id: residentId,
+              document_type: idProofType,
+              document_subtype: "Back",
+              file_name: idProofBackFile.name,
+            }
+          );
+        }
       } catch (uploadError) {
         window.alert(
           "Booking was created, but saving the photo/ID proof/emergency contact details failed: " +
@@ -382,6 +444,34 @@ export default function BookingForm({
               Resident Details
             </h2>
 
+            <div className="mt-6">
+              <Field label="Resident Photo *">
+                <div className="flex items-center gap-4">
+                  {photoPreviewUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={photoPreviewUrl}
+                      alt="Preview"
+                      className="h-16 w-16 rounded-full border border-slate-200 object-cover"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept={PHOTO_ACCEPTED_TYPES.join(",")}
+                    capture="environment"
+                    onChange={(e) =>
+                      handlePhotoSelect(e.target.files?.[0] || null)
+                    }
+                    className="input-style"
+                    required
+                  />
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  JPG, PNG, or WEBP - up to 5 MB.
+                </p>
+              </Field>
+            </div>
+
             <div className="mt-6 grid gap-5 md:grid-cols-2">
 
               <Field label="Full Name *">
@@ -391,6 +481,28 @@ export default function BookingForm({
                   className="input-style"
                   placeholder="Resident's full name"
                   required
+                />
+              </Field>
+
+              <Field label="Gender">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="input-style"
+                >
+                  <option value="">Not specified</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="Date of Birth">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="input-style"
                 />
               </Field>
 
@@ -424,69 +536,6 @@ export default function BookingForm({
                 />
               </Field>
 
-              <Field label="Emergency Contact Name">
-                <input
-                  value={emergencyContactName}
-                  onChange={(e) => setEmergencyContactName(e.target.value)}
-                  className="input-style"
-                  placeholder="Emergency contact's full name"
-                />
-              </Field>
-
-              <Field label="Emergency Contact Relationship">
-                <input
-                  value={emergencyContactRelationship}
-                  onChange={(e) =>
-                    setEmergencyContactRelationship(e.target.value)
-                  }
-                  className="input-style"
-                  placeholder="e.g. Father, Mother, Sibling"
-                />
-              </Field>
-
-              <Field label="Emergency Contact Mobile">
-                <input
-                  value={emergencyContact}
-                  onChange={(e) => {
-                    const digits = e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 10);
-
-                    setEmergencyContact(digits);
-                  }}
-                  className="input-style"
-                  placeholder="10-digit emergency contact number"
-                  inputMode="numeric"
-                  pattern="[0-9]{10}"
-                  maxLength={10}
-                />
-              </Field>
-
-   <Field label="ID Proof Type *">
-  <select
-    value={idProofType}
-    onChange={(e) => setIdProofType(e.target.value)}
-    className="input-style"
-    required
-  >
-    <option value="">Select ID proof</option>
-    <option value="Aadhaar Card">Aadhaar Card</option>
-    <option value="PAN Card">PAN Card</option>
-    <option value="Voter ID">Voter ID</option>
-    <option value="Driving License">Driving License</option>
-    <option value="Other">Other</option>
-  </select>
-</Field>
-            <Field label="ID Proof Number / Value *">
-  <input
-    value={idProofNumber}
-    onChange={(e) => setIdProofNumber(e.target.value)}
-    className="input-style"
-    placeholder="Enter ID proof number"
-    required
-  />
-</Field>
-
               <Field label="Home Address">
                 <textarea
                   value={homeAddress}
@@ -513,56 +562,130 @@ export default function BookingForm({
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
             <h2 className="text-xl font-bold">
-              Photo &amp; ID Proof
+              Emergency Contact
+            </h2>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+
+              <Field label="Emergency Contact Name">
+                <input
+                  value={emergencyContactName}
+                  onChange={(e) => setEmergencyContactName(e.target.value)}
+                  className="input-style"
+                  placeholder="Emergency contact's full name"
+                />
+              </Field>
+
+              <Field label="Relationship">
+                <select
+                  value={emergencyContactRelationship}
+                  onChange={(e) =>
+                    setEmergencyContactRelationship(e.target.value)
+                  }
+                  className="input-style"
+                >
+                  <option value="">Select relationship</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Relative">Relative</option>
+                  <option value="Friend">Friend</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="Emergency Contact Mobile">
+                <input
+                  value={emergencyContact}
+                  onChange={(e) => {
+                    const digits = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10);
+
+                    setEmergencyContact(digits);
+                  }}
+                  className="input-style"
+                  placeholder="10-digit emergency contact number"
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                />
+              </Field>
+
+            </div>
+
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h2 className="text-xl font-bold">
+              Identity Proof
             </h2>
 
             <p className="mt-2 text-sm text-slate-500">
-              Both are required to complete this booking.
+              Type, value, and the front of the document are required to
+              complete this booking.
             </p>
 
             <div className="mt-6 grid gap-5 md:grid-cols-2">
 
-              <Field label="Resident Photo *">
-                <div className="flex items-center gap-4">
-                  {photoPreviewUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photoPreviewUrl}
-                      alt="Preview"
-                      className="h-16 w-16 rounded-full border border-slate-200 object-cover"
-                    />
-                  )}
-                  <input
-                    type="file"
-                    accept={PHOTO_ACCEPTED_TYPES.join(",")}
-                    capture="environment"
-                    onChange={(e) =>
-                      handlePhotoSelect(e.target.files?.[0] || null)
-                    }
-                    className="input-style"
-                    required
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-400">
-                  JPG, PNG, or WEBP - up to 5 MB.
-                </p>
+              <Field label="ID Proof Type *">
+                <select
+                  value={idProofType}
+                  onChange={(e) => setIdProofType(e.target.value)}
+                  className="input-style"
+                  required
+                >
+                  <option value="">Select ID proof</option>
+                  <option value="Aadhaar Card">Aadhaar Card</option>
+                  <option value="PAN Card">PAN Card</option>
+                  <option value="Voter ID">Voter ID</option>
+                  <option value="Driving License">Driving License</option>
+                  <option value="Other">Other</option>
+                </select>
               </Field>
 
-              <Field label="ID Proof Document *">
+              <Field label="ID Proof Number / Value *">
+                <input
+                  value={idProofNumber}
+                  onChange={(e) => setIdProofNumber(e.target.value)}
+                  className="input-style"
+                  placeholder="Enter ID proof number"
+                  required
+                />
+              </Field>
+
+              <Field label="ID Proof Front *">
                 <input
                   type="file"
                   accept={ID_DOC_ACCEPTED_TYPES.join(",")}
                   capture="environment"
                   onChange={(e) =>
-                    handleIdProofFileSelect(e.target.files?.[0] || null)
+                    handleIdProofFrontSelect(e.target.files?.[0] || null)
                   }
                   className="input-style"
                   required
                 />
                 <p className="mt-2 text-xs text-slate-400">
-                  {idProofFile
-                    ? `Selected: ${idProofFile.name}`
+                  {idProofFrontFile
+                    ? `Selected: ${idProofFrontFile.name}`
                     : "JPG, PNG, WEBP, or PDF - up to 10 MB."}
+                </p>
+              </Field>
+
+              <Field label="ID Proof Back">
+                <input
+                  type="file"
+                  accept={ID_DOC_ACCEPTED_TYPES.join(",")}
+                  capture="environment"
+                  onChange={(e) =>
+                    handleIdProofBackSelect(e.target.files?.[0] || null)
+                  }
+                  className="input-style"
+                />
+                <p className="mt-2 text-xs text-slate-400">
+                  {idProofBackFile
+                    ? `Selected: ${idProofBackFile.name}`
+                    : "Optional - JPG, PNG, WEBP, or PDF, up to 10 MB."}
                 </p>
               </Field>
 
