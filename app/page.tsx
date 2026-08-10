@@ -38,6 +38,12 @@ type OperationalAlerts = {
   maintenance_count: number;
 };
 
+type TodaySnapshot = {
+  checkins_today_count: number;
+  checkouts_today_count: number;
+  enquiries_followup_count: number;
+};
+
 async function getHostelDashboard(): Promise<HostelDashboardRow[]> {
   return callRpcServer<HostelDashboardRow[]>("get_hostel_dashboard");
 }
@@ -52,6 +58,11 @@ async function getOperationalAlerts(): Promise<OperationalAlerts | null> {
   return data.length > 0 ? data[0] : null;
 }
 
+async function getTodaySnapshot(): Promise<TodaySnapshot | null> {
+  const data = await callRpcServer<TodaySnapshot[]>("get_today_snapshot");
+  return data.length > 0 ? data[0] : null;
+}
+
 function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
@@ -60,6 +71,7 @@ export default async function Home() {
   const hostels = await getHostelDashboard();
   const rentSummary = await getRentSummary();
   const alerts = await getOperationalAlerts();
+  const today = await getTodaySnapshot();
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManageOperationalRecords = hasPermission(
@@ -242,6 +254,44 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-4 text-sm font-semibold text-slate-700">
+            Today
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <AlertCard
+              count={today?.checkins_today_count ?? 0}
+              label="Expected Check-ins Today"
+              href="/checkins/today"
+              tone="indigo"
+            />
+
+            <AlertCard
+              count={today?.checkouts_today_count ?? 0}
+              label="Expected Check-outs Today"
+              href="/checkouts/today"
+              tone="indigo"
+            />
+
+            <AlertCard
+              count={vacantBeds}
+              label="Available Beds Today"
+              href="/find-bed"
+              tone="emerald"
+            />
+
+            {alerts && (
+              <AlertCard
+                count={alerts.vacating_7_days_count}
+                label="Vacating Within 7 Days"
+                href="/vacancies"
+                tone="amber"
+              />
+            )}
+          </div>
+        </section>
+
         {alerts && (
           <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="mb-4 text-sm font-semibold text-slate-700">
@@ -249,10 +299,11 @@ export default async function Home() {
             </p>
 
             {alerts.overdue_rent_count === 0 &&
-            alerts.vacating_7_days_count === 0 &&
+            alerts.vacating_30_days_count === 0 &&
             alerts.deposit_pending_count === 0 &&
             alerts.missing_id_proof_count === 0 &&
-            alerts.maintenance_count === 0 ? (
+            alerts.maintenance_count === 0 &&
+            (today?.enquiries_followup_count ?? 0) === 0 ? (
               <p className="text-sm text-emerald-600">
                 All caught up — nothing needs attention right now.
               </p>
@@ -264,15 +315,6 @@ export default async function Home() {
                     label="Residents with overdue rent"
                     href={overdueRentHref}
                     tone="red"
-                  />
-                )}
-
-                {alerts.vacating_7_days_count > 0 && (
-                  <AlertCard
-                    count={alerts.vacating_7_days_count}
-                    label="Vacating within 7 days"
-                    href="/vacancies"
-                    tone="amber"
                   />
                 )}
 
@@ -309,6 +351,15 @@ export default async function Home() {
                     label="Beds under maintenance"
                     href="/maintenance"
                     tone="slate"
+                  />
+                )}
+
+                {(today?.enquiries_followup_count ?? 0) > 0 && (
+                  <AlertCard
+                    count={today!.enquiries_followup_count}
+                    label="Enquiries requiring follow-up"
+                    href="/enquiries"
+                    tone="blue"
                   />
                 )}
               </div>
