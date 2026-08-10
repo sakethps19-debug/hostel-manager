@@ -321,6 +321,13 @@ export default async function RoomPage({ params }: PageProps) {
                     >
                       View Maintenance
                     </a>
+                  ) : status === "reserved" ? (
+                    <a
+                      href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/reservation`}
+                      className="mt-6 block w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                    >
+                      View Reservation
+                    </a>
                   ) : (
                     <>
                       <a
