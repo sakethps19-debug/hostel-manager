@@ -176,7 +176,10 @@ export default async function Home() {
           : []),
         { label: "Users", href: "/settings/users" },
         ...(canManageRates
-          ? [{ label: "Rates", href: "/settings/rates" }]
+          ? [
+              { label: "Rates", href: "/settings/rates" },
+              { label: "Discount Analytics", href: "/reports/discounts" },
+            ]
           : []),
       ]}
     />
