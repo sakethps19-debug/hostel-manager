@@ -6,9 +6,14 @@ import ReviseRentButton from "./ReviseRentButton";
 import DocumentsSection from "@/components/DocumentsSection";
 import ResidentPhoto from "@/components/ResidentPhoto";
 import IdProofViewer from "@/components/IdProofViewer";
+import BookingChecklist from "@/components/BookingChecklist";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import {
+  getChecklistItems,
+  type ChecklistType,
+} from "@/lib/checklists";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -193,6 +198,31 @@ async function getResidentDocuments(
   });
 }
 
+type ChecklistStateRow = {
+  item_key: string;
+  is_checked: boolean;
+  checked_at: string | null;
+  checked_by_name: string | null;
+};
+
+async function getBookingChecklist(bookingId: number, type: ChecklistType) {
+  const saved = await callRpcServer<ChecklistStateRow[]>(
+    "get_booking_checklist",
+    { p_booking_id: bookingId, p_checklist_type: type }
+  );
+  const savedByKey = new Map(saved.map((row) => [row.item_key, row]));
+
+  return getChecklistItems(type).map((def) => {
+    const row = savedByKey.get(def.key);
+    return {
+      ...def,
+      is_checked: row?.is_checked ?? false,
+      checked_at: row?.checked_at ?? null,
+      checked_by_name: row?.checked_by_name ?? null,
+    };
+  });
+}
+
 function computeProfileCompleteness(
   resident: ResidentDetails,
   extra: ProfileExtra | null
@@ -307,6 +337,16 @@ export default async function ResidentPage({
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManagePayments = hasPermission(role, "managePayments");
   const canManageDocuments = hasPermission(role, "manageDocuments");
+
+  const moveInChecklist = await getBookingChecklist(
+    resident.booking_id,
+    "move_in"
+  );
+  const showMoveOutChecklist =
+    Boolean(resident.notice_given_at) || resident.booking_status === "completed";
+  const moveOutChecklist = showMoveOutChecklist
+    ? await getBookingChecklist(resident.booking_id, "move_out")
+    : [];
 
   const documents = canManageDocuments
     ? await getResidentDocuments(resident.resident_id)
@@ -439,6 +479,14 @@ export default async function ResidentPage({
             ))}
           </div>
         </section>
+
+        <BookingChecklist
+          bookingId={resident.booking_id}
+          checklistType="move_in"
+          title="Move-In Checklist"
+          items={moveInChecklist}
+          readOnly={!canManageBookings}
+        />
 
         <section className="mt-5 grid gap-5 md:grid-cols-2">
 
@@ -889,6 +937,16 @@ export default async function ResidentPage({
               ))}
             </div>
           </section>
+        )}
+
+        {showMoveOutChecklist && (
+          <BookingChecklist
+            bookingId={resident.booking_id}
+            checklistType="move_out"
+            title="Move-Out Checklist"
+            items={moveOutChecklist}
+            readOnly={!canManageBookings}
+          />
         )}
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
