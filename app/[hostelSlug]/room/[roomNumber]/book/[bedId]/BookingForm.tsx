@@ -48,6 +48,9 @@ export default function BookingForm({
   );
   const [email, setEmail] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
   const [idProofType, setIdProofType] = useState("");
   const [idProofNumber, setIdProofNumber] = useState("");
   const [homeAddress, setHomeAddress] = useState("");
@@ -252,6 +255,20 @@ export default function BookingForm({
           throw new Error("Could not locate the new resident record.");
         }
 
+        if (emergencyContactName.trim() || emergencyContactRelationship.trim()) {
+          await callRpcClient("update_resident_profile_extra", {
+            p_resident_id: residentId,
+            p_date_of_birth: null,
+            p_gender: null,
+            p_employer_or_college: null,
+            p_occupation_or_course: null,
+            p_emergency_contact_name: emergencyContactName.trim() || null,
+            p_emergency_contact_relationship:
+              emergencyContactRelationship.trim() || null,
+            p_emergency_contact_mobile: emergencyContact || null,
+          });
+        }
+
         const photoPath = buildResidentFilePath(
           residentId,
           "profile",
@@ -305,11 +322,11 @@ export default function BookingForm({
         );
       } catch (uploadError) {
         window.alert(
-          "Booking was created, but uploading the photo/ID proof failed: " +
+          "Booking was created, but saving the photo/ID proof/emergency contact details failed: " +
             (uploadError instanceof Error
               ? uploadError.message
               : "Unknown error") +
-            ". Please upload them from the resident's page."
+            ". Please add them from the resident's page."
         );
       }
 
@@ -407,7 +424,27 @@ export default function BookingForm({
                 />
               </Field>
 
-              <Field label="Emergency Contact">
+              <Field label="Emergency Contact Name">
+                <input
+                  value={emergencyContactName}
+                  onChange={(e) => setEmergencyContactName(e.target.value)}
+                  className="input-style"
+                  placeholder="Emergency contact's full name"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Relationship">
+                <input
+                  value={emergencyContactRelationship}
+                  onChange={(e) =>
+                    setEmergencyContactRelationship(e.target.value)
+                  }
+                  className="input-style"
+                  placeholder="e.g. Father, Mother, Sibling"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Mobile">
                 <input
                   value={emergencyContact}
                   onChange={(e) => {

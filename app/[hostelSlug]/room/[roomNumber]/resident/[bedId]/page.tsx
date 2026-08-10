@@ -486,6 +486,30 @@ export default async function ResidentPage({
   label="Work / College Address"
   value={resident.work_college_address || "Not provided"}
 />
+
+<DetailRow
+  label="Date of Birth"
+  value={
+    profileExtra?.date_of_birth
+      ? formatDobAge(profileExtra.date_of_birth)
+      : "Not provided"
+  }
+/>
+
+<DetailRow
+  label="Gender"
+  value={profileExtra?.gender || "Not provided"}
+/>
+
+<DetailRow
+  label="Employer / College"
+  value={profileExtra?.employer_or_college || "Not provided"}
+/>
+
+<DetailRow
+  label="Occupation / Course"
+  value={profileExtra?.occupation_or_course || "Not provided"}
+/>
             </div>
 
           </div>
@@ -525,41 +549,31 @@ export default async function ResidentPage({
 
             </div>
 
-          </div>
+            <div className="mt-6 grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-2">
 
-        </section>
+              <InfoCard
+                label="Start Date"
+                value={formatDate(resident.start_date)}
+              />
 
-        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <InfoCard
+                label="End Date"
+                value={formatDate(resident.end_date)}
+              />
 
-          <h2 className="text-xl font-bold">
-            Additional Details
-          </h2>
+              <InfoCard
+                label="Agreed Monthly Rent"
+                value={formatMoney(resident.monthly_rent)}
+              />
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <InfoCard
+                label="Security Deposit"
+                value={formatMoney(
+                  resident.security_deposit
+                )}
+              />
 
-            <DetailRow
-              label="Date of Birth"
-              value={
-                profileExtra?.date_of_birth
-                  ? formatDobAge(profileExtra.date_of_birth)
-                  : "Not provided"
-              }
-            />
-
-            <DetailRow
-              label="Gender"
-              value={profileExtra?.gender || "Not provided"}
-            />
-
-            <DetailRow
-              label="Employer / College"
-              value={profileExtra?.employer_or_college || "Not provided"}
-            />
-
-            <DetailRow
-              label="Occupation / Course"
-              value={profileExtra?.occupation_or_course || "Not provided"}
-            />
+            </div>
 
           </div>
 
@@ -571,40 +585,6 @@ export default async function ResidentPage({
             initialDocuments={otherDocuments}
           />
         )}
-
-        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-          <h2 className="text-xl font-bold">
-            Stay & Rent Details
-          </h2>
-
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-            <InfoCard
-              label="Start Date"
-              value={formatDate(resident.start_date)}
-            />
-
-            <InfoCard
-              label="End Date"
-              value={formatDate(resident.end_date)}
-            />
-
-            <InfoCard
-              label="Agreed Monthly Rent"
-              value={formatMoney(resident.monthly_rent)}
-            />
-
-            <InfoCard
-              label="Security Deposit"
-              value={formatMoney(
-                resident.security_deposit
-              )}
-            />
-
-          </div>
-
-        </section>
 
         {rentHistory.length > 0 && (
           <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
