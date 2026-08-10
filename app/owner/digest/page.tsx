@@ -117,7 +117,7 @@ export default async function OwnerDigestPage() {
         </div>
 
         <p className="mt-2 text-sm text-slate-500">
-          A snapshot of today's activity across all hostels. There is no
+          A snapshot of today&apos;s activity across all hostels. There is no
           background job in this app to email this automatically — check
           back here each morning, or print/save it as a PDF.
         </p>

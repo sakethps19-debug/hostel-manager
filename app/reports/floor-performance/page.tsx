@@ -3,12 +3,6 @@ import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { deriveBedStatus } from "@/lib/bedStatus";
 
-type RoomRow = {
-  room_number: string;
-  floor_number: number;
-  floor_name: string | null;
-};
-
 type BedGridRow = {
   room_number: string;
   floor_number: number;

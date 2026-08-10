@@ -25,7 +25,6 @@ export default function ResidentAvatar({
     let cancelled = false;
 
     if (!photoStoragePath) {
-      setSignedUrl(null);
       return;
     }
 
@@ -42,15 +41,17 @@ export default function ResidentAvatar({
     };
   }, [photoStoragePath]);
 
+  const displayUrl = photoStoragePath ? signedUrl : null;
+
   return (
     <div
       className="flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-xs font-bold text-slate-400"
       style={{ width: size, height: size }}
     >
-      {signedUrl ? (
+      {displayUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={signedUrl}
+          src={displayUrl}
           alt={fullName}
           className="h-full w-full object-cover"
         />

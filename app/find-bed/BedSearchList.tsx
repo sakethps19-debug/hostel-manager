@@ -48,17 +48,11 @@ export default function BedSearchList({
   const [periodError, setPeriodError] = useState("");
 
   const periodActive = Boolean(periodStart && periodEnd);
+  const periodRangeInvalid =
+    periodActive && new Date(periodEnd) < new Date(periodStart);
 
   useEffect(() => {
-    if (!periodStart || !periodEnd) {
-      setPeriodBeds(null);
-      setPeriodError("");
-      return;
-    }
-
-    if (new Date(periodEnd) < new Date(periodStart)) {
-      setPeriodError("End date cannot be before start date.");
-      setPeriodBeds(null);
+    if (!periodActive || periodRangeInvalid) {
       return;
     }
 
@@ -89,9 +83,10 @@ export default function BedSearchList({
     return () => {
       cancelled = true;
     };
-  }, [periodStart, periodEnd]);
+  }, [periodStart, periodEnd, periodActive, periodRangeInvalid]);
 
-  const baseBeds = periodActive && periodBeds ? periodBeds : beds;
+  const baseBeds =
+    periodActive && !periodRangeInvalid && periodBeds ? periodBeds : beds;
 
   const hostelOptions = useMemo(
     () => Array.from(new Set(baseBeds.map((bed) => bed.hostel_name))).sort(),
@@ -207,7 +202,13 @@ export default function BedSearchList({
           <p className="mt-3 text-sm text-slate-500">Checking availability...</p>
         )}
 
-        {periodError && (
+        {periodActive && periodRangeInvalid && (
+          <p className="mt-3 text-sm font-medium text-red-600">
+            End date cannot be before start date.
+          </p>
+        )}
+
+        {periodActive && !periodRangeInvalid && periodError && (
           <p className="mt-3 text-sm font-medium text-red-600">{periodError}</p>
         )}
       </div>
