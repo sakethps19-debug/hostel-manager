@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { downloadCsv } from "@/lib/csv";
 
 type ExpenseRow = {
   expense_id: number;
@@ -57,6 +58,22 @@ export default function ExpensesTable({
 
   const filteredTotal = filtered.reduce((sum, e) => sum + Number(e.amount), 0);
 
+  function handleExport() {
+    downloadCsv(
+      `expenses-${new Date().toISOString().slice(0, 10)}.csv`,
+      filtered.map((e) => ({
+        expense_date: e.expense_date,
+        hostel_name: e.hostel_name || "Common",
+        category: e.category,
+        amount: e.amount,
+        vendor: e.vendor || "",
+        payment_mode: e.payment_mode,
+        reference_number: e.reference_number || "",
+        notes: e.notes || "",
+      }))
+    );
+  }
+
   return (
     <section className="mt-8">
       <div className="flex flex-wrap gap-3">
@@ -85,6 +102,15 @@ export default function ExpensesTable({
             </option>
           ))}
         </select>
+
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={filtered.length === 0}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+        >
+          Export CSV
+        </button>
       </div>
 
       {filtered.length === 0 ? (

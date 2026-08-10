@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { downloadCsv } from "@/lib/csv";
 
 type BookingHistoryRow = {
   booking_id: number;
@@ -94,6 +95,24 @@ export default function BookingSearchTable({
     });
   }, [bookings, searchTerm, selectedHostel, selectedRoom]);
 
+  function handleExport() {
+    downloadCsv(
+      `booking-history-${new Date().toISOString().slice(0, 10)}.csv`,
+      filteredBookings.map((b) => ({
+        full_name: b.full_name,
+        mobile_number: b.mobile_number || "",
+        hostel_name: b.hostel_name,
+        room_number: b.room_number,
+        bed_code: b.bed_code || b.bed_number,
+        start_date: b.start_date,
+        end_date: b.end_date,
+        monthly_rent: b.monthly_rent,
+        security_deposit: b.security_deposit || 0,
+        status: b.booking_status,
+      }))
+    );
+  }
+
   return (
     <section className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-6 py-5">
@@ -141,6 +160,15 @@ export default function BookingSearchTable({
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={filteredBookings.length === 0}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+          >
+            Export CSV
+          </button>
         </div>
       </div>
 
