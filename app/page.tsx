@@ -8,6 +8,7 @@ import GlobalSearchForm from "@/components/GlobalSearchForm";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getFeatureFlags } from "@/lib/featureFlags";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -82,6 +83,11 @@ export default async function Home() {
   const alerts = await getOperationalAlerts();
   const today = await getTodaySnapshot();
   const pendingPoliceVerificationCount = await getPendingPoliceVerificationCount();
+  const featureFlags = await getFeatureFlags().catch(() => []);
+  const isFeatureEnabled = (key: string) => {
+    const flag = featureFlags.find((f) => f.key === key);
+    return flag ? flag.enabled : true;
+  };
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManageResidents = hasPermission(role, "manageResidents");
@@ -160,7 +166,9 @@ export default async function Home() {
       ...(canManageOperationalRecords
         ? [
             { label: "Enquiries", href: "/enquiries" },
-            { label: "Waitlist", href: "/waitlist" },
+            ...(isFeatureEnabled("enable_waitlist")
+              ? [{ label: "Waitlist", href: "/waitlist" }]
+              : []),
             { label: "Bed Holds", href: "/holds" },
             { label: "Complaints", href: "/complaints" },
             { label: "Floor Performance", href: "/reports/floor-performance" },
@@ -178,7 +186,7 @@ export default async function Home() {
       label="Finance"
       items={[
         { label: "Overdue Rent", href: "/rent/overdue" },
-        ...(canManageExpenses
+        ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [{ label: "Expenses", href: "/expenses" }]
           : []),
         { label: "P&L", href: "/reports/pnl" },
@@ -198,6 +206,7 @@ export default async function Home() {
           : []),
         { label: "Users", href: "/settings/users" },
         { label: "Data Health", href: "/data-health" },
+        { label: "Feature Flags", href: "/settings/feature-flags" },
         ...(canManageRates
           ? [
               { label: "Rates", href: "/settings/rates" },
