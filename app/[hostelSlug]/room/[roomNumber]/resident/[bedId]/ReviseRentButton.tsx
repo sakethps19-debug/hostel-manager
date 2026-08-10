@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -40,36 +41,16 @@ export default function ReviseRentButton({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/revise_rent`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          p_booking_id: bookingId,
-          p_new_rent: rent,
-          p_effective_date: effectiveDate,
-          p_reason: reason || null,
-          p_notes: notes || null,
-        }),
+      await callRpcClient("revise_rent", {
+        p_booking_id: bookingId,
+        p_new_rent: rent,
+        p_effective_date: effectiveDate,
+        p_reason: reason || null,
+        p_notes: notes || null,
       });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
 
       await logAuditEvent("rent_revised", "booking", bookingId, {
         previous_rent: currentRent,

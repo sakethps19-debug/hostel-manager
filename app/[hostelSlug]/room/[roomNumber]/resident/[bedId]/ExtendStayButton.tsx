@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type ResidentForUpdate = {
   booking_id: number;
@@ -48,55 +49,36 @@ export default function ExtendStayButton({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/update_booking_details`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_booking_id: resident.booking_id,
-            p_full_name: resident.full_name,
-            p_mobile_number: resident.mobile_number,
-            p_email: resident.email,
-            p_emergency_contact: resident.emergency_contact,
-            p_id_proof_type: resident.id_proof_type,
-            p_id_proof_number: resident.id_proof_number,
-            p_home_address: resident.home_address,
-            p_work_college_address: resident.work_college_address,
-            p_notes: resident.notes,
-            p_start_date: resident.start_date,
-            p_end_date: newEndDate,
-            p_monthly_rent: resident.monthly_rent,
-            p_security_deposit: resident.security_deposit || 0,
-          }),
-        }
-      );
+      try {
+        await callRpcClient("update_booking_details", {
+          p_booking_id: resident.booking_id,
+          p_full_name: resident.full_name,
+          p_mobile_number: resident.mobile_number,
+          p_email: resident.email,
+          p_emergency_contact: resident.emergency_contact,
+          p_id_proof_type: resident.id_proof_type,
+          p_id_proof_number: resident.id_proof_number,
+          p_home_address: resident.home_address,
+          p_work_college_address: resident.work_college_address,
+          p_notes: resident.notes,
+          p_start_date: resident.start_date,
+          p_end_date: newEndDate,
+          p_monthly_rent: resident.monthly_rent,
+          p_security_deposit: resident.security_deposit || 0,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
 
-      if (!response.ok) {
-        const error = await response.text();
-
-        if (error.includes("already booked")) {
+        if (message.includes("already booked")) {
           throw new Error(
             "This bed is already booked for part of the requested period."
           );
         }
 
-        throw new Error(error);
+        throw err;
       }
 
       await logAuditEvent("booking_extended", "booking", resident.booking_id, {

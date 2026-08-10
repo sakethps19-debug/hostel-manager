@@ -3,6 +3,7 @@ import GiveNoticeButton from "./GiveNoticeButton";
 import ExtendStayButton from "./ExtendStayButton";
 import CopyTextButton from "@/components/CopyTextButton";
 import ReviseRentButton from "./ReviseRentButton";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -109,233 +110,60 @@ type PageProps = {
 async function getResidentDetails(
   bedId: string
 ): Promise<ResidentDetails | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_resident_details`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_bed_id: Number(bedId),
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-
-    throw new Error(
-      `Failed to load resident details: ${error}`
-    );
-  }
-
-  const data: ResidentDetails[] = await response.json();
-
+  const data = await callRpcServer<ResidentDetails[]>("get_resident_details", {
+    p_bed_id: Number(bedId),
+  });
   return data.length > 0 ? data[0] : null;
 }
 
 async function getBookingLedger(
   bookingId: number
 ): Promise<BookingLedger | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_booking_ledger`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load rent ledger: ${await response.text()}`);
-  }
-
-  const data: BookingLedger[] = await response.json();
+  const data = await callRpcServer<BookingLedger[]>("get_booking_ledger", {
+    p_booking_id: bookingId,
+  });
   return data.length > 0 ? data[0] : null;
 }
 
 async function getPaymentHistory(
   bookingId: number
 ): Promise<PaymentHistoryRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_payment_history`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load payment history: ${await response.text()}`
-    );
-  }
-
-  return response.json();
+  return callRpcServer<PaymentHistoryRow[]>("get_payment_history", {
+    p_booking_id: bookingId,
+  });
 }
 
 async function getDepositSummary(
   bookingId: number
 ): Promise<DepositSummary | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_deposit_summary`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load deposit summary: ${await response.text()}`
-    );
-  }
-
-  const data: DepositSummary[] = await response.json();
+  const data = await callRpcServer<DepositSummary[]>("get_deposit_summary", {
+    p_booking_id: bookingId,
+  });
   return data.length > 0 ? data[0] : null;
 }
 
 async function getProfileExtra(
   residentId: number
 ): Promise<ProfileExtra | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_resident_profile_extra`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_resident_id: residentId }),
-      cache: "no-store",
-    }
+  const data = await callRpcServer<ProfileExtra[]>(
+    "get_resident_profile_extra",
+    { p_resident_id: residentId }
   );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load additional profile details: ${await response.text()}`
-    );
-  }
-
-  const data: ProfileExtra[] = await response.json();
   return data.length > 0 ? data[0] : null;
 }
 
 async function getTransferHistory(
   residentId: number
 ): Promise<TransferRecord[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_transfer_history`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_resident_id: residentId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load transfer history: ${await response.text()}`
-    );
-  }
-
-  return response.json();
+  return callRpcServer<TransferRecord[]>("get_transfer_history", {
+    p_resident_id: residentId,
+  });
 }
 
 async function getRentHistory(bookingId: number): Promise<RentRevisionRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_rent_history`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ p_booking_id: bookingId }),
-    cache: "no-store",
+  return callRpcServer<RentRevisionRow[]>("get_rent_history", {
+    p_booking_id: bookingId,
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load rent history: ${await response.text()}`);
-  }
-
-  return response.json();
 }
 
 function computeProfileCompleteness(
