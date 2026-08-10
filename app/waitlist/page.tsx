@@ -1,6 +1,8 @@
+import { notFound } from "next/navigation";
 import WaitlistTable from "./WaitlistTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type WaitlistRow = {
   waitlist_id: number;
@@ -31,6 +33,10 @@ type MatchRow = {
 
 export default async function WaitlistPage() {
   await requirePermission("manageOperationalRecords");
+
+  if (!(await isFeatureEnabled("enable_waitlist"))) {
+    notFound();
+  }
 
   const [entries, matches] = await Promise.all([
     callRpcServer<WaitlistRow[]>("get_waitlist"),
