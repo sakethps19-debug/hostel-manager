@@ -3,6 +3,7 @@ import GiveNoticeButton from "./GiveNoticeButton";
 import ExtendStayButton from "./ExtendStayButton";
 import CopyTextButton from "@/components/CopyTextButton";
 import ReviseRentButton from "./ReviseRentButton";
+import DocumentsSection from "./DocumentsSection";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 type ResidentDetails = {
   resident_id: number;
@@ -88,6 +89,17 @@ type TransferRecord = {
   rent_after: number | null;
 };
 
+type DocumentRow = {
+  document_id: number;
+  document_type: string;
+  file_name: string;
+  storage_path: string;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  notes: string | null;
+  uploaded_at: string;
+};
+
 type ProfileExtra = {
   date_of_birth: string | null;
   gender: string | null;
@@ -163,6 +175,14 @@ async function getTransferHistory(
 async function getRentHistory(bookingId: number): Promise<RentRevisionRow[]> {
   return callRpcServer<RentRevisionRow[]>("get_rent_history", {
     p_booking_id: bookingId,
+  });
+}
+
+async function getResidentDocuments(
+  residentId: number
+): Promise<DocumentRow[]> {
+  return callRpcServer<DocumentRow[]>("get_resident_documents", {
+    p_resident_id: residentId,
   });
 }
 
@@ -275,6 +295,7 @@ export default async function ResidentPage({
   const completeness = computeProfileCompleteness(resident, profileExtra);
   const transfers = await getTransferHistory(resident.resident_id);
   const rentHistory = await getRentHistory(resident.booking_id);
+  const documents = await getResidentDocuments(resident.resident_id);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -506,6 +527,11 @@ export default async function ResidentPage({
           </div>
 
         </section>
+
+        <DocumentsSection
+          residentId={resident.resident_id}
+          initialDocuments={documents}
+        />
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
