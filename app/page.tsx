@@ -169,7 +169,7 @@ export default async function Home() {
 
   {canManageBookings && (
     <a
-      href={hostels.length ? `/${slugifyHostelName(hostels[0].hostel_name)}` : "/"}
+      href="#hostels"
       className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
     >
       + New Booking
@@ -414,7 +414,7 @@ export default async function Home() {
           </a>
         </section>
 
-        <section className="mt-10">
+        <section id="hostels" className="mt-10 scroll-mt-6">
           <div className="mb-5">
             <h2 className="text-xl font-bold">Hostels</h2>
             <p className="mt-1 text-sm text-slate-500">
