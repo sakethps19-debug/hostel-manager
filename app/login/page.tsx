@@ -4,6 +4,12 @@ import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const ACCOUNTS = [
+  { label: "Owner", email: "anilreddykasireddy@gmail.com" },
+  { label: "Operations Manager", email: "anilreddykasireddy+ops@gmail.com" },
+  { label: "Finance Manager", email: "anilreddykasireddy+finance@gmail.com" },
+];
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,15 +81,23 @@ function LoginForm() {
           <form onSubmit={handleForgotPassword} className="mt-8 space-y-5">
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Email
+                Account
               </span>
-              <input
-                type="email"
+              <select
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 required
-              />
+              >
+                <option value="" disabled>
+                  Select account
+                </option>
+                {ACCOUNTS.map((account) => (
+                  <option key={account.email} value={account.email}>
+                    {account.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             {errorMessage && (
@@ -134,15 +148,23 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <label className="block">
             <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Email
+              Account
             </span>
-            <input
-              type="email"
+            <select
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               required
-            />
+            >
+              <option value="" disabled>
+                Select account
+              </option>
+              {ACCOUNTS.map((account) => (
+                <option key={account.email} value={account.email}>
+                  {account.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="block">
