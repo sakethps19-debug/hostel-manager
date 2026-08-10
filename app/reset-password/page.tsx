@@ -1,12 +1,20 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+
+  // Created in an effect (client-only, post-mount) rather than during
+  // render, so it never runs at build/prerender time, but still runs early
+  // enough in the browser to detect the recovery token before it's lost.
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
+  useEffect(() => {
+    supabaseRef.current = createClient();
+  }, []);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,7 +40,7 @@ export default function ResetPasswordPage() {
     setSaving(true);
 
     try {
-      const supabase = createClient();
+      const supabase = supabaseRef.current ?? createClient();
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
