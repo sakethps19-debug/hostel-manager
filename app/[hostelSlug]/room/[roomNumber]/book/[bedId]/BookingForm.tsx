@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import DuplicateResidentWarning from "@/components/DuplicateResidentWarning";
 import {
   buildResidentFilePath,
   uploadResidentFile,
@@ -77,6 +78,7 @@ export default function BookingForm({
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [duplicateOkToProceed, setDuplicateOkToProceed] = useState(true);
 
   useEffect(() => {
     return () => {
@@ -788,6 +790,12 @@ export default function BookingForm({
             </div>
           )}
 
+          <DuplicateResidentWarning
+            mobileNumber={mobileNumber}
+            idProofNumber={idProofNumber}
+            onAcknowledgeChange={setDuplicateOkToProceed}
+          />
+
           <div className="flex justify-end gap-3">
 
             <a
@@ -799,7 +807,7 @@ export default function BookingForm({
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !duplicateOkToProceed}
               className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving & Uploading..." : "Confirm Booking"}

@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import DuplicatePaymentWarning from "@/components/DuplicatePaymentWarning";
 
 const PAYMENT_TYPES = [
   "Monthly Rent",
@@ -52,6 +53,7 @@ export default function PaymentForm({
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [duplicateOkToProceed, setDuplicateOkToProceed] = useState(true);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -212,6 +214,15 @@ export default function PaymentForm({
             />
           </Field>
 
+          <DuplicatePaymentWarning
+            bookingId={bookingId}
+            amount={amount}
+            paymentDate={paymentDate}
+            paymentMode={paymentMode}
+            referenceNumber={referenceNumber}
+            onAcknowledgeChange={setDuplicateOkToProceed}
+          />
+
           {errorMessage && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {errorMessage}
@@ -228,7 +239,7 @@ export default function PaymentForm({
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !duplicateOkToProceed}
               className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving..." : "Record Payment"}
