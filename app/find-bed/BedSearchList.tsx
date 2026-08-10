@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { slugifyHostelName } from "@/lib/hostel";
 
 type AvailableBedRow = {
@@ -30,13 +30,87 @@ export default function BedSearchList({
   const [selectedFloor, setSelectedFloor] = useState("");
   const [selectedSharing, setSelectedSharing] = useState("");
 
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [periodBeds, setPeriodBeds] = useState<AvailableBedRow[] | null>(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [periodError, setPeriodError] = useState("");
+
+  const periodActive = Boolean(periodStart && periodEnd);
+
+  useEffect(() => {
+    if (!periodStart || !periodEnd) {
+      setPeriodBeds(null);
+      setPeriodError("");
+      return;
+    }
+
+    if (new Date(periodEnd) < new Date(periodStart)) {
+      setPeriodError("End date cannot be before start date.");
+      setPeriodBeds(null);
+      return;
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      setPeriodError("Supabase environment variables are missing.");
+      return;
+    }
+
+    let cancelled = false;
+    setPeriodLoading(true);
+    setPeriodError("");
+
+    fetch(`${supabaseUrl}/rest/v1/rpc/get_available_beds_for_period`, {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_start_date: periodStart,
+        p_end_date: periodEnd,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        return response.json();
+      })
+      .then((data: AvailableBedRow[]) => {
+        if (!cancelled) setPeriodBeds(data);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setPeriodError(
+            error instanceof Error
+              ? error.message
+              : "Unable to check availability for that period."
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPeriodLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [periodStart, periodEnd]);
+
+  const baseBeds = periodActive && periodBeds ? periodBeds : beds;
+
   const hostelOptions = useMemo(
-    () => Array.from(new Set(beds.map((bed) => bed.hostel_name))).sort(),
-    [beds]
+    () => Array.from(new Set(baseBeds.map((bed) => bed.hostel_name))).sort(),
+    [baseBeds]
   );
 
   const floorOptions = useMemo(() => {
-    const relevant = beds.filter(
+    const relevant = baseBeds.filter(
       (bed) => !selectedHostel || bed.hostel_name === selectedHostel
     );
 
@@ -55,18 +129,18 @@ export default function BedSearchList({
     return Array.from(seen.entries()).sort((a, b) =>
       a[1].localeCompare(b[1])
     );
-  }, [beds, selectedHostel]);
+  }, [baseBeds, selectedHostel]);
 
   const sharingOptions = useMemo(
     () =>
-      Array.from(new Set(beds.map((bed) => bed.sharing_type))).sort(
+      Array.from(new Set(baseBeds.map((bed) => bed.sharing_type))).sort(
         (a, b) => a - b
       ),
-    [beds]
+    [baseBeds]
   );
 
   const filteredBeds = useMemo(() => {
-    return beds.filter((bed) => {
+    return baseBeds.filter((bed) => {
       const matchesHostel =
         !selectedHostel || bed.hostel_name === selectedHostel;
 
@@ -79,11 +153,69 @@ export default function BedSearchList({
 
       return matchesHostel && matchesFloor && matchesSharing;
     });
-  }, [beds, selectedHostel, selectedFloor, selectedSharing]);
+  }, [baseBeds, selectedHostel, selectedFloor, selectedSharing]);
 
   return (
     <section className="mt-8">
-      <div className="flex flex-wrap gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="text-sm font-semibold text-slate-700">
+          Check availability for a specific stay period
+        </p>
+        <p className="mt-1 text-xs text-slate-400">
+          Leave blank to see beds vacant right now. Set both dates to also
+          surface beds that are free for that entire window, even if
+          currently reserved for someone else outside it.
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              From
+            </span>
+            <input
+              type="date"
+              value={periodStart}
+              onChange={(e) => setPeriodStart(e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              To
+            </span>
+            <input
+              type="date"
+              value={periodEnd}
+              onChange={(e) => setPeriodEnd(e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+
+          {periodActive && (
+            <button
+              type="button"
+              onClick={() => {
+                setPeriodStart("");
+                setPeriodEnd("");
+              }}
+              className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {periodLoading && (
+          <p className="mt-3 text-sm text-slate-500">Checking availability...</p>
+        )}
+
+        {periodError && (
+          <p className="mt-3 text-sm font-medium text-red-600">{periodError}</p>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-3">
         <select
           value={selectedHostel}
           onChange={(e) => {
@@ -129,8 +261,10 @@ export default function BedSearchList({
 
       {filteredBeds.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center text-slate-500 shadow-sm">
-          {beds.length === 0
-            ? "No vacant beds right now."
+          {baseBeds.length === 0
+            ? periodActive
+              ? "No beds are free for the whole selected period."
+              : "No vacant beds right now."
             : "No vacant beds match the current filters."}
         </div>
       ) : (
