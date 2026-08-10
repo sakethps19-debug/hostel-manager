@@ -1,4 +1,5 @@
 import ExpensesTable from "./ExpensesTable";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type ExpenseRow = {
   expense_id: number;
@@ -13,29 +14,7 @@ type ExpenseRow = {
 };
 
 async function getExpenses(): Promise<ExpenseRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_expenses`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load expenses: ${await response.text()}`);
-  }
-
-  return response.json();
+  return callRpcServer<ExpenseRow[]>("get_expenses");
 }
 
 export default async function ExpensesPage() {

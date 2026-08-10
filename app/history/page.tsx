@@ -1,4 +1,5 @@
 import BookingSearchTable from "./BookingSearchTable";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type BookingHistoryRow = {
   booking_id: number;
@@ -22,34 +23,7 @@ type BookingHistoryRow = {
 };
 
 async function getBookingHistory(): Promise<BookingHistoryRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_booking_history`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to load booking history: ${error}`);
-  }
-
-  return response.json();
+  return callRpcServer<BookingHistoryRow[]>("get_booking_history");
 }
 
 export default async function HistoryPage() {

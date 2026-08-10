@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 const CATEGORIES = [
   "Electricity",
@@ -53,44 +54,20 @@ export default function NewExpensePage() {
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/record_expense`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_hostel_name: hostelName || null,
-            p_expense_date: expenseDate,
-            p_category: category,
-            p_amount: amt,
-            p_vendor: vendor || null,
-            p_payment_mode: paymentMode,
-            p_reference_number: referenceNumber || null,
-            p_notes: notes || null,
-          }),
-        }
-      );
+      const created = await callRpcClient<{ id: number }>("record_expense", {
+        p_hostel_name: hostelName || null,
+        p_expense_date: expenseDate,
+        p_category: category,
+        p_amount: amt,
+        p_vendor: vendor || null,
+        p_payment_mode: paymentMode,
+        p_reference_number: referenceNumber || null,
+        p_notes: notes || null,
+      });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const created = await response.json();
       await logAuditEvent("expense_recorded", "expense", created?.id ?? null, {
         category,
         amount: amt,

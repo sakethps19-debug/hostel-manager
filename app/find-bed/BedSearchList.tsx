@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { slugifyHostelName } from "@/lib/hostelSlug";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type AvailableBedRow = {
   bed_id: number;
@@ -61,37 +62,15 @@ export default function BedSearchList({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setPeriodError("Supabase environment variables are missing.");
-      return;
-    }
-
     let cancelled = false;
     setPeriodLoading(true);
     setPeriodError("");
 
-    fetch(`${supabaseUrl}/rest/v1/rpc/get_available_beds_for_period`, {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_start_date: periodStart,
-        p_end_date: periodEnd,
-      }),
+    callRpcClient<AvailableBedRow[]>("get_available_beds_for_period", {
+      p_start_date: periodStart,
+      p_end_date: periodEnd,
     })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(await response.text());
-        }
-        return response.json();
-      })
-      .then((data: AvailableBedRow[]) => {
+      .then((data) => {
         if (!cancelled) setPeriodBeds(data);
       })
       .catch((error) => {

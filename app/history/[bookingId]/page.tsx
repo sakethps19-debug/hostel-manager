@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type BookingDetails = {
   booking_id: number;
@@ -64,96 +65,24 @@ type PageProps = {
 async function getBookingDetails(
   bookingId: string
 ): Promise<BookingDetails | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_booking_details`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_booking_id: Number(bookingId),
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  const data: BookingDetails[] = await response.json();
+  const data = await callRpcServer<BookingDetails[]>("get_booking_details", {
+    p_booking_id: Number(bookingId),
+  });
 
   return data.length ? data[0] : null;
 }
 
 async function getSettlement(bookingId: string): Promise<Settlement | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_booking_settlement`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: Number(bookingId) }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  const data: Settlement[] = await response.json();
+  const data = await callRpcServer<Settlement[]>("get_booking_settlement", {
+    p_booking_id: Number(bookingId),
+  });
   return data.length > 0 && data[0].settlement_id ? data[0] : null;
 }
 
 async function getTransferHistory(residentId: number): Promise<TransferRecord[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_transfer_history`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_resident_id: residentId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  return response.json();
+  return callRpcServer<TransferRecord[]>("get_transfer_history", {
+    p_resident_id: residentId,
+  });
 }
 
 function formatDate(date: string) {
