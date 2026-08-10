@@ -3,6 +3,7 @@ export type BedStatus =
   | "occupied"
   | "vacating_soon"
   | "reserved"
+  | "held"
   | "vacant_cleaning"
   | "maintenance";
 
@@ -42,6 +43,13 @@ const STATUS_MAP: Record<BedStatus, BedStatusInfo> = {
     badgeClasses: "bg-blue-50 text-blue-700 border border-blue-200",
     iconColorClass: "text-blue-600",
     iconBgClass: "bg-blue-50",
+  },
+  held: {
+    status: "held",
+    label: "Held",
+    badgeClasses: "bg-violet-50 text-violet-700 border border-violet-200",
+    iconColorClass: "text-violet-600",
+    iconBgClass: "bg-violet-50",
   },
   vacant_cleaning: {
     status: "vacant_cleaning",
@@ -83,6 +91,10 @@ export function deriveBedStatus(bed: {
 
   if (bed.bed_status === "cleaning") {
     return "vacant_cleaning";
+  }
+
+  if (bed.bed_status === "held") {
+    return "held";
   }
 
   return "available";

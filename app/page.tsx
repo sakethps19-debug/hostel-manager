@@ -148,6 +148,7 @@ export default async function Home() {
         ? [
             { label: "Enquiries", href: "/enquiries" },
             { label: "Waitlist", href: "/waitlist" },
+            { label: "Bed Holds", href: "/holds" },
             { label: "Complaints", href: "/complaints" },
           ]
         : []),

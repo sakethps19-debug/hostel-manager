@@ -40,6 +40,8 @@ export default async function HostelPage({ params }: PageProps) {
     notFound();
   }
 
+  await callRpcServer("release_expired_holds").catch(() => {});
+
   const beds = await getHostelBedGrid(hostelName);
 
   const totalBeds = beds.length;
@@ -49,6 +51,7 @@ export default async function HostelPage({ params }: PageProps) {
     occupied: 0,
     vacating_soon: 0,
     reserved: 0,
+    held: 0,
     vacant_cleaning: 0,
     maintenance: 0,
   };
@@ -88,6 +91,7 @@ export default async function HostelPage({ params }: PageProps) {
       occupied: 0,
       vacating_soon: 0,
       reserved: 0,
+      held: 0,
       vacant_cleaning: 0,
       maintenance: 0,
     };
@@ -142,12 +146,13 @@ export default async function HostelPage({ params }: PageProps) {
         </div>
 
         <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-7">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-8">
             <StatTile label="Total Beds" value={totalBeds} />
             <StatTile label="Occupied" value={statusCounts.occupied} />
             <StatTile label="Available" value={statusCounts.available} green />
             <StatTile label="Vacating Soon" value={statusCounts.vacating_soon} />
             <StatTile label="Reserved" value={statusCounts.reserved} />
+            <StatTile label="Held" value={statusCounts.held} />
             <StatTile label="Cleaning" value={statusCounts.vacant_cleaning} />
             <StatTile label="Maintenance" value={statusCounts.maintenance} />
           </div>
