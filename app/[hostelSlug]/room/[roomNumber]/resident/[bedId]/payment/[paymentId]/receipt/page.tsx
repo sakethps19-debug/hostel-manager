@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import PrintButton from "./PrintButton";
+import CopyTextButton from "@/components/CopyTextButton";
 
 type ResidentSummary = {
   booking_id: number;
@@ -145,7 +146,15 @@ export default async function ReceiptPage({ params }: PageProps) {
             ← Back to Resident Details
           </a>
 
-          <PrintButton />
+          <div className="flex gap-3">
+            {payment.status === "active" && (
+              <CopyTextButton
+                label="Copy Confirmation"
+                text={`Hi ${resident.full_name}, we've received your payment of ${formatMoney(payment.amount)} (${payment.payment_type}) on ${formatDate(payment.payment_date)} for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Receipt No. ${payment.receipt_number}. Thank you — VNR Boys Hostel.`}
+              />
+            )}
+            <PrintButton />
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm print:rounded-none print:border-0 print:shadow-none">

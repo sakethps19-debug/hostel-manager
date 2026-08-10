@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import GiveNoticeButton from "./GiveNoticeButton";
 import ExtendStayButton from "./ExtendStayButton";
+import CopyTextButton from "@/components/CopyTextButton";
 import ReviseRentButton from "./ReviseRentButton";
 type ResidentDetails = {
   resident_id: number;
@@ -1023,6 +1024,26 @@ export default async function ResidentPage({
             Vacate / Final Settlement
           </a>
 
+        </section>
+
+        <section className="mt-3 flex flex-wrap gap-3">
+          {ledger && ledger.balance_outstanding > 0 && (
+            <CopyTextButton
+              label="Copy Rent Reminder"
+              text={`Hi ${resident.full_name}, this is a reminder that your rent of ${formatMoney(ledger.balance_outstanding)} is outstanding for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Please clear it at your earliest convenience. Thank you — VNR Boys Hostel.`}
+            />
+          )}
+
+          {resident.notice_given_at && (
+            <CopyTextButton
+              label="Copy Checkout Reminder"
+              text={`Hi ${resident.full_name}, this is a reminder that your vacate date for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}) is ${
+                resident.expected_vacate_date
+                  ? formatDate(resident.expected_vacate_date)
+                  : "coming up"
+              }. Please ensure all dues are cleared and the room is vacated on time. Thank you — VNR Boys Hostel.`}
+            />
+          )}
         </section>
 
       </div>
