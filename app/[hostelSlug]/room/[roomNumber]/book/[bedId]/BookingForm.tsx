@@ -1,9 +1,26 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import {
+  buildResidentFilePath,
+  uploadResidentFile,
+} from "@/lib/supabase/residentFiles";
+
+const PHOTO_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
+
+const ID_DOC_ACCEPTED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+const MAX_ID_DOC_SIZE_BYTES = 10 * 1024 * 1024;
+
+type ResidentIdRow = { resident_id: number };
 
 export default function BookingForm({
   hostelSlug,
@@ -48,8 +65,60 @@ export default function BookingForm({
 
   const [securityDeposit, setSecurityDeposit] = useState("0");
 
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  function handlePhotoSelect(selected: File | null) {
+    setErrorMessage("");
+
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setPhotoPreviewUrl(null);
+    setPhotoFile(null);
+
+    if (!selected) return;
+
+    if (!PHOTO_ACCEPTED_TYPES.includes(selected.type)) {
+      setErrorMessage("Photo must be a JPG, PNG, or WEBP image.");
+      return;
+    }
+
+    if (selected.size > MAX_PHOTO_SIZE_BYTES) {
+      setErrorMessage("Photo is larger than the 5 MB limit.");
+      return;
+    }
+
+    setPhotoFile(selected);
+    setPhotoPreviewUrl(URL.createObjectURL(selected));
+  }
+
+  function handleIdProofFileSelect(selected: File | null) {
+    setErrorMessage("");
+    setIdProofFile(null);
+
+    if (!selected) return;
+
+    if (!ID_DOC_ACCEPTED_TYPES.includes(selected.type)) {
+      setErrorMessage("ID proof document must be a JPG, PNG, WEBP, or PDF file.");
+      return;
+    }
+
+    if (selected.size > MAX_ID_DOC_SIZE_BYTES) {
+      setErrorMessage("ID proof document is larger than the 10 MB limit.");
+      return;
+    }
+
+    setIdProofFile(selected);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,6 +145,16 @@ export default function BookingForm({
 
     if (!idProofNumber.trim()) {
       setErrorMessage("Please enter the ID proof number/value.");
+      return;
+    }
+
+    if (!photoFile) {
+      setErrorMessage("Please upload the resident's photograph.");
+      return;
+    }
+
+    if (!idProofFile) {
+      setErrorMessage("Please upload the ID proof document.");
       return;
     }
 
@@ -158,6 +237,82 @@ export default function BookingForm({
         }
       }
 
+      // The booking has already succeeded at this point - the bed is taken.
+      // Attach the mandatory photo/ID proof now, but if this part fails,
+      // still route to the resident's page (where it can be retried)
+      // instead of stranding the user on a form that can't be resubmitted.
+      try {
+        const residents = await callRpcClient<ResidentIdRow[]>(
+          "get_resident_details",
+          { p_bed_id: bedId }
+        );
+        const residentId = residents[0]?.resident_id;
+
+        if (!residentId) {
+          throw new Error("Could not locate the new resident record.");
+        }
+
+        const photoPath = buildResidentFilePath(
+          residentId,
+          "profile",
+          photoFile.name
+        );
+        await uploadResidentFile(photoPath, photoFile);
+        await callRpcClient("add_resident_document", {
+          p_resident_id: residentId,
+          p_document_type: "Resident Photo",
+          p_document_subtype: null,
+          p_file_name: photoFile.name,
+          p_storage_path: photoPath,
+          p_file_size_bytes: photoFile.size,
+          p_mime_type: photoFile.type,
+          p_notes: null,
+          p_is_primary: true,
+        });
+        await logAuditEvent("resident_photo_updated", "resident", residentId, {
+          file_name: photoFile.name,
+        });
+
+        const idDocPath = buildResidentFilePath(
+          residentId,
+          "documents",
+          idProofFile.name
+        );
+        await uploadResidentFile(idDocPath, idProofFile);
+        const idDocumentId = await callRpcClient<number>(
+          "add_resident_document",
+          {
+            p_resident_id: residentId,
+            p_document_type: idProofType,
+            p_document_subtype: null,
+            p_file_name: idProofFile.name,
+            p_storage_path: idDocPath,
+            p_file_size_bytes: idProofFile.size,
+            p_mime_type: idProofFile.type,
+            p_notes: "Captured during booking",
+            p_is_primary: false,
+          }
+        );
+        await logAuditEvent(
+          "document_uploaded",
+          "resident_document",
+          idDocumentId,
+          {
+            resident_id: residentId,
+            document_type: idProofType,
+            file_name: idProofFile.name,
+          }
+        );
+      } catch (uploadError) {
+        window.alert(
+          "Booking was created, but uploading the photo/ID proof failed: " +
+            (uploadError instanceof Error
+              ? uploadError.message
+              : "Unknown error") +
+            ". Please upload them from the resident's page."
+        );
+      }
+
       router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();
 
@@ -209,11 +364,6 @@ export default function BookingForm({
             <h2 className="text-xl font-bold">
               Resident Details
             </h2>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Photo and ID proof/document uploads happen on the resident's
-              page right after you confirm this booking.
-            </p>
 
             <div className="mt-6 grid gap-5 md:grid-cols-2">
 
@@ -319,6 +469,66 @@ export default function BookingForm({
                   placeholder="Workplace or college address"
                 />
               </Field>
+            </div>
+
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h2 className="text-xl font-bold">
+              Photo &amp; ID Proof
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Both are required to complete this booking.
+            </p>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+
+              <Field label="Resident Photo *">
+                <div className="flex items-center gap-4">
+                  {photoPreviewUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={photoPreviewUrl}
+                      alt="Preview"
+                      className="h-16 w-16 rounded-full border border-slate-200 object-cover"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept={PHOTO_ACCEPTED_TYPES.join(",")}
+                    capture="environment"
+                    onChange={(e) =>
+                      handlePhotoSelect(e.target.files?.[0] || null)
+                    }
+                    className="input-style"
+                    required
+                  />
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  JPG, PNG, or WEBP - up to 5 MB.
+                </p>
+              </Field>
+
+              <Field label="ID Proof Document *">
+                <input
+                  type="file"
+                  accept={ID_DOC_ACCEPTED_TYPES.join(",")}
+                  capture="environment"
+                  onChange={(e) =>
+                    handleIdProofFileSelect(e.target.files?.[0] || null)
+                  }
+                  className="input-style"
+                  required
+                />
+                <p className="mt-2 text-xs text-slate-400">
+                  {idProofFile
+                    ? `Selected: ${idProofFile.name}`
+                    : "JPG, PNG, WEBP, or PDF - up to 10 MB."}
+                </p>
+              </Field>
+
             </div>
 
           </section>
@@ -432,7 +642,7 @@ export default function BookingForm({
               disabled={saving}
               className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Confirm Booking"}
+              {saving ? "Saving & Uploading..." : "Confirm Booking"}
             </button>
 
           </div>
