@@ -2,7 +2,7 @@ import { slugifyHostelName } from "@/lib/hostel";
 import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
 import AlertCard from "@/components/AlertCard";
-import LogoutButton from "@/components/LogoutButton";
+import UserMenu from "@/components/UserMenu";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -223,7 +223,7 @@ export default async function Home() {
     Change Password
   </a>
 
-  <LogoutButton />
+  <UserMenu role={role} />
 
   {canManageBookings && (
     <a
