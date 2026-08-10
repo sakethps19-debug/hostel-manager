@@ -24,7 +24,14 @@ type DocumentRow = {
   uploaded_by_name: string | null;
 };
 
-const DOCUMENT_TYPES = ["Agreement", "Police Verification", "Other"];
+const DOCUMENT_TYPES = [
+  "Agreement",
+  "Police Verification",
+  "Admission Letter",
+  "Offer Letter",
+  "Appointment Letter",
+  "Other",
+];
 
 const ACCEPTED_TYPES = [
   "image/jpeg",
