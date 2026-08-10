@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from "react";
 export default function NavDropdown({
   label,
   items,
+  variant = "default",
 }: {
   label: string;
   items: { label: string; href: string }[];
+  variant?: "default" | "primary";
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,16 +34,20 @@ export default function NavDropdown({
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        className={
+          variant === "primary"
+            ? "flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            : "flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        }
       >
         {label}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
-          className={`h-4 w-4 text-slate-400 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`h-4 w-4 transition-transform ${
+            variant === "primary" ? "text-white" : "text-slate-400"
+          } ${open ? "rotate-180" : ""}`}
         >
           <path
             fillRule="evenodd"
