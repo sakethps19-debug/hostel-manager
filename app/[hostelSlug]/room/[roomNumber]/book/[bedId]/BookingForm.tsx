@@ -62,6 +62,13 @@ export default function BookingForm({
       return;
     }
 
+    if (emergencyContact && !/^\d{10}$/.test(emergencyContact)) {
+      setErrorMessage(
+        "Emergency contact number must contain exactly 10 digits."
+      );
+      return;
+    }
+
     if (!idProofType) {
       setErrorMessage("Please select an ID proof type.");
       return;
@@ -151,7 +158,7 @@ export default function BookingForm({
         }
       }
 
-      router.push(`/${hostelSlug}/room/${roomNumber}`);
+      router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();
 
     } catch (error) {
@@ -203,6 +210,11 @@ export default function BookingForm({
               Resident Details
             </h2>
 
+            <p className="mt-2 text-sm text-slate-500">
+              Photo and ID proof/document uploads happen on the resident's
+              page right after you confirm this booking.
+            </p>
+
             <div className="mt-6 grid gap-5 md:grid-cols-2">
 
               <Field label="Full Name *">
@@ -248,12 +260,18 @@ export default function BookingForm({
               <Field label="Emergency Contact">
                 <input
                   value={emergencyContact}
-                  onChange={(e) =>
-                    setEmergencyContact(e.target.value)
-                  }
+                  onChange={(e) => {
+                    const digits = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10);
+
+                    setEmergencyContact(digits);
+                  }}
                   className="input-style"
-                  placeholder="Emergency contact number"
-                  inputMode="tel"
+                  placeholder="10-digit emergency contact number"
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
                 />
               </Field>
 
