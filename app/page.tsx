@@ -164,6 +164,7 @@ export default async function Home() {
             { label: "Bed Holds", href: "/holds" },
             { label: "Complaints", href: "/complaints" },
             { label: "Floor Performance", href: "/reports/floor-performance" },
+            { label: "Enquiry Conversion", href: "/reports/enquiry-conversion" },
           ]
         : []),
       ...(hasPermission(role, "manageDocuments")
