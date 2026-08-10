@@ -48,14 +48,19 @@ function getStatusClasses(status: string) {
 
 export default function ResidentSearchTable({
   residents,
+  tagsByResidentId = {},
+  allTags = [],
 }: {
   residents: ResidentRow[];
+  tagsByResidentId?: Record<number, string[]>;
+  allTags?: string[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "vacated" | "all">(
     "active"
   );
   const [selectedHostel, setSelectedHostel] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
 
   const hostelOptions = useMemo(
     () => Array.from(new Set(residents.map((r) => r.hostel_name))).sort(),
@@ -73,6 +78,10 @@ export default function ResidentSearchTable({
 
       const matchesHostel = !selectedHostel || r.hostel_name === selectedHostel;
 
+      const matchesTag =
+        !selectedTag ||
+        (tagsByResidentId[r.resident_id] || []).includes(selectedTag);
+
       const matchesQuery =
         !query ||
         r.full_name.toLowerCase().includes(query) ||
@@ -82,9 +91,9 @@ export default function ResidentSearchTable({
         r.hostel_name.toLowerCase().includes(query) ||
         (r.id_proof_number || "").toLowerCase().includes(query);
 
-      return matchesStatus && matchesHostel && matchesQuery;
+      return matchesStatus && matchesHostel && matchesTag && matchesQuery;
     });
-  }, [residents, searchTerm, statusFilter, selectedHostel]);
+  }, [residents, searchTerm, statusFilter, selectedHostel, selectedTag, tagsByResidentId]);
 
   function handleExport() {
     downloadCsv(
@@ -128,6 +137,21 @@ export default function ResidentSearchTable({
             </option>
           ))}
         </select>
+
+        {allTags.length > 0 && (
+          <select
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(e.target.value)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">All Tags</option>
+            {allTags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="flex rounded-xl border border-slate-200 bg-white p-1 text-sm font-semibold">
           {(["active", "vacated", "all"] as const).map((option) => (
@@ -177,6 +201,7 @@ export default function ResidentSearchTable({
                   <th className="px-4 py-3">Monthly Rent</th>
                   <th className="px-4 py-3">Outstanding</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Tags</th>
                 </tr>
               </thead>
 
@@ -230,6 +255,20 @@ export default function ResidentSearchTable({
                         >
                           {r.booking_status}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(tagsByResidentId[r.resident_id] || []).map(
+                            (tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700"
+                              >
+                                {tag}
+                              </span>
+                            )
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
