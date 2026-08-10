@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import { downloadCsv } from "@/lib/csv";
 
 type SharingRateRow = {
   hostel_name: string;
@@ -89,6 +90,18 @@ export default function SharingRatesTable({
     }
   }
 
+  function handleExport() {
+    downloadCsv(
+      `sharing-rates-${new Date().toISOString().slice(0, 10)}.csv`,
+      rows.map((r) => ({
+        hostel_name: r.hostel_name,
+        sharing_type: r.sharing_type,
+        monthly_rent: r.monthly_rent,
+        effective_from: r.effective_from,
+      }))
+    );
+  }
+
   return (
     <div className="mt-4">
       {errorMessage && (
@@ -96,6 +109,17 @@ export default function SharingRatesTable({
           {errorMessage}
         </p>
       )}
+
+      <div className="mb-3 flex justify-end">
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={rows.length === 0}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+        >
+          Export CSV
+        </button>
+      </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full text-left text-sm">

@@ -186,6 +186,7 @@ export default async function Home() {
       label="Finance"
       items={[
         { label: "Overdue Rent", href: "/rent/overdue" },
+        { label: "Payments Report", href: "/reports/payments" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [{ label: "Expenses", href: "/expenses" }]
           : []),
@@ -207,6 +208,7 @@ export default async function Home() {
         { label: "Users", href: "/settings/users" },
         { label: "Data Health", href: "/data-health" },
         { label: "Feature Flags", href: "/settings/feature-flags" },
+        { label: "Import / Export", href: "/settings/data-tools" },
         ...(canManageRates
           ? [
               { label: "Rates", href: "/settings/rates" },
