@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/reset-password"];
+const ALLOWED_WHEN_MUST_CHANGE_PASSWORD = ["/change-password"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -47,6 +48,25 @@ export async function updateSession(request: NextRequest) {
     homeUrl.pathname = "/";
     homeUrl.search = "";
     return NextResponse.redirect(homeUrl);
+  }
+
+  const isAllowedWhenMustChangePassword = ALLOWED_WHEN_MUST_CHANGE_PASSWORD.some(
+    (path) => request.nextUrl.pathname.startsWith(path)
+  );
+
+  if (user && !isPublicPath && !isAllowedWhenMustChangePassword) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("must_change_password")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.must_change_password) {
+      const changePasswordUrl = request.nextUrl.clone();
+      changePasswordUrl.pathname = "/change-password";
+      changePasswordUrl.search = "";
+      return NextResponse.redirect(changePasswordUrl);
+    }
   }
 
   return response;
