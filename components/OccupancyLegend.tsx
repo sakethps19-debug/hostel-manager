@@ -6,6 +6,7 @@ const LEGEND_STATUSES: BedStatus[] = [
   "occupied",
   "vacating_soon",
   "reserved",
+  "vacant_cleaning",
   "maintenance",
 ];
 
