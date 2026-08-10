@@ -4,6 +4,7 @@ import OccupancyLegend from "@/components/OccupancyLegend";
 import AlertCard from "@/components/AlertCard";
 import LogoutButton from "@/components/LogoutButton";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { getMyRole } from "@/lib/auth";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -57,6 +58,8 @@ export default async function Home() {
   const hostels = await getHostelDashboard();
   const rentSummary = await getRentSummary();
   const alerts = await getOperationalAlerts();
+  const role = await getMyRole();
+  const isOwner = role === "Owner";
 
   const totalBeds = hostels.reduce(
     (sum, hostel) => sum + Number(hostel.total_beds),
@@ -153,19 +156,23 @@ export default async function Home() {
     Expenses
   </a>
 
-  <a
-    href="/reports/pnl"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    P&amp;L
-  </a>
+  {isOwner && (
+    <a
+      href="/reports/pnl"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      P&amp;L
+    </a>
+  )}
 
-  <a
-    href="/audit-log"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Audit Log
-  </a>
+  {isOwner && (
+    <a
+      href="/audit-log"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Audit Log
+    </a>
+  )}
 
   <LogoutButton />
 

@@ -1,5 +1,6 @@
 import PnlView from "./PnlView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requireRole } from "@/lib/auth";
 
 type PnlRow = {
   hostel_name: string;
@@ -23,6 +24,8 @@ type PageProps = {
 };
 
 export default async function PnlPage({ searchParams }: PageProps) {
+  await requireRole(["Owner"]);
+
   const params = await searchParams;
   const now = new Date();
   const month = Number(params.month) || now.getMonth() + 1;
