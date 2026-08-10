@@ -184,14 +184,26 @@ export default async function Home() {
 
   <UserMenu role={role} />
 
-  {canManageBookings && (
-    <a
-      href="#hostels"
-      className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-    >
-      + New Booking
-    </a>
-  )}
+  <NavDropdown
+    label="+ Quick Actions"
+    variant="primary"
+    items={[
+      ...(canManageBookings
+        ? [{ label: "New Booking", href: "#hostels" }]
+        : []),
+      { label: "Find a Bed", href: "/find-bed" },
+      ...(canManageOperationalRecords
+        ? [
+            { label: "New Enquiry", href: "/enquiries/new" },
+            { label: "Add to Waitlist", href: "/waitlist/new" },
+            { label: "New Complaint", href: "/complaints/new" },
+          ]
+        : []),
+      ...(canManageExpenses
+        ? [{ label: "New Expense", href: "/expenses/new" }]
+        : []),
+    ]}
+  />
 </div>
         </div>
 
