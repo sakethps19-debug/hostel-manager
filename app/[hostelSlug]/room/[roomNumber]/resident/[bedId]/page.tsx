@@ -767,14 +767,23 @@ export default async function ResidentPage({
               Rent Ledger
             </h2>
 
-            {canManagePayments && (
+            <div className="flex flex-wrap gap-3">
               <a
-                href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/new`}
-                className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/ledger`}
+                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
-                Record Payment
+                View Ledger Statement
               </a>
-            )}
+
+              {canManagePayments && (
+                <a
+                  href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/new`}
+                  className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                >
+                  Record Payment
+                </a>
+              )}
+            </div>
           </div>
 
           {ledger && (
