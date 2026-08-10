@@ -2,6 +2,7 @@ import { slugifyHostelName } from "@/lib/hostel";
 import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
 import AlertCard from "@/components/AlertCard";
+import LogoutButton from "@/components/LogoutButton";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -245,6 +246,8 @@ export default async function Home() {
   >
     Audit Log
   </a>
+
+  <LogoutButton />
 
   <a
     href={hostels.length ? `/${slugifyHostelName(hostels[0].hostel_name)}` : "/"}
