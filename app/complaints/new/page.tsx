@@ -12,6 +12,7 @@ type ResidentRow = {
 
 import ComplaintForm from "./ComplaintForm";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 
 async function getActiveResidents(): Promise<ResidentRow[]> {
   const all = await callRpcServer<ResidentRow[]>("get_resident_master_list");
@@ -19,6 +20,8 @@ async function getActiveResidents(): Promise<ResidentRow[]> {
 }
 
 export default async function NewComplaintPage() {
+  await requirePermission("manageOperationalRecords");
+
   const residents = await getActiveResidents();
 
   return (

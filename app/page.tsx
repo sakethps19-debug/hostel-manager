@@ -62,6 +62,10 @@ export default async function Home() {
   const alerts = await getOperationalAlerts();
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
+  const canManageOperationalRecords = hasPermission(
+    role,
+    "manageOperationalRecords"
+  );
   const canManageExpenses = hasPermission(role, "manageExpenses");
   const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
   const canViewAuditLog = hasPermission(role, "viewAuditLog");
@@ -127,7 +131,7 @@ export default async function Home() {
     items={[
       { label: "Residents", href: "/residents" },
       { label: "Booking History", href: "/history" },
-      ...(canManageBookings
+      ...(canManageOperationalRecords
         ? [
             { label: "Enquiries", href: "/enquiries" },
             { label: "Waitlist", href: "/waitlist" },

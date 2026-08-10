@@ -12,15 +12,18 @@ function todayIsoDate() {
 export default function ReviseRentButton({
   bookingId,
   currentRent,
+  startDate,
 }: {
   bookingId: number;
   currentRent: number;
+  startDate: string;
 }) {
   const router = useRouter();
 
+  const minEffectiveDate = startDate < todayIsoDate() ? todayIsoDate() : startDate;
   const [open, setOpen] = useState(false);
   const [newRent, setNewRent] = useState(String(currentRent));
-  const [effectiveDate, setEffectiveDate] = useState(todayIsoDate());
+  const [effectiveDate, setEffectiveDate] = useState(minEffectiveDate);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -38,6 +41,11 @@ export default function ReviseRentButton({
 
     if (!effectiveDate) {
       setErrorMessage("Please select an effective date.");
+      return;
+    }
+
+    if (effectiveDate < startDate) {
+      setErrorMessage("Effective date cannot be before the booking's start date.");
       return;
     }
 
@@ -109,6 +117,7 @@ export default function ReviseRentButton({
             type="date"
             value={effectiveDate}
             onChange={(e) => setEffectiveDate(e.target.value)}
+            min={minEffectiveDate}
             className="w-full rounded-xl border border-indigo-200 px-4 py-2 outline-none"
           />
         </label>

@@ -80,11 +80,26 @@ export default async function RoomPage({ params }: PageProps) {
 
   const beds = await getRoomBeds(hostelName, roomNumber);
 
-  const occupied = beds.filter(
-    (bed) => bed.occupant_name !== null
-  ).length;
+  const statusCounts = {
+    available: 0,
+    occupied: 0,
+    vacating_soon: 0,
+    reserved: 0,
+    maintenance: 0,
+  };
 
-  const vacant = beds.length - occupied;
+  for (const bed of beds) {
+    const status = deriveBedStatus({
+      occupant_name: bed.occupant_name,
+      notice_given_at: bed.notice_given_at,
+      is_future_booking: bed.is_future_booking,
+      bed_status: bed.bed_status,
+    });
+    statusCounts[status] += 1;
+  }
+
+  const occupied = statusCounts.occupied + statusCounts.vacating_soon;
+  const vacant = statusCounts.available;
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -123,10 +138,13 @@ export default async function RoomPage({ params }: PageProps) {
           </a>
         </div>
 
-        <section className="mt-10 grid gap-4 sm:grid-cols-3">
+        <section className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard label="Total Beds" value={beds.length} />
           <StatCard label="Occupied" value={occupied} />
           <StatCard label="Vacant" value={vacant} green />
+          <StatCard label="Vacating Soon" value={statusCounts.vacating_soon} />
+          <StatCard label="Reserved" value={statusCounts.reserved} />
+          <StatCard label="Maintenance" value={statusCounts.maintenance} />
         </section>
 
         <section id="beds" className="mt-10 scroll-mt-6">

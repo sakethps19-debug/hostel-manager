@@ -61,6 +61,15 @@ export default function UsersTable({ users }: { users: UserRow[] }) {
   }
 
   async function handleActiveToggle(userId: string, isActive: boolean) {
+    if (
+      !isActive &&
+      !window.confirm(
+        "Deactivate this account? They will immediately lose access until reactivated."
+      )
+    ) {
+      return;
+    }
+
     setErrorMessage("");
     setBusyId(userId);
 

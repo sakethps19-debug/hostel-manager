@@ -1,5 +1,6 @@
 import EnquiriesTable from "./EnquiriesTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 
 type EnquiryRow = {
   enquiry_id: number;
@@ -20,6 +21,8 @@ async function getEnquiries(): Promise<EnquiryRow[]> {
 }
 
 export default async function EnquiriesPage() {
+  await requirePermission("manageOperationalRecords");
+
   const enquiries = await getEnquiries();
 
   return (
