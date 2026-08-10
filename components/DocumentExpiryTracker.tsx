@@ -5,10 +5,27 @@ import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 const DOCUMENT_TYPES = ["Agreement", "Police Verification", "Other"];
 
+const POLICE_VERIFICATION_STATUSES = [
+  "Not Required",
+  "Pending",
+  "Submitted",
+  "Completed",
+  "Rejected",
+];
+
+function policeStatusClasses(status: string) {
+  if (status === "Completed") return "bg-emerald-50 text-emerald-700";
+  if (status === "Rejected") return "bg-red-50 text-red-700";
+  if (status === "Pending" || status === "Submitted")
+    return "bg-amber-50 text-amber-700";
+  return "bg-slate-100 text-slate-500";
+}
+
 type ExpiryRow = {
   document_type: string;
   expiry_date: string | null;
   notes: string | null;
+  status: string | null;
 };
 
 function daysUntil(dateStr: string) {
@@ -48,6 +65,7 @@ export default function DocumentExpiryTracker({
       documentType: type,
       expiryDate: byType.get(type)?.expiry_date || "",
       notes: byType.get(type)?.notes || "",
+      status: byType.get(type)?.status || "Not Required",
     }))
   );
   const [savingType, setSavingType] = useState<string | null>(null);
@@ -66,6 +84,8 @@ export default function DocumentExpiryTracker({
         p_document_type: documentType,
         p_expiry_date: row.expiryDate || null,
         p_notes: row.notes || null,
+        p_status:
+          documentType === "Police Verification" ? row.status : null,
       });
     } catch (error) {
       setErrorMessage(
@@ -89,7 +109,7 @@ export default function DocumentExpiryTracker({
           return (
             <div
               key={row.documentType}
-              className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end"
+              className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 p-4"
             >
               <div>
                 <p className="text-xs font-medium text-slate-400">
@@ -103,6 +123,33 @@ export default function DocumentExpiryTracker({
                   </span>
                 )}
               </div>
+
+              {row.documentType === "Police Verification" && (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-slate-500">
+                    Verification Status
+                  </span>
+                  <select
+                    value={row.status}
+                    onChange={(e) =>
+                      setValues((prev) =>
+                        prev.map((v) =>
+                          v.documentType === row.documentType
+                            ? { ...v, status: e.target.value }
+                            : v
+                        )
+                      )
+                    }
+                    className={`rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold outline-none focus:border-indigo-500 ${policeStatusClasses(row.status)}`}
+                  >
+                    {POLICE_VERIFICATION_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold text-slate-500">
