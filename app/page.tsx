@@ -3,6 +3,7 @@ import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
 import AlertCard from "@/components/AlertCard";
 import UserMenu from "@/components/UserMenu";
+import NavDropdown from "@/components/NavDropdown";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -120,100 +121,48 @@ export default async function Home() {
               Bed availability and occupancy dashboard
             </p>
           </div>
-         <div className="flex flex-wrap gap-3">
-  <a
-    href="/residents"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Residents
-  </a>
-
-  <a
-    href="/history"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Booking History
-  </a>
-
-  {canManageBookings && (
-    <a
-      href="/enquiries"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Enquiries
-    </a>
-  )}
-
-  {canManageBookings && (
-    <a
-      href="/waitlist"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Waitlist
-    </a>
-  )}
-
-  {canManageBookings && (
-    <a
-      href="/complaints"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Complaints
-    </a>
-  )}
+         <div className="flex flex-wrap items-center gap-3">
+  <NavDropdown
+    label="Operations"
+    items={[
+      { label: "Residents", href: "/residents" },
+      { label: "Booking History", href: "/history" },
+      ...(canManageBookings
+        ? [
+            { label: "Enquiries", href: "/enquiries" },
+            { label: "Waitlist", href: "/waitlist" },
+            { label: "Complaints", href: "/complaints" },
+          ]
+        : []),
+    ]}
+  />
 
   {canViewFinancialReports && (
-    <a
-      href="/rent/overdue"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Overdue Rent
-    </a>
-  )}
-
-  {canManageExpenses && (
-    <a
-      href="/expenses"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Expenses
-    </a>
-  )}
-
-  {canViewFinancialReports && (
-    <a
-      href="/reports/pnl"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      P&amp;L
-    </a>
-  )}
-
-  {canViewAuditLog && (
-    <a
-      href="/audit-log"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Audit Log
-    </a>
+    <NavDropdown
+      label="Finance"
+      items={[
+        { label: "Overdue Rent", href: "/rent/overdue" },
+        ...(canManageExpenses
+          ? [{ label: "Expenses", href: "/expenses" }]
+          : []),
+        { label: "P&L", href: "/reports/pnl" },
+      ]}
+    />
   )}
 
   {canManageUsers && (
-    <a
-      href="/settings/users"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Users
-    </a>
-  )}
-
-  {canManageRates && (
-    <a
-      href="/settings/rates"
-      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-    >
-      Rates
-    </a>
+    <NavDropdown
+      label="Admin"
+      items={[
+        ...(canViewAuditLog
+          ? [{ label: "Audit Log", href: "/audit-log" }]
+          : []),
+        { label: "Users", href: "/settings/users" },
+        ...(canManageRates
+          ? [{ label: "Rates", href: "/settings/rates" }]
+          : []),
+      ]}
+    />
   )}
 
   <UserMenu role={role} />
