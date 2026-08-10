@@ -163,6 +163,7 @@ export default async function Home() {
             { label: "Waitlist", href: "/waitlist" },
             { label: "Bed Holds", href: "/holds" },
             { label: "Complaints", href: "/complaints" },
+            { label: "Floor Performance", href: "/reports/floor-performance" },
           ]
         : []),
       ...(hasPermission(role, "manageDocuments")
