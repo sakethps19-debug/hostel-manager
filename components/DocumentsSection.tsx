@@ -24,26 +24,7 @@ type DocumentRow = {
   uploaded_by_name: string | null;
 };
 
-const DOCUMENT_TYPES = [
-  "Aadhaar Card",
-  "PAN Card",
-  "Passport",
-  "Driving License",
-  "Voter ID",
-  "Agreement",
-  "Police Verification",
-  "Other",
-];
-
-const ID_TYPES_WITH_SUBTYPE = [
-  "Aadhaar Card",
-  "PAN Card",
-  "Passport",
-  "Driving License",
-  "Voter ID",
-];
-
-const SUBTYPES = ["Front", "Back", "Full Document"];
+const DOCUMENT_TYPES = ["Agreement", "Police Verification", "Other"];
 
 const ACCEPTED_TYPES = [
   "image/jpeg",
@@ -77,7 +58,6 @@ export default function DocumentsSection({
 }) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [documentType, setDocumentType] = useState(DOCUMENT_TYPES[0]);
-  const [documentSubtype, setDocumentSubtype] = useState("");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -131,14 +111,10 @@ export default function DocumentsSection({
 
       await uploadResidentFile(storagePath, file);
 
-      const subtype = ID_TYPES_WITH_SUBTYPE.includes(documentType)
-        ? documentSubtype || null
-        : null;
-
       const documentId = await callRpcClient<number>("add_resident_document", {
         p_resident_id: residentId,
         p_document_type: documentType,
-        p_document_subtype: subtype,
+        p_document_subtype: null,
         p_file_name: file.name,
         p_storage_path: storagePath,
         p_file_size_bytes: file.size,
@@ -157,7 +133,7 @@ export default function DocumentsSection({
         {
           document_id: documentId,
           document_type: documentType,
-          document_subtype: subtype,
+          document_subtype: null,
           file_name: file.name,
           storage_path: storagePath,
           file_size_bytes: file.size,
@@ -171,7 +147,6 @@ export default function DocumentsSection({
       ]);
 
       handleFileSelect(null);
-      setDocumentSubtype("");
       setNotes("");
       (event.target as HTMLFormElement).reset();
     } catch (error) {
@@ -231,11 +206,13 @@ export default function DocumentsSection({
     }
   }
 
-  const showSubtype = ID_TYPES_WITH_SUBTYPE.includes(documentType);
-
   return (
     <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-bold">Identity &amp; Other Documents</h2>
+      <h2 className="text-xl font-bold">Other Documents</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        ID proof is captured above under Identity Proof. Use this for
+        agreements, police verification, or anything else.
+      </p>
 
       <form
         onSubmit={handleUpload}
@@ -247,10 +224,7 @@ export default function DocumentsSection({
           </span>
           <select
             value={documentType}
-            onChange={(e) => {
-              setDocumentType(e.target.value);
-              setDocumentSubtype("");
-            }}
+            onChange={(e) => setDocumentType(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
           >
             {DOCUMENT_TYPES.map((type) => (
@@ -260,26 +234,6 @@ export default function DocumentsSection({
             ))}
           </select>
         </label>
-
-        {showSubtype && (
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">
-              Side / Part
-            </span>
-            <select
-              value={documentSubtype}
-              onChange={(e) => setDocumentSubtype(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
-            >
-              <option value="">Not specified</option>
-              {SUBTYPES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
 
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-slate-500">
