@@ -59,13 +59,17 @@ export default async function BookingPage({ params }: PageProps) {
   const beds = await getRoomBeds(hostelName, roomNumber);
   const bed = beds.find((b) => b.bed_id === Number(bedId));
 
+  if (!bed) {
+    notFound();
+  }
+
   return (
     <BookingForm
       hostelSlug={hostelSlug}
       hostelName={hostelName}
       roomNumber={roomNumber}
       bedId={Number(bedId)}
-      bedCode={bed?.bed_code || null}
+      bedCode={bed.bed_code || null}
       standardFee={Number(room.monthly_rent)}
     />
   );

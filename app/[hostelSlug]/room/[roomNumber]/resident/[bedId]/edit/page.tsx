@@ -51,7 +51,6 @@ export default function EditResidentPage() {
   const [fullName, setFullName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [emergencyContact, setEmergencyContact] = useState("");
  const [idProofType, setIdProofType] = useState("");
 const [idProofNumber, setIdProofNumber] = useState("");
   const [homeAddress, setHomeAddress] = useState("");
@@ -89,7 +88,6 @@ const [idProofNumber, setIdProofNumber] = useState("");
         setFullName(resident.full_name);
         setMobileNumber(resident.mobile_number || "");
         setEmail(resident.email || "");
-        setEmergencyContact(resident.emergency_contact || "");
        setIdProofType(resident.id_proof_type || "");
 setIdProofNumber(resident.id_proof_number || "");
         setHomeAddress(resident.home_address || "");
@@ -99,6 +97,7 @@ setIdProofNumber(resident.id_proof_number || "");
         setEndDate(resident.end_date);
         setMonthlyRent(String(resident.monthly_rent));
         setSecurityDeposit(String(resident.security_deposit || 0));
+        setEmergencyContactMobile(resident.emergency_contact || "");
 
         try {
           const extraData = await callRpcClient<ProfileExtra[]>(
@@ -116,7 +115,11 @@ setIdProofNumber(resident.id_proof_number || "");
             setEmergencyContactRelationship(
               extra.emergency_contact_relationship || ""
             );
-            setEmergencyContactMobile(extra.emergency_contact_mobile || "");
+            // Prefer the structured profile-extra mobile; fall back to the
+            // legacy bookings.emergency_contact value for older records.
+            setEmergencyContactMobile(
+              extra.emergency_contact_mobile || resident.emergency_contact || ""
+            );
           }
         } catch {
           // Additional-details fetch failing shouldn't block loading the
@@ -146,6 +149,11 @@ if (!/^\d{10}$/.test(mobileNumber)) {
   setErrorMessage(
     "Mobile number must contain exactly 10 digits."
   );
+  return;
+}
+
+if (emergencyContactMobile && !/^\d{10}$/.test(emergencyContactMobile)) {
+  setErrorMessage("Emergency contact number must contain exactly 10 digits.");
   return;
 }
 
@@ -195,7 +203,7 @@ if (!idProofNumber.trim()) {
           p_full_name: fullName,
           p_mobile_number: mobileNumber,
           p_email: email,
-          p_emergency_contact: emergencyContact,
+          p_emergency_contact: emergencyContactMobile,
           p_id_proof_type: idProofType,
           p_id_proof_number: idProofNumber,
           p_home_address: homeAddress,
@@ -327,6 +335,28 @@ if (!idProofNumber.trim()) {
   />
 </Field>
 
+              <Field label="Gender">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="input-style"
+                >
+                  <option value="">Not specified</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="Date of Birth">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
               <Field label="Email">
                 <input
                   type="email"
@@ -335,41 +365,6 @@ if (!idProofNumber.trim()) {
                   className="input-style"
                 />
               </Field>
-
-              <Field label="Emergency Contact">
-                <input
-                  value={emergencyContact}
-                  onChange={(e) =>
-                    setEmergencyContact(e.target.value)
-                  }
-                  className="input-style"
-                />
-              </Field>
-<Field label="ID Proof Type *">
-  <select
-    value={idProofType}
-    onChange={(e) => setIdProofType(e.target.value)}
-    className="input-style"
-    required
-  >
-    <option value="">Select ID proof</option>
-    <option value="Aadhaar Card">Aadhaar Card</option>
-    <option value="PAN Card">PAN Card</option>
-    <option value="Voter ID">Voter ID</option>
-    <option value="Driving License">Driving License</option>
-    <option value="Other">Other</option>
-  </select>
-</Field>
-
-<Field label="ID Proof Number / Value *">
-  <input
-    value={idProofNumber}
-    onChange={(e) => setIdProofNumber(e.target.value)}
-    className="input-style"
-    placeholder="Enter ID proof number"
-    required
-  />
-</Field>
 
               <Field label="Home Address">
                 <textarea
@@ -390,39 +385,6 @@ if (!idProofNumber.trim()) {
                   placeholder="Workplace or college address"
                 />
               </Field>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold">
-              Additional Details
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Optional — helps complete the resident profile.
-            </p>
-
-            <div className="mt-6 grid gap-5 md:grid-cols-2">
-              <Field label="Date of Birth">
-                <input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="input-style"
-                />
-              </Field>
-
-              <Field label="Gender">
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="input-style"
-                >
-                  <option value="">Not specified</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </Field>
 
               <Field label="Employer / College">
                 <input
@@ -439,7 +401,15 @@ if (!idProofNumber.trim()) {
                   className="input-style"
                 />
               </Field>
+            </div>
+          </section>
 
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">
+              Emergency Contact
+            </h2>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
               <Field label="Emergency Contact Name">
                 <input
                   value={emergencyContactName}
@@ -448,15 +418,21 @@ if (!idProofNumber.trim()) {
                 />
               </Field>
 
-              <Field label="Emergency Contact Relationship">
-                <input
+              <Field label="Relationship">
+                <select
                   value={emergencyContactRelationship}
                   onChange={(e) =>
                     setEmergencyContactRelationship(e.target.value)
                   }
                   className="input-style"
-                  placeholder="e.g. Father, Mother, Sibling"
-                />
+                >
+                  <option value="">Select relationship</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Relative">Relative</option>
+                  <option value="Friend">Friend</option>
+                  <option value="Other">Other</option>
+                </select>
               </Field>
 
               <Field label="Emergency Contact Mobile">
@@ -469,8 +445,44 @@ if (!idProofNumber.trim()) {
                     )
                   }
                   className="input-style"
+                  placeholder="10-digit emergency contact number"
                   inputMode="numeric"
+                  pattern="[0-9]{10}"
                   maxLength={10}
+                />
+              </Field>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">
+              Identity Proof
+            </h2>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <Field label="ID Proof Type *">
+                <select
+                  value={idProofType}
+                  onChange={(e) => setIdProofType(e.target.value)}
+                  className="input-style"
+                  required
+                >
+                  <option value="">Select ID proof</option>
+                  <option value="Aadhaar Card">Aadhaar Card</option>
+                  <option value="PAN Card">PAN Card</option>
+                  <option value="Voter ID">Voter ID</option>
+                  <option value="Driving License">Driving License</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="ID Proof Number / Value *">
+                <input
+                  value={idProofNumber}
+                  onChange={(e) => setIdProofNumber(e.target.value)}
+                  className="input-style"
+                  placeholder="Enter ID proof number"
+                  required
                 />
               </Field>
             </div>

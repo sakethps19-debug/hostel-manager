@@ -37,6 +37,16 @@ export default function MaintenanceForm({
       return;
     }
 
+    if (
+      expectedCompletionDate &&
+      new Date(expectedCompletionDate) < new Date(startDate)
+    ) {
+      setErrorMessage(
+        "Expected completion date cannot be before the start date."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -107,6 +117,7 @@ export default function MaintenanceForm({
             type="date"
             value={expectedCompletionDate}
             onChange={(e) => setExpectedCompletionDate(e.target.value)}
+            min={startDate}
             className="input-style"
           />
         </label>
@@ -155,7 +166,7 @@ export default function MaintenanceForm({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-xl bg-slate-700 px-7 py-3 font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Start Maintenance"}
         </button>

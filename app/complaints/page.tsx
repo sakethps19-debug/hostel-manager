@@ -1,5 +1,6 @@
 import ComplaintsTable from "./ComplaintsTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 
 type ComplaintRow = {
   complaint_id: number;
@@ -22,6 +23,8 @@ async function getComplaints(): Promise<ComplaintRow[]> {
 }
 
 export default async function ComplaintsPage() {
+  await requirePermission("manageOperationalRecords");
+
   const complaints = await getComplaints();
 
   return (

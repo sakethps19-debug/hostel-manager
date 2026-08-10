@@ -22,6 +22,12 @@ type ResidentForUpdate = {
   security_deposit: number | null;
 };
 
+function dayAfter(date: string) {
+  const d = new Date(`${date}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function ExtendStayButton({
   resident,
 }: {
@@ -29,8 +35,9 @@ export default function ExtendStayButton({
 }) {
   const router = useRouter();
 
+  const minEndDate = dayAfter(resident.end_date);
   const [open, setOpen] = useState(false);
-  const [newEndDate, setNewEndDate] = useState(resident.end_date);
+  const [newEndDate, setNewEndDate] = useState(minEndDate);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -123,6 +130,7 @@ export default function ExtendStayButton({
           type="date"
           value={newEndDate}
           onChange={(e) => setNewEndDate(e.target.value)}
+          min={minEndDate}
           className="w-full rounded-xl border border-indigo-200 px-4 py-2 outline-none"
         />
       </label>

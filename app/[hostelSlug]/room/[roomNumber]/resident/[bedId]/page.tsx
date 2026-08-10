@@ -955,11 +955,15 @@ export default async function ResidentPage({
             <ReviseRentButton
               bookingId={resident.booking_id}
               currentRent={resident.monthly_rent}
+              startDate={resident.start_date}
             />
           )}
 
           {canManageBookings && !resident.notice_given_at && (
-            <GiveNoticeButton bookingId={resident.booking_id} />
+            <GiveNoticeButton
+              bookingId={resident.booking_id}
+              startDate={resident.start_date}
+            />
           )}
 
           {canManageBookings && (

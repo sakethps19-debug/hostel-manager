@@ -7,8 +7,10 @@ import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 export default function GiveNoticeButton({
   bookingId,
+  startDate,
 }: {
   bookingId: number;
+  startDate: string;
 }) {
   const router = useRouter();
 
@@ -23,6 +25,13 @@ export default function GiveNoticeButton({
 
     if (!expectedVacateDate) {
       setErrorMessage("Please select an expected vacate date.");
+      return;
+    }
+
+    if (expectedVacateDate < startDate) {
+      setErrorMessage(
+        "Expected vacate date cannot be before the resident's move-in date."
+      );
       return;
     }
 
@@ -73,6 +82,7 @@ export default function GiveNoticeButton({
           type="date"
           value={expectedVacateDate}
           onChange={(e) => setExpectedVacateDate(e.target.value)}
+          min={startDate}
           className="w-full rounded-xl border border-amber-200 px-4 py-2 outline-none"
         />
       </label>
