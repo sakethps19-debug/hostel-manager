@@ -1,6 +1,6 @@
 import PnlView from "./PnlView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
-import { requireRole } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 
 type PnlRow = {
   hostel_name: string;
@@ -24,7 +24,7 @@ type PageProps = {
 };
 
 export default async function PnlPage({ searchParams }: PageProps) {
-  await requireRole(["Owner"]);
+  await requirePermission("viewFinancialReports");
 
   const params = await searchParams;
   const now = new Date();

@@ -1,6 +1,6 @@
 import AuditLogTable from "./AuditLogTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
-import { requireRole } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 
 type AuditLogRow = {
   audit_id: number;
@@ -8,6 +8,8 @@ type AuditLogRow = {
   entity_type: string;
   entity_id: number | null;
   details: Record<string, unknown>;
+  user_name: string | null;
+  user_role: string | null;
   created_at: string;
 };
 
@@ -16,7 +18,7 @@ async function getAuditLog(): Promise<AuditLogRow[]> {
 }
 
 export default async function AuditLogPage() {
-  await requireRole(["Owner"]);
+  await requirePermission("viewAuditLog");
 
   const entries = await getAuditLog();
 
@@ -36,10 +38,8 @@ export default async function AuditLogPage() {
           </p>
           <h1 className="mt-2 text-4xl font-bold">Audit Log</h1>
           <p className="mt-2 text-slate-500">
-            Read-only record of material changes across the app. Logged
-            client-side after each action succeeds — entries aren&apos;t yet
-            attributed to a specific user (that needs the profiles/role data
-            wired into each log call, not done yet).
+            Read-only record of material changes across the app, attributed
+            to the user and role that performed each action.
           </p>
         </div>
 

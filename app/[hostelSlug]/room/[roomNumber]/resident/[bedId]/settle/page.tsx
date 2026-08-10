@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 import SettlementForm from "./SettlementForm";
 
 type ResidentSummary = {
@@ -29,6 +30,8 @@ type PageProps = {
 };
 
 export default async function SettlePage({ params }: PageProps) {
+  await requirePermission("manageBookings");
+
   const { hostelSlug, roomNumber, bedId } = await params;
 
   const residentRows = await callRpcServer<ResidentSummary[]>(

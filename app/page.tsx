@@ -5,6 +5,7 @@ import AlertCard from "@/components/AlertCard";
 import LogoutButton from "@/components/LogoutButton";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -59,7 +60,12 @@ export default async function Home() {
   const rentSummary = await getRentSummary();
   const alerts = await getOperationalAlerts();
   const role = await getMyRole();
-  const isOwner = role === "Owner";
+  const canManageBookings = hasPermission(role, "manageBookings");
+  const canManageExpenses = hasPermission(role, "manageExpenses");
+  const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
+  const canViewAuditLog = hasPermission(role, "viewAuditLog");
+  const canManageUsers = hasPermission(role, "manageUsers");
+  const overdueRentHref = canViewFinancialReports ? "/rent/overdue" : "/residents";
 
   const totalBeds = hostels.reduce(
     (sum, hostel) => sum + Number(hostel.total_beds),
@@ -128,35 +134,52 @@ export default async function Home() {
     Booking History
   </a>
 
-  <a
-    href="/enquiries"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Enquiries
-  </a>
+  {canManageBookings && (
+    <a
+      href="/enquiries"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Enquiries
+    </a>
+  )}
 
-  <a
-    href="/waitlist"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Waitlist
-  </a>
+  {canManageBookings && (
+    <a
+      href="/waitlist"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Waitlist
+    </a>
+  )}
 
-  <a
-    href="/complaints"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Complaints
-  </a>
+  {canManageBookings && (
+    <a
+      href="/complaints"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Complaints
+    </a>
+  )}
 
-  <a
-    href="/expenses"
-    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-  >
-    Expenses
-  </a>
+  {canViewFinancialReports && (
+    <a
+      href="/rent/overdue"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Overdue Rent
+    </a>
+  )}
 
-  {isOwner && (
+  {canManageExpenses && (
+    <a
+      href="/expenses"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Expenses
+    </a>
+  )}
+
+  {canViewFinancialReports && (
     <a
       href="/reports/pnl"
       className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -165,7 +188,7 @@ export default async function Home() {
     </a>
   )}
 
-  {isOwner && (
+  {canViewAuditLog && (
     <a
       href="/audit-log"
       className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -174,14 +197,25 @@ export default async function Home() {
     </a>
   )}
 
+  {canManageUsers && (
+    <a
+      href="/settings/users"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Users
+    </a>
+  )}
+
   <LogoutButton />
 
-  <a
-    href={hostels.length ? `/${slugifyHostelName(hostels[0].hostel_name)}` : "/"}
-    className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-  >
-    + New Booking
-  </a>
+  {canManageBookings && (
+    <a
+      href={hostels.length ? `/${slugifyHostelName(hostels[0].hostel_name)}` : "/"}
+      className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+    >
+      + New Booking
+    </a>
+  )}
 </div>
         </div>
 
@@ -265,7 +299,7 @@ export default async function Home() {
                   <AlertCard
                     count={alerts.overdue_rent_count}
                     label="Residents with overdue rent"
-                    href="/rent/overdue"
+                    href={overdueRentHref}
                     tone="red"
                   />
                 )}
@@ -327,7 +361,7 @@ export default async function Home() {
               </p>
 
               <a
-                href="/rent/overdue"
+                href={overdueRentHref}
                 className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
               >
                 View Overdue Rent →

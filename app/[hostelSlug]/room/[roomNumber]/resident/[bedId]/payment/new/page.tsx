@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 import PaymentForm from "./PaymentForm";
 
 type ResidentSummary = {
@@ -30,6 +31,8 @@ async function getResidentSummary(
 }
 
 export default async function NewPaymentPage({ params }: PageProps) {
+  await requirePermission("managePayments");
+
   const { hostelSlug, roomNumber, bedId } = await params;
 
   const resident = await getResidentSummary(bedId);

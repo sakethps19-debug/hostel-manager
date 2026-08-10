@@ -1,5 +1,6 @@
 import ExpensesTable from "./ExpensesTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 
 type ExpenseRow = {
   expense_id: number;
@@ -18,6 +19,8 @@ async function getExpenses(): Promise<ExpenseRow[]> {
 }
 
 export default async function ExpensesPage() {
+  await requirePermission("manageExpenses");
+
   const expenses = await getExpenses();
   const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 

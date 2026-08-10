@@ -1,5 +1,6 @@
 import OverdueRentTable from "./OverdueRentTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requirePermission } from "@/lib/auth";
 
 type LedgerRow = {
   booking_id: number;
@@ -26,6 +27,8 @@ async function getRentLedgerAll(): Promise<LedgerRow[]> {
 }
 
 export default async function OverdueRentPage() {
+  await requirePermission("viewFinancialReports");
+
   const ledger = await getRentLedgerAll();
 
   return (
