@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type EnquiryRow = {
   enquiry_id: number;
@@ -80,35 +81,11 @@ export default function EnquiriesTable({
     setErrorMessage("");
     setSavingId(enquiryId);
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      setSavingId(null);
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/update_enquiry_status`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_enquiry_id: enquiryId,
-            p_status: status,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await callRpcClient("update_enquiry_status", {
+        p_enquiry_id: enquiryId,
+        p_status: status,
+      });
 
       await logAuditEvent("enquiry_status_changed", "enquiry", enquiryId, {
         status,

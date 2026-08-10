@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type ComplaintRow = {
   complaint_id: number;
@@ -70,36 +71,12 @@ export default function ComplaintsTable({
     setErrorMessage("");
     setSavingId(complaintId);
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      setSavingId(null);
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/update_complaint_status`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_complaint_id: complaintId,
-            p_status: status,
-            p_resolution: resolution || null,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await callRpcClient("update_complaint_status", {
+        p_complaint_id: complaintId,
+        p_status: status,
+        p_resolution: resolution || null,
+      });
 
       await logAuditEvent("complaint_status_changed", "complaint", complaintId, {
         status,

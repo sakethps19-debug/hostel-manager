@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type ResidentRow = {
   resident_id: number;
@@ -80,43 +81,18 @@ export default function ComplaintForm({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/create_complaint`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_resident_id: selectedResident?.resident_id || null,
-            p_hostel_name: selectedResident?.hostel_name || hostelName || null,
-            p_room_number: selectedResident?.room_number || roomNumber || null,
-            p_bed_code: selectedResident?.bed_code || null,
-            p_category: category,
-            p_description: description,
-            p_priority: priority,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const created = await response.json();
+      const created = await callRpcClient<{ id: number }>("create_complaint", {
+        p_resident_id: selectedResident?.resident_id || null,
+        p_hostel_name: selectedResident?.hostel_name || hostelName || null,
+        p_room_number: selectedResident?.room_number || roomNumber || null,
+        p_bed_code: selectedResident?.bed_code || null,
+        p_category: category,
+        p_description: description,
+        p_priority: priority,
+      });
       await logAuditEvent("complaint_created", "complaint", created?.id ?? null, {
         category,
         priority,

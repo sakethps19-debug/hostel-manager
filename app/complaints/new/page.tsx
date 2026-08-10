@@ -11,34 +11,10 @@ type ResidentRow = {
 };
 
 import ComplaintForm from "./ComplaintForm";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 async function getActiveResidents(): Promise<ResidentRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_resident_master_list`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load residents: ${await response.text()}`);
-  }
-
-  const all: ResidentRow[] = await response.json();
+  const all = await callRpcServer<ResidentRow[]>("get_resident_master_list");
   return all.filter((r) => r.booking_status === "checked_in");
 }
 

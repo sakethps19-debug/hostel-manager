@@ -1,4 +1,5 @@
 import AuditLogTable from "./AuditLogTable";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type AuditLogRow = {
   audit_id: number;
@@ -10,29 +11,7 @@ type AuditLogRow = {
 };
 
 async function getAuditLog(): Promise<AuditLogRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_audit_log`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load audit log: ${await response.text()}`);
-  }
-
-  return response.json();
+  return callRpcServer<AuditLogRow[]>("get_audit_log");
 }
 
 export default async function AuditLogPage() {
@@ -55,8 +34,9 @@ export default async function AuditLogPage() {
           <h1 className="mt-2 text-4xl font-bold">Audit Log</h1>
           <p className="mt-2 text-slate-500">
             Read-only record of material changes across the app. Logged
-            client-side after each action succeeds — until authentication is
-            set up, entries aren&apos;t attributed to a specific user.
+            client-side after each action succeeds — entries aren&apos;t yet
+            attributed to a specific user (that needs the profiles/role data
+            wired into each log call, not done yet).
           </p>
         </div>
 
