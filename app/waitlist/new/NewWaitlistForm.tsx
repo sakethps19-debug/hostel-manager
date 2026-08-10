@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
-export default function NewWaitlistForm() {
+export default function NewWaitlistForm({
+  hostelNames,
+}: {
+  hostelNames: string[];
+}) {
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
@@ -113,9 +117,11 @@ export default function NewWaitlistForm() {
             className="input-style"
           >
             <option value="">Any hostel</option>
-            <option value="Hostel A">Hostel A</option>
-            <option value="Hostel B">Hostel B</option>
-            <option value="Hostel C">Hostel C</option>
+            {hostelNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
           </select>
         </label>
 

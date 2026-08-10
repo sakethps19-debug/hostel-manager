@@ -10,6 +10,10 @@ type ResidentRow = {
   booking_status: string;
 };
 
+type HostelRow = {
+  hostel_name: string;
+};
+
 import ComplaintForm from "./ComplaintForm";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
@@ -19,10 +23,18 @@ async function getActiveResidents(): Promise<ResidentRow[]> {
   return all.filter((r) => r.booking_status === "checked_in");
 }
 
+async function getHostelNames(): Promise<string[]> {
+  const hostels = await callRpcServer<HostelRow[]>("get_hostel_dashboard");
+  return hostels.map((h) => h.hostel_name);
+}
+
 export default async function NewComplaintPage() {
   await requirePermission("manageOperationalRecords");
 
-  const residents = await getActiveResidents();
+  const [residents, hostelNames] = await Promise.all([
+    getActiveResidents(),
+    getHostelNames(),
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -42,7 +54,7 @@ export default async function NewComplaintPage() {
           </p>
         </div>
 
-        <ComplaintForm residents={residents} />
+        <ComplaintForm residents={residents} hostelNames={hostelNames} />
       </div>
     </main>
   );
