@@ -86,7 +86,7 @@ type PageProps = {
 function formatDate(date: string) {
   return new Date(date.length === 10 ? `${date}T00:00:00` : date).toLocaleDateString(
     "en-IN",
-    { day: "2-digit", month: "short", year: "numeric" }
+    { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }
   );
 }
 
