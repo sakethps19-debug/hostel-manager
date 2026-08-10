@@ -1,5 +1,6 @@
 import AuditLogTable from "./AuditLogTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { requireRole } from "@/lib/auth";
 
 type AuditLogRow = {
   audit_id: number;
@@ -15,6 +16,8 @@ async function getAuditLog(): Promise<AuditLogRow[]> {
 }
 
 export default async function AuditLogPage() {
+  await requireRole(["Owner"]);
+
   const entries = await getAuditLog();
 
   return (
