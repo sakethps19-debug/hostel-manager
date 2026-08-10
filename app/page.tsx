@@ -64,6 +64,10 @@ async function getTodaySnapshot(): Promise<TodaySnapshot | null> {
   return data.length > 0 ? data[0] : null;
 }
 
+async function getPendingPoliceVerificationCount(): Promise<number> {
+  return callRpcServer<number>("get_pending_police_verification_count");
+}
+
 function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
@@ -73,6 +77,7 @@ export default async function Home() {
   const rentSummary = await getRentSummary();
   const alerts = await getOperationalAlerts();
   const today = await getTodaySnapshot();
+  const pendingPoliceVerificationCount = await getPendingPoliceVerificationCount();
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManageResidents = hasPermission(role, "manageResidents");
@@ -331,7 +336,8 @@ export default async function Home() {
             alerts.deposit_pending_count === 0 &&
             alerts.missing_id_proof_count === 0 &&
             alerts.maintenance_count === 0 &&
-            (today?.enquiries_followup_count ?? 0) === 0 ? (
+            (today?.enquiries_followup_count ?? 0) === 0 &&
+            pendingPoliceVerificationCount === 0 ? (
               <p className="text-sm text-emerald-600">
                 All caught up — nothing needs attention right now.
               </p>
@@ -388,6 +394,15 @@ export default async function Home() {
                     label="Enquiries requiring follow-up"
                     href="/enquiries"
                     tone="blue"
+                  />
+                )}
+
+                {pendingPoliceVerificationCount > 0 && (
+                  <AlertCard
+                    count={pendingPoliceVerificationCount}
+                    label="Police verification pending"
+                    href="/residents"
+                    tone="amber"
                   />
                 )}
               </div>

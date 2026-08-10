@@ -204,6 +204,7 @@ type DocumentExpiryRow = {
   document_type: string;
   expiry_date: string | null;
   notes: string | null;
+  status: string | null;
 };
 
 async function getDocumentExpiries(
