@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { slugifyHostelName } from "@/lib/hostel";
+import { slugifyHostelName } from "@/lib/hostelSlug";
+import { downloadCsv } from "@/lib/csv";
 
 type LedgerRow = {
   booking_id: number;
@@ -86,6 +87,25 @@ export default function OverdueRentTable({
     0
   );
 
+  function handleExport() {
+    downloadCsv(
+      `rent-ledger-${new Date().toISOString().slice(0, 10)}.csv`,
+      filteredLedger.map((row) => ({
+        full_name: row.full_name,
+        mobile_number: row.mobile_number || "",
+        hostel_name: row.hostel_name,
+        room_number: row.room_number,
+        bed_code: row.bed_code || "",
+        monthly_rent: row.monthly_rent,
+        amount_due: row.amount_due,
+        amount_paid: row.amount_paid,
+        balance_outstanding: row.balance_outstanding,
+        last_payment_date: row.last_payment_date || "",
+        payment_status: row.payment_status,
+      }))
+    );
+  }
+
   return (
     <section className="mt-8">
       <div className="flex flex-wrap items-center gap-3">
@@ -119,6 +139,15 @@ export default function OverdueRentTable({
           />
           Show all residents (not just outstanding)
         </label>
+
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={filteredLedger.length === 0}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

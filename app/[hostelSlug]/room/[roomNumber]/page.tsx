@@ -3,6 +3,7 @@ import { resolveHostelName } from "@/lib/hostel";
 import { deriveBedStatus, getBedStatusInfo } from "@/lib/bedStatus";
 import BedStatusIcon from "@/components/BedStatusIcon";
 import OccupancyLegend from "@/components/OccupancyLegend";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type BedRow = {
   bed_id: number;
@@ -38,69 +39,19 @@ type PageProps = {
 };
 
 async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_hostel_rooms`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_hostel_name: hostelName }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Unable to load rooms: ${errorText}`);
-  }
-
-  return response.json();
+  return callRpcServer<RoomRow[]>("get_hostel_rooms", {
+    p_hostel_name: hostelName,
+  });
 }
 
 async function getRoomBeds(
   hostelName: string,
   roomNumber: string
 ): Promise<BedRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_room_beds`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_hostel_name: hostelName,
-        p_room_number: roomNumber,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to load beds: ${error}`);
-  }
-
-  return response.json();
+  return callRpcServer<BedRow[]>("get_room_beds", {
+    p_hostel_name: hostelName,
+    p_room_number: roomNumber,
+  });
 }
 
 function formatDate(date: string) {
@@ -266,6 +217,11 @@ export default async function RoomPage({ params }: PageProps) {
                           </div>
                         </div>
                       </>
+                    ) : status === "maintenance" ? (
+                      <p className="text-sm text-slate-500">
+                        This bed is currently under maintenance and not
+                        available for booking.
+                      </p>
                     ) : status === "reserved" ? (
                       <>
                         <p className="text-sm text-slate-500">
@@ -309,13 +265,36 @@ export default async function RoomPage({ params }: PageProps) {
                     >
                       View Resident
                     </a>
-                  ) : (
+                  ) : status === "maintenance" ? (
                     <a
-                      href={`/${hostelSlug}/room/${roomNumber}/book/${bed.bed_id}`}
-                      className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+                      href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/maintenance`}
+                      className="mt-6 block w-full rounded-xl bg-slate-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-slate-700"
                     >
-                      Book This Bed
+                      View Maintenance
                     </a>
+                  ) : status === "reserved" ? (
+                    <a
+                      href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/reservation`}
+                      className="mt-6 block w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                    >
+                      View Reservation
+                    </a>
+                  ) : (
+                    <>
+                      <a
+                        href={`/${hostelSlug}/room/${roomNumber}/book/${bed.bed_id}`}
+                        className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+                      >
+                        Book This Bed
+                      </a>
+
+                      <a
+                        href={`/${hostelSlug}/room/${roomNumber}/bed/${bed.bed_id}/maintenance`}
+                        className="mt-2 block w-full rounded-xl border border-slate-200 px-4 py-2 text-center text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                      >
+                        Mark for Maintenance
+                      </a>
+                    </>
                   )}
                 </div>
               );

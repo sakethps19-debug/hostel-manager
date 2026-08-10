@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { slugifyHostelName } from "@/lib/hostel";
+import { slugifyHostelName } from "@/lib/hostelSlug";
+import { downloadCsv } from "@/lib/csv";
 
 type ResidentRow = {
   resident_id: number;
@@ -83,6 +84,25 @@ export default function ResidentSearchTable({
     });
   }, [residents, searchTerm, statusFilter, selectedHostel]);
 
+  function handleExport() {
+    downloadCsv(
+      `residents-${new Date().toISOString().slice(0, 10)}.csv`,
+      filteredResidents.map((r) => ({
+        full_name: r.full_name,
+        mobile_number: r.mobile_number || "",
+        id_proof_number: r.id_proof_number || "",
+        hostel_name: r.hostel_name,
+        room_number: r.room_number,
+        bed_code: r.bed_code || "",
+        start_date: r.start_date,
+        end_date: r.end_date,
+        monthly_rent: r.monthly_rent,
+        outstanding_rent: r.outstanding_rent,
+        status: r.booking_status,
+      }))
+    );
+  }
+
   return (
     <section className="mt-8">
       <div className="flex flex-wrap items-center gap-3">
@@ -123,6 +143,15 @@ export default function ResidentSearchTable({
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={filteredResidents.length === 0}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

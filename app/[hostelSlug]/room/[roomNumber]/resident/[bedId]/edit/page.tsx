@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type ResidentDetails = {
   resident_id: number;
@@ -20,6 +22,17 @@ id_proof_number: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   hostel_name: string;
+};
+
+type ProfileExtra = {
+  date_of_birth: string | null;
+  gender: string | null;
+  photo_url: string | null;
+  employer_or_college: string | null;
+  occupation_or_course: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_mobile: string | null;
 };
 
 export default function EditResidentPage() {
@@ -49,39 +62,22 @@ const [idProofNumber, setIdProofNumber] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [securityDeposit, setSecurityDeposit] = useState("");
 
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("");
+  const [employerOrCollege, setEmployerOrCollege] = useState("");
+  const [occupationOrCourse, setOccupationOrCourse] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
+  const [emergencyContactMobile, setEmergencyContactMobile] = useState("");
+
   useEffect(() => {
     async function loadDetails() {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey =
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        setErrorMessage("Supabase environment variables are missing.");
-        setLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/rpc/get_resident_details`,
-          {
-            method: "POST",
-            headers: {
-              apikey: supabaseKey,
-              Authorization: `Bearer ${supabaseKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              p_bed_id: bedId,
-            }),
-          }
+        const data = await callRpcClient<ResidentDetails[]>(
+          "get_resident_details",
+          { p_bed_id: bedId }
         );
-
-        if (!response.ok) {
-          throw new Error(await response.text());
-        }
-
-        const data: ResidentDetails[] = await response.json();
 
         if (!data.length) {
           throw new Error("Active booking not found.");
@@ -103,6 +99,29 @@ setIdProofNumber(resident.id_proof_number || "");
         setEndDate(resident.end_date);
         setMonthlyRent(String(resident.monthly_rent));
         setSecurityDeposit(String(resident.security_deposit || 0));
+
+        try {
+          const extraData = await callRpcClient<ProfileExtra[]>(
+            "get_resident_profile_extra",
+            { p_resident_id: resident.resident_id }
+          );
+          const extra = extraData.length > 0 ? extraData[0] : null;
+
+          if (extra) {
+            setDateOfBirth(extra.date_of_birth || "");
+            setGender(extra.gender || "");
+            setEmployerOrCollege(extra.employer_or_college || "");
+            setOccupationOrCourse(extra.occupation_or_course || "");
+            setEmergencyContactName(extra.emergency_contact_name || "");
+            setEmergencyContactRelationship(
+              extra.emergency_contact_relationship || ""
+            );
+            setEmergencyContactMobile(extra.emergency_contact_mobile || "");
+          }
+        } catch {
+          // Additional-details fetch failing shouldn't block loading the
+          // core edit form.
+        }
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -167,57 +186,61 @@ if (!idProofNumber.trim()) {
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey =
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/update_booking_details`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_booking_id: details.booking_id,
-            p_full_name: fullName,
-            p_mobile_number: mobileNumber,
-            p_email: email,
-            p_emergency_contact: emergencyContact,
-           p_id_proof_type: idProofType,
-p_id_proof_number: idProofNumber,
-            p_home_address: homeAddress,
-            p_work_college_address: workCollegeAddress,
-            p_notes: notes,
-            p_start_date: startDate,
-            p_end_date: endDate,
-            p_monthly_rent: rent,
-            p_security_deposit: deposit,
-          }),
-        }
-      );
+      try {
+        await callRpcClient("update_booking_details", {
+          p_booking_id: details.booking_id,
+          p_full_name: fullName,
+          p_mobile_number: mobileNumber,
+          p_email: email,
+          p_emergency_contact: emergencyContact,
+          p_id_proof_type: idProofType,
+          p_id_proof_number: idProofNumber,
+          p_home_address: homeAddress,
+          p_work_college_address: workCollegeAddress,
+          p_notes: notes,
+          p_start_date: startDate,
+          p_end_date: endDate,
+          p_monthly_rent: rent,
+          p_security_deposit: deposit,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
 
-      if (!response.ok) {
-        const error = await response.text();
-
-        if (error.includes("already booked")) {
+        if (message.includes("already booked")) {
           throw new Error(
             "This bed is already booked for part of the selected period."
           );
         }
 
-        throw new Error(error);
+        throw err;
       }
+
+      try {
+        await callRpcClient("update_resident_profile_extra", {
+          p_resident_id: details.resident_id,
+          p_date_of_birth: dateOfBirth || null,
+          p_gender: gender || null,
+          p_employer_or_college: employerOrCollege || null,
+          p_occupation_or_course: occupationOrCourse || null,
+          p_emergency_contact_name: emergencyContactName || null,
+          p_emergency_contact_relationship:
+            emergencyContactRelationship || null,
+          p_emergency_contact_mobile: emergencyContactMobile || null,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Core details saved, but additional details failed to save: ${message}`
+        );
+      }
+
+      await logAuditEvent("booking_edited", "booking", details.booking_id, {
+        full_name: fullName,
+        monthly_rent: rent,
+      });
 
       router.push(
         `/${hostelSlug}/room/${roomNumber}/resident/${bedId}`
@@ -365,6 +388,89 @@ p_id_proof_number: idProofNumber,
                   className="input-style"
                   rows={2}
                   placeholder="Workplace or college address"
+                />
+              </Field>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">
+              Additional Details
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Optional — helps complete the resident profile.
+            </p>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <Field label="Date of Birth">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Gender">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="input-style"
+                >
+                  <option value="">Not specified</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="Employer / College">
+                <input
+                  value={employerOrCollege}
+                  onChange={(e) => setEmployerOrCollege(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Occupation / Course">
+                <input
+                  value={occupationOrCourse}
+                  onChange={(e) => setOccupationOrCourse(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Name">
+                <input
+                  value={emergencyContactName}
+                  onChange={(e) => setEmergencyContactName(e.target.value)}
+                  className="input-style"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Relationship">
+                <input
+                  value={emergencyContactRelationship}
+                  onChange={(e) =>
+                    setEmergencyContactRelationship(e.target.value)
+                  }
+                  className="input-style"
+                  placeholder="e.g. Father, Mother, Sibling"
+                />
+              </Field>
+
+              <Field label="Emergency Contact Mobile">
+                <input
+                  type="tel"
+                  value={emergencyContactMobile}
+                  onChange={(e) =>
+                    setEmergencyContactMobile(
+                      e.target.value.replace(/\D/g, "").slice(0, 10)
+                    )
+                  }
+                  className="input-style"
+                  inputMode="numeric"
+                  maxLength={10}
                 />
               </Field>
             </div>

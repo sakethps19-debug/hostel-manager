@@ -4,6 +4,7 @@ import { deriveBedStatus } from "@/lib/bedStatus";
 import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
 import RoomOccupancyCard from "@/components/RoomOccupancyCard";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type BedGridRow = {
   bed_id: number;
@@ -25,33 +26,9 @@ type PageProps = {
 };
 
 async function getHostelBedGrid(hostelName: string): Promise<BedGridRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_hostel_bed_grid`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_hostel_name: hostelName }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Unable to load ${hostelName}: ${errorText}`);
-  }
-
-  return response.json();
+  return callRpcServer<BedGridRow[]>("get_hostel_bed_grid", {
+    p_hostel_name: hostelName,
+  });
 }
 
 export default async function HostelPage({ params }: PageProps) {

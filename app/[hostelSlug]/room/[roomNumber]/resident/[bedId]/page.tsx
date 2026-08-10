@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
 import GiveNoticeButton from "./GiveNoticeButton";
+import ExtendStayButton from "./ExtendStayButton";
+import CopyTextButton from "@/components/CopyTextButton";
+import ReviseRentButton from "./ReviseRentButton";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 type ResidentDetails = {
   resident_id: number;
   booking_id: number;
@@ -60,6 +64,41 @@ type PaymentHistoryRow = {
   reversed_reason: string | null;
 };
 
+type RentRevisionRow = {
+  revision_id: number;
+  previous_rent: number;
+  new_rent: number;
+  effective_date: string;
+  reason: string | null;
+  notes: string | null;
+};
+
+type TransferRecord = {
+  transfer_id: number;
+  transfer_date: string;
+  reason: string;
+  notes: string | null;
+  old_hostel_name: string;
+  old_room_number: string;
+  old_bed_code: string | null;
+  new_hostel_name: string;
+  new_room_number: string;
+  new_bed_code: string | null;
+  rent_before: number | null;
+  rent_after: number | null;
+};
+
+type ProfileExtra = {
+  date_of_birth: string | null;
+  gender: string | null;
+  photo_url: string | null;
+  employer_or_college: string | null;
+  occupation_or_course: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_mobile: string | null;
+};
+
 type PageProps = {
   params: Promise<{
     hostelSlug: string;
@@ -71,140 +110,105 @@ type PageProps = {
 async function getResidentDetails(
   bedId: string
 ): Promise<ResidentDetails | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_resident_details`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_bed_id: Number(bedId),
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-
-    throw new Error(
-      `Failed to load resident details: ${error}`
-    );
-  }
-
-  const data: ResidentDetails[] = await response.json();
-
+  const data = await callRpcServer<ResidentDetails[]>("get_resident_details", {
+    p_bed_id: Number(bedId),
+  });
   return data.length > 0 ? data[0] : null;
 }
 
 async function getBookingLedger(
   bookingId: number
 ): Promise<BookingLedger | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_booking_ledger`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load rent ledger: ${await response.text()}`);
-  }
-
-  const data: BookingLedger[] = await response.json();
+  const data = await callRpcServer<BookingLedger[]>("get_booking_ledger", {
+    p_booking_id: bookingId,
+  });
   return data.length > 0 ? data[0] : null;
 }
 
 async function getPaymentHistory(
   bookingId: number
 ): Promise<PaymentHistoryRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_payment_history`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load payment history: ${await response.text()}`
-    );
-  }
-
-  return response.json();
+  return callRpcServer<PaymentHistoryRow[]>("get_payment_history", {
+    p_booking_id: bookingId,
+  });
 }
 
 async function getDepositSummary(
   bookingId: number
 ): Promise<DepositSummary | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const data = await callRpcServer<DepositSummary[]>("get_deposit_summary", {
+    p_booking_id: bookingId,
+  });
+  return data.length > 0 ? data[0] : null;
+}
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
+async function getProfileExtra(
+  residentId: number
+): Promise<ProfileExtra | null> {
+  const data = await callRpcServer<ProfileExtra[]>(
+    "get_resident_profile_extra",
+    { p_resident_id: residentId }
+  );
+  return data.length > 0 ? data[0] : null;
+}
 
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_deposit_summary`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
+async function getTransferHistory(
+  residentId: number
+): Promise<TransferRecord[]> {
+  return callRpcServer<TransferRecord[]>("get_transfer_history", {
+    p_resident_id: residentId,
+  });
+}
+
+async function getRentHistory(bookingId: number): Promise<RentRevisionRow[]> {
+  return callRpcServer<RentRevisionRow[]>("get_rent_history", {
+    p_booking_id: bookingId,
+  });
+}
+
+function computeProfileCompleteness(
+  resident: ResidentDetails,
+  extra: ProfileExtra | null
+) {
+  const hasMobile = Boolean(resident.mobile_number);
+  const hasAddress = Boolean(resident.home_address);
+  const hasIdProof = Boolean(resident.id_proof_number);
+  const hasDeposit = Number(resident.security_deposit || 0) > 0;
+  const hasEmergencyContact = Boolean(
+    (extra?.emergency_contact_name && extra?.emergency_contact_mobile) ||
+      resident.emergency_contact
+  );
+  const hasPhoto = Boolean(extra?.photo_url);
+
+  const checklist = [
+    { label: "Mobile Number", done: hasMobile },
+    { label: "Home Address", done: hasAddress },
+    { label: "ID Proof", done: hasIdProof },
+    { label: "Security Deposit", done: hasDeposit },
+    { label: "Emergency Contact", done: hasEmergencyContact },
+    { label: "Photo", done: hasPhoto },
+  ];
+
+  const percent = Math.round(
+    (checklist.filter((item) => item.done).length / checklist.length) * 100
   );
 
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load deposit summary: ${await response.text()}`
-    );
-  }
+  return { percent, checklist };
+}
 
-  const data: DepositSummary[] = await response.json();
-  return data.length > 0 ? data[0] : null;
+function formatDobAge(dob: string) {
+  const birth = new Date(`${dob}T00:00:00`);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return `${birth.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })} (${age} yrs)`;
 }
 
 function getDepositStatusClasses(status: string) {
@@ -267,6 +271,10 @@ export default async function ResidentPage({
   const ledger = await getBookingLedger(resident.booking_id);
   const payments = await getPaymentHistory(resident.booking_id);
   const deposit = await getDepositSummary(resident.booking_id);
+  const profileExtra = await getProfileExtra(resident.resident_id);
+  const completeness = computeProfileCompleteness(resident, profileExtra);
+  const transfers = await getTransferHistory(resident.resident_id);
+  const rentHistory = await getRentHistory(resident.booking_id);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -324,7 +332,43 @@ export default async function ResidentPage({
           </div>
         )}
 
-        <section className="mt-10 grid gap-5 md:grid-cols-2">
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-700">
+              Profile {completeness.percent}% Complete
+            </p>
+          </div>
+
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={`h-full rounded-full ${
+                completeness.percent === 100
+                  ? "bg-emerald-500"
+                  : completeness.percent >= 50
+                  ? "bg-amber-500"
+                  : "bg-red-500"
+              }`}
+              style={{ width: `${completeness.percent}%` }}
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {completeness.checklist.map((item) => (
+              <span
+                key={item.label}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  item.done
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {item.done ? "✓" : "○"} {item.label}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-5 grid gap-5 md:grid-cols-2">
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
@@ -352,7 +396,17 @@ export default async function ResidentPage({
               <DetailRow
                 label="Emergency Contact"
                 value={
-                  resident.emergency_contact || "Not provided"
+                  profileExtra?.emergency_contact_name
+                    ? `${profileExtra.emergency_contact_name}${
+                        profileExtra.emergency_contact_relationship
+                          ? ` (${profileExtra.emergency_contact_relationship})`
+                          : ""
+                      }${
+                        profileExtra.emergency_contact_mobile
+                          ? ` · ${profileExtra.emergency_contact_mobile}`
+                          : ""
+                      }`
+                    : resident.emergency_contact || "Not provided"
                 }
               />
 <DetailRow
@@ -420,6 +474,42 @@ export default async function ResidentPage({
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
           <h2 className="text-xl font-bold">
+            Additional Details
+          </h2>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+
+            <DetailRow
+              label="Date of Birth"
+              value={
+                profileExtra?.date_of_birth
+                  ? formatDobAge(profileExtra.date_of_birth)
+                  : "Not provided"
+              }
+            />
+
+            <DetailRow
+              label="Gender"
+              value={profileExtra?.gender || "Not provided"}
+            />
+
+            <DetailRow
+              label="Employer / College"
+              value={profileExtra?.employer_or_college || "Not provided"}
+            />
+
+            <DetailRow
+              label="Occupation / Course"
+              value={profileExtra?.occupation_or_course || "Not provided"}
+            />
+
+          </div>
+
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <h2 className="text-xl font-bold">
             Stay & Rent Details
           </h2>
 
@@ -450,6 +540,32 @@ export default async function ResidentPage({
           </div>
 
         </section>
+
+        {rentHistory.length > 0 && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Rent History</h2>
+
+            <div className="mt-5 space-y-3">
+              {rentHistory.map((rev) => (
+                <div
+                  key={rev.revision_id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+                  <p className="text-xs font-medium text-slate-400">
+                    Effective from {formatDate(rev.effective_date)}
+                    {rev.reason ? ` · ${rev.reason}` : ""}
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {formatMoney(rev.previous_rent)} → {formatMoney(rev.new_rent)}
+                  </p>
+                  {rev.notes && (
+                    <p className="mt-1 text-sm text-slate-500">{rev.notes}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {deposit && (
           <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -630,6 +746,43 @@ export default async function ResidentPage({
 
         </section>
 
+        {transfers.length > 0 && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Transfer History</h2>
+
+            <div className="mt-5 space-y-4">
+              {transfers.map((transfer) => (
+                <div
+                  key={transfer.transfer_id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+                  <p className="text-xs font-medium text-slate-400">
+                    {formatDate(transfer.transfer_date)} · {transfer.reason}
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {transfer.old_hostel_name} / Room{" "}
+                    {transfer.old_room_number} ·{" "}
+                    {transfer.old_bed_code || "-"} → {transfer.new_hostel_name}{" "}
+                    / Room {transfer.new_room_number} ·{" "}
+                    {transfer.new_bed_code || "-"}
+                  </p>
+                  {transfer.rent_before !== transfer.rent_after && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Rent changed from {formatMoney(transfer.rent_before)} to{" "}
+                      {formatMoney(transfer.rent_after)}
+                    </p>
+                  )}
+                  {transfer.notes && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      {transfer.notes}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
           <h2 className="text-xl font-bold">
@@ -651,6 +804,50 @@ export default async function ResidentPage({
   Edit Details
 </a>
 
+          <a
+            href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/timeline`}
+            className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            View Timeline
+          </a>
+
+          {!resident.notice_given_at && (
+            <a
+              href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/transfer`}
+              className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Transfer to Another Bed
+            </a>
+          )}
+
+          {!resident.notice_given_at && (
+            <ExtendStayButton
+              resident={{
+                booking_id: resident.booking_id,
+                full_name: resident.full_name,
+                mobile_number: resident.mobile_number,
+                email: resident.email,
+                emergency_contact: resident.emergency_contact,
+                id_proof_type: resident.id_proof_type,
+                id_proof_number: resident.id_proof_number,
+                home_address: resident.home_address,
+                work_college_address: resident.work_college_address,
+                notes: resident.notes,
+                start_date: resident.start_date,
+                end_date: resident.end_date,
+                monthly_rent: resident.monthly_rent,
+                security_deposit: resident.security_deposit,
+              }}
+            />
+          )}
+
+          {!resident.notice_given_at && (
+            <ReviseRentButton
+              bookingId={resident.booking_id}
+              currentRent={resident.monthly_rent}
+            />
+          )}
+
           {!resident.notice_given_at && (
             <GiveNoticeButton bookingId={resident.booking_id} />
           )}
@@ -662,6 +859,26 @@ export default async function ResidentPage({
             Vacate / Final Settlement
           </a>
 
+        </section>
+
+        <section className="mt-3 flex flex-wrap gap-3">
+          {ledger && ledger.balance_outstanding > 0 && (
+            <CopyTextButton
+              label="Copy Rent Reminder"
+              text={`Hi ${resident.full_name}, this is a reminder that your rent of ${formatMoney(ledger.balance_outstanding)} is outstanding for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Please clear it at your earliest convenience. Thank you — VNR Boys Hostel.`}
+            />
+          )}
+
+          {resident.notice_given_at && (
+            <CopyTextButton
+              label="Copy Checkout Reminder"
+              text={`Hi ${resident.full_name}, this is a reminder that your vacate date for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}) is ${
+                resident.expected_vacate_date
+                  ? formatDate(resident.expected_vacate_date)
+                  : "coming up"
+              }. Please ensure all dues are cleared and the room is vacated on time. Thank you — VNR Boys Hostel.`}
+            />
+          )}
         </section>
 
       </div>

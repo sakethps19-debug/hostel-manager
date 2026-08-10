@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import BookingForm from "./BookingForm";
 
 type RoomRow = {
@@ -21,69 +22,19 @@ type PageProps = {
 };
 
 async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_hostel_rooms`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_hostel_name: hostelName }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Unable to load rooms: ${errorText}`);
-  }
-
-  return response.json();
+  return callRpcServer<RoomRow[]>("get_hostel_rooms", {
+    p_hostel_name: hostelName,
+  });
 }
 
 async function getRoomBeds(
   hostelName: string,
   roomNumber: string
 ): Promise<BedRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_room_beds`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_hostel_name: hostelName,
-        p_room_number: roomNumber,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to load beds: ${error}`);
-  }
-
-  return response.json();
+  return callRpcServer<BedRow[]>("get_room_beds", {
+    p_hostel_name: hostelName,
+    p_room_number: roomNumber,
+  });
 }
 
 export default async function BookingPage({ params }: PageProps) {

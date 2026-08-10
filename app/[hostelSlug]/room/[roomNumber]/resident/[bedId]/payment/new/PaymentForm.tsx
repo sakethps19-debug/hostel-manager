@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 const PAYMENT_TYPES = [
   "Monthly Rent",
@@ -72,44 +74,25 @@ export default function PaymentForm({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/record_payment`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_booking_id: bookingId,
-            p_amount: numericAmount,
-            p_payment_date: paymentDate,
-            p_payment_for_month: paymentForMonth
-              ? `${paymentForMonth}-01`
-              : null,
-            p_payment_type: paymentType,
-            p_payment_mode: paymentMode,
-            p_reference_number: referenceNumber,
-            p_notes: notes,
-          }),
-        }
-      );
+      await callRpcClient("record_payment", {
+        p_booking_id: bookingId,
+        p_amount: numericAmount,
+        p_payment_date: paymentDate,
+        p_payment_for_month: paymentForMonth ? `${paymentForMonth}-01` : null,
+        p_payment_type: paymentType,
+        p_payment_mode: paymentMode,
+        p_reference_number: referenceNumber,
+        p_notes: notes,
+      });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await logAuditEvent("payment_recorded", "payment", bookingId, {
+        amount: numericAmount,
+        payment_type: paymentType,
+        payment_mode: paymentMode,
+      });
 
       router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();

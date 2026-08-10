@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 export default function GiveNoticeButton({
   bookingId,
@@ -24,34 +26,18 @@ export default function GiveNoticeButton({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/give_notice`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          p_booking_id: bookingId,
-          p_expected_vacate_date: expectedVacateDate,
-          p_notes: notes,
-        }),
+      await callRpcClient("give_notice", {
+        p_booking_id: bookingId,
+        p_expected_vacate_date: expectedVacateDate,
+        p_notes: notes,
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await logAuditEvent("notice_given", "booking", bookingId, {
+        expected_vacate_date: expectedVacateDate,
+      });
 
       setOpen(false);
       router.refresh();
