@@ -4,6 +4,7 @@ import OccupancyLegend from "@/components/OccupancyLegend";
 import AlertCard from "@/components/AlertCard";
 import UserMenu from "@/components/UserMenu";
 import NavDropdown from "@/components/NavDropdown";
+import GlobalSearchForm from "@/components/GlobalSearchForm";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -192,6 +193,10 @@ export default async function Home() {
     </a>
   )}
 </div>
+        </div>
+
+        <div className="mb-8">
+          <GlobalSearchForm />
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
