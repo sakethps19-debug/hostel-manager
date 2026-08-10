@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 type ResidentForUpdate = {
   booking_id: number;
@@ -97,6 +98,11 @@ export default function ExtendStayButton({
 
         throw new Error(error);
       }
+
+      await logAuditEvent("booking_extended", "booking", resident.booking_id, {
+        old_end_date: resident.end_date,
+        new_end_date: newEndDate,
+      });
 
       setOpen(false);
       router.refresh();

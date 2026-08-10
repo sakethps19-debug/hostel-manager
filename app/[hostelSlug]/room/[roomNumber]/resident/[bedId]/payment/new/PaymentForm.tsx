@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 const PAYMENT_TYPES = [
   "Monthly Rent",
@@ -110,6 +111,12 @@ export default function PaymentForm({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("payment_recorded", "payment", bookingId, {
+        amount: numericAmount,
+        payment_type: paymentType,
+        payment_mode: paymentMode,
+      });
 
       router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();

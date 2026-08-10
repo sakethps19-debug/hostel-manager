@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 export default function GiveNoticeButton({
   bookingId,
@@ -52,6 +53,10 @@ export default function GiveNoticeButton({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("notice_given", "booking", bookingId, {
+        expected_vacate_date: expectedVacateDate,
+      });
 
       setOpen(false);
       router.refresh();

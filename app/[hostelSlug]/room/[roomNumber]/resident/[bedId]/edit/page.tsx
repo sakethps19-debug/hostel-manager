@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 type ResidentDetails = {
   resident_id: number;
@@ -299,6 +300,11 @@ p_id_proof_number: idProofNumber,
           `Core details saved, but additional details failed to save: ${await extraResponse.text()}`
         );
       }
+
+      await logAuditEvent("booking_edited", "booking", details.booking_id, {
+        full_name: fullName,
+        monthly_rent: rent,
+      });
 
       router.push(
         `/${hostelSlug}/room/${roomNumber}/resident/${bedId}`

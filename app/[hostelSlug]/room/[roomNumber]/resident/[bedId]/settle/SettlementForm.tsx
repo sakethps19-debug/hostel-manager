@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 const DEDUCTION_CATEGORIES = [
   "Damage",
@@ -145,6 +146,11 @@ export default function SettlementForm({
       if (!vacateResponse.ok) {
         throw new Error(await vacateResponse.text());
       }
+
+      await logAuditEvent("resident_vacated", "booking", bookingId, {
+        refund_amount: refundAmount,
+        amount_owed: amountOwedByResident,
+      });
 
       router.push(`/${hostelSlug}/room/${roomNumber}`);
       router.refresh();

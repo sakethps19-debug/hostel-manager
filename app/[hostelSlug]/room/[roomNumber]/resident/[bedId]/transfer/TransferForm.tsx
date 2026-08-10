@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugifyHostelName } from "@/lib/hostel";
+import { logAuditEvent } from "@/lib/audit";
 
 type AvailableBedRow = {
   bed_id: number;
@@ -182,6 +183,13 @@ export default function TransferForm({
       if (!result) {
         throw new Error("Transfer completed but no result was returned.");
       }
+
+      await logAuditEvent("resident_transferred", "booking", bookingId, {
+        new_booking_id: result.new_booking_id,
+        new_bed_id: result.new_bed_id,
+        reason,
+        transfer_date: transferDate,
+      });
 
       const newSlug = slugifyHostelName(result.new_hostel_name);
       router.push(

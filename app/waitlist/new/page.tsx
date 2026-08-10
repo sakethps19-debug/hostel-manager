@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 export default function NewWaitlistPage() {
   const router = useRouter();
@@ -69,6 +70,12 @@ export default function NewWaitlistPage() {
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      const created = await response.json();
+      await logAuditEvent("waitlist_created", "waitlist", created?.id ?? null, {
+        full_name: fullName,
+        mobile_number: mobileNumber,
+      });
 
       router.push("/waitlist");
       router.refresh();

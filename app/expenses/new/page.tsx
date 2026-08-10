@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 const CATEGORIES = [
   "Electricity",
@@ -88,6 +89,13 @@ export default function NewExpensePage() {
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      const created = await response.json();
+      await logAuditEvent("expense_recorded", "expense", created?.id ?? null, {
+        category,
+        amount: amt,
+        hostel_name: hostelName || "Common",
+      });
 
       router.push("/expenses");
       router.refresh();

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -69,6 +70,12 @@ export default function ReviseRentButton({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("rent_revised", "booking", bookingId, {
+        previous_rent: currentRent,
+        new_rent: rent,
+        effective_date: effectiveDate,
+      });
 
       setOpen(false);
       router.refresh();

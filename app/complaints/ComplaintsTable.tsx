@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 type ComplaintRow = {
   complaint_id: number;
@@ -99,6 +100,10 @@ export default function ComplaintsTable({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("complaint_status_changed", "complaint", complaintId, {
+        status,
+      });
 
       setRows((prev) =>
         prev.map((row) =>

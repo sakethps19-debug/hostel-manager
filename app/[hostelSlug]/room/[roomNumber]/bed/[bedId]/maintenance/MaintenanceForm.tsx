@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -69,6 +70,11 @@ export default function MaintenanceForm({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("maintenance_started", "bed", bedId, {
+        reason,
+        start_date: startDate,
+      });
 
       router.push(`/${hostelSlug}/room/${roomNumber}`);
       router.refresh();

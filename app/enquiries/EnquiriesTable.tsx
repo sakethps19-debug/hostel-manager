@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 type EnquiryRow = {
   enquiry_id: number;
@@ -108,6 +109,10 @@ export default function EnquiriesTable({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("enquiry_status_changed", "enquiry", enquiryId, {
+        status,
+      });
 
       setRows((prev) =>
         prev.map((row) =>

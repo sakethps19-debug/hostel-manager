@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 export default function BookingForm({
   hostelSlug,
@@ -153,6 +154,14 @@ export default function BookingForm({
 
         throw new Error(error);
       }
+
+      await logAuditEvent("booking_created", "booking", null, {
+        bed_id: bedId,
+        full_name: fullName,
+        start_date: startDate,
+        end_date: endDate,
+        monthly_rent: agreedRent,
+      });
 
       if (enquiryId) {
         try {

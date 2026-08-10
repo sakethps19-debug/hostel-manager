@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 type WaitlistRow = {
   waitlist_id: number;
@@ -99,6 +100,10 @@ export default function WaitlistTable({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("waitlist_status_changed", "waitlist", waitlistId, {
+        status,
+      });
 
       setRows((prev) =>
         prev.map((row) =>

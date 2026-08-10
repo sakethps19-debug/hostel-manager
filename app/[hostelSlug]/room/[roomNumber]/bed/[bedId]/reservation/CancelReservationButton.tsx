@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 export default function CancelReservationButton({
   bookingId,
@@ -47,6 +48,10 @@ export default function CancelReservationButton({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("reservation_cancelled", "booking", bookingId, {
+        reason,
+      });
 
       router.push(redirectHref);
       router.refresh();

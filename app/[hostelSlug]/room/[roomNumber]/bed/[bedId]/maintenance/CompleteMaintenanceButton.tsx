@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { logAuditEvent } from "@/lib/audit";
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -58,6 +59,10 @@ export default function CompleteMaintenanceButton({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      await logAuditEvent("maintenance_completed", "maintenance", maintenanceId, {
+        completion_date: completionDate,
+      });
 
       router.push(`/${hostelSlug}/room/${roomNumber}`);
       router.refresh();

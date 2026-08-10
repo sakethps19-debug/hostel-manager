@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 type ResidentRow = {
   resident_id: number;
@@ -114,6 +115,12 @@ export default function ComplaintForm({
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      const created = await response.json();
+      await logAuditEvent("complaint_created", "complaint", created?.id ?? null, {
+        category,
+        priority,
+      });
 
       router.push("/complaints");
       router.refresh();

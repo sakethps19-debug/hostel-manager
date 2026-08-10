@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logAuditEvent } from "@/lib/audit";
 
 const SOURCES = ["Walk-in", "Referral", "Phone Call", "Online", "Other"];
 
@@ -71,6 +72,12 @@ export default function NewEnquiryPage() {
       if (!response.ok) {
         throw new Error(await response.text());
       }
+
+      const created = await response.json();
+      await logAuditEvent("enquiry_created", "enquiry", created?.id ?? null, {
+        full_name: fullName,
+        mobile_number: mobileNumber,
+      });
 
       router.push("/enquiries");
       router.refresh();
