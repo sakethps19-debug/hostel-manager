@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { slugifyHostelName } from "@/lib/hostel";
 
 type AvailableBedRow = {
@@ -26,9 +27,18 @@ export default function BedSearchList({
 }: {
   beds: AvailableBedRow[];
 }) {
-  const [selectedHostel, setSelectedHostel] = useState("");
+  const searchParams = useSearchParams();
+  const enquiryId = searchParams.get("enquiryId");
+  const enquiryName = searchParams.get("name") || "";
+  const enquiryMobile = searchParams.get("mobile") || "";
+
+  const [selectedHostel, setSelectedHostel] = useState(
+    searchParams.get("hostel") || ""
+  );
   const [selectedFloor, setSelectedFloor] = useState("");
-  const [selectedSharing, setSelectedSharing] = useState("");
+  const [selectedSharing, setSelectedSharing] = useState(
+    searchParams.get("sharing") || ""
+  );
 
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -157,6 +167,14 @@ export default function BedSearchList({
 
   return (
     <section className="mt-8">
+      {enquiryId && (
+        <div className="mb-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-medium text-indigo-800">
+          Finding a bed for {enquiryName || "this enquiry"}
+          {enquiryMobile ? ` · ${enquiryMobile}` : ""} — booking from here will
+          mark the enquiry as Converted.
+        </div>
+      )}
+
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <p className="text-sm font-semibold text-slate-700">
           Check availability for a specific stay period
@@ -305,7 +323,16 @@ export default function BedSearchList({
               </p>
 
               <a
-                href={`/${slugifyHostelName(bed.hostel_name)}/room/${bed.room_number}/book/${bed.bed_id}`}
+                href={(() => {
+                  const base = `/${slugifyHostelName(bed.hostel_name)}/room/${bed.room_number}/book/${bed.bed_id}`;
+                  const params = new URLSearchParams();
+                  if (enquiryId) params.set("enquiryId", enquiryId);
+                  if (enquiryName) params.set("name", enquiryName);
+                  if (enquiryMobile) params.set("mobile", enquiryMobile);
+                  if (periodStart) params.set("startDate", periodStart);
+                  const qs = params.toString();
+                  return qs ? `${base}?${qs}` : base;
+                })()}
                 className="mt-6 block w-full rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 Book This Bed

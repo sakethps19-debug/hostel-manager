@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function BookingForm({
   hostelSlug,
@@ -19,9 +19,14 @@ export default function BookingForm({
   standardFee: number;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [fullName, setFullName] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
+  const enquiryId = searchParams.get("enquiryId");
+
+  const [fullName, setFullName] = useState(searchParams.get("name") || "");
+  const [mobileNumber, setMobileNumber] = useState(
+    searchParams.get("mobile") || ""
+  );
   const [email, setEmail] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [idProofType, setIdProofType] = useState("");
@@ -30,7 +35,9 @@ export default function BookingForm({
   const [workCollegeAddress, setWorkCollegeAddress] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(
+    searchParams.get("startDate") || ""
+  );
   const [endDate, setEndDate] = useState("");
 
   const [monthlyRent, setMonthlyRent] = useState(
@@ -145,6 +152,25 @@ export default function BookingForm({
         }
 
         throw new Error(error);
+      }
+
+      if (enquiryId) {
+        try {
+          await fetch(`${supabaseUrl}/rest/v1/rpc/update_enquiry_status`, {
+            method: "POST",
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              p_enquiry_id: Number(enquiryId),
+              p_status: "Converted",
+            }),
+          });
+        } catch {
+          // Booking already succeeded - don't block on this best-effort update.
+        }
       }
 
       router.push(`/${hostelSlug}/room/${roomNumber}`);

@@ -205,6 +205,13 @@ export default async function Home() {
   </a>
 
   <a
+    href="/enquiries"
+    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+  >
+    Enquiries
+  </a>
+
+  <a
     href={hostels.length ? `/${slugifyHostelName(hostels[0].hostel_name)}` : "/"}
     className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
   >
