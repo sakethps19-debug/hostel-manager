@@ -1,3 +1,5 @@
+import { todayIsoDateIST } from "@/lib/format";
+
 export type LedgerEntry = {
   date: string;
   type: string;
@@ -86,7 +88,10 @@ export function buildResidentLedger({
   // date through the earlier of today or the booking end date.
   const start = new Date(`${startDate}T00:00:00`);
   const cap = new Date(
-    Math.min(new Date().getTime(), new Date(`${endDate}T00:00:00`).getTime())
+    Math.min(
+      new Date(`${todayIsoDateIST()}T00:00:00`).getTime(),
+      new Date(`${endDate}T00:00:00`).getTime()
+    )
   );
 
   const cursor = new Date(start.getFullYear(), start.getMonth(), 1);

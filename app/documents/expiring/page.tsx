@@ -1,6 +1,7 @@
 import { slugifyHostelName } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+import { formatDate, todayIsoDateIST } from "@/lib/format";
 
 type ExpiringDocRow = {
   resident_id: number;
@@ -18,17 +19,10 @@ async function getExpiringDocuments(): Promise<ExpiringDocRow[]> {
   return callRpcServer<ExpiringDocRow[]>("get_expiring_documents");
 }
 
-function formatDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function daysUntil(dateStr: string) {
   const diff =
-    new Date(`${dateStr}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0);
+    new Date(`${dateStr}T00:00:00`).getTime() -
+    new Date(`${todayIsoDateIST()}T00:00:00`).getTime();
   return Math.round(diff / 86400000);
 }
 

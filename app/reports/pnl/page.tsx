@@ -1,6 +1,7 @@
 import PnlView from "./PnlView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+import { todayIsoDateIST } from "@/lib/format";
 
 type PnlRow = {
   hostel_name: string;
@@ -27,9 +28,9 @@ export default async function PnlPage({ searchParams }: PageProps) {
   await requirePermission("viewFinancialReports");
 
   const params = await searchParams;
-  const now = new Date();
-  const month = Number(params.month) || now.getMonth() + 1;
-  const year = Number(params.year) || now.getFullYear();
+  const [todayYear, todayMonth] = todayIsoDateIST().split("-").map(Number);
+  const month = Number(params.month) || todayMonth;
+  const year = Number(params.year) || todayYear;
 
   const [pnl, metrics] = await Promise.all([
     callRpcServer<PnlRow[]>("get_hostel_pnl", { p_month: month, p_year: year }),
