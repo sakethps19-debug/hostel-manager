@@ -16,6 +16,7 @@ type ResidentRow = {
   monthly_rent: number;
   outstanding_rent: number;
   booking_status: string;
+  photo_storage_path: string | null;
 };
 
 async function getResidentMasterList(): Promise<ResidentRow[]> {

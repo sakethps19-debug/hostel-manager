@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { slugifyHostelName } from "@/lib/hostelSlug";
 import { downloadCsv } from "@/lib/csv";
+import ResidentAvatar from "@/components/ResidentAvatar";
 
 type ResidentRow = {
   resident_id: number;
@@ -19,6 +20,7 @@ type ResidentRow = {
   monthly_rent: number;
   outstanding_rent: number;
   booking_status: string;
+  photo_storage_path: string | null;
 };
 
 function formatMoney(value: number) {
@@ -164,6 +166,7 @@ export default function ResidentSearchTable({
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
+                  <th className="px-4 py-3"></th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Mobile</th>
                   <th className="px-4 py-3">Hostel</th>
@@ -185,6 +188,12 @@ export default function ResidentSearchTable({
 
                   return (
                     <tr key={r.booking_id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <ResidentAvatar
+                          photoStoragePath={r.photo_storage_path}
+                          fullName={r.full_name}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <a
                           href={href}

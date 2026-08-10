@@ -3,7 +3,8 @@ import GiveNoticeButton from "./GiveNoticeButton";
 import ExtendStayButton from "./ExtendStayButton";
 import CopyTextButton from "@/components/CopyTextButton";
 import ReviseRentButton from "./ReviseRentButton";
-import DocumentsSection from "./DocumentsSection";
+import DocumentsSection from "@/components/DocumentsSection";
+import ResidentPhoto from "@/components/ResidentPhoto";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 type ResidentDetails = {
   resident_id: number;
@@ -92,12 +93,15 @@ type TransferRecord = {
 type DocumentRow = {
   document_id: number;
   document_type: string;
+  document_subtype: string | null;
   file_name: string;
   storage_path: string;
   file_size_bytes: number | null;
   mime_type: string | null;
   notes: string | null;
+  is_primary: boolean;
   uploaded_at: string;
+  uploaded_by_name: string | null;
 };
 
 type ProfileExtra = {
@@ -296,6 +300,12 @@ export default async function ResidentPage({
   const transfers = await getTransferHistory(resident.resident_id);
   const rentHistory = await getRentHistory(resident.booking_id);
   const documents = await getResidentDocuments(resident.resident_id);
+  const primaryPhoto = documents.find(
+    (d) => d.document_type === "Resident Photo" && d.is_primary
+  );
+  const otherDocuments = documents.filter(
+    (d) => d.document_type !== "Resident Photo"
+  );
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -310,20 +320,35 @@ export default async function ResidentPage({
 
         <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-              {resident.hostel_name} · Floor{" "}
-              {resident.floor_number} · Room{" "}
-              {resident.room_number}
-            </p>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <ResidentPhoto
+              residentId={resident.resident_id}
+              fullName={resident.full_name}
+              photo={
+                primaryPhoto
+                  ? {
+                      documentId: primaryPhoto.document_id,
+                      storagePath: primaryPhoto.storage_path,
+                    }
+                  : null
+              }
+            />
 
-            <h1 className="mt-2 text-4xl font-bold">
-              {resident.full_name}
-            </h1>
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
+                {resident.hostel_name} · Floor{" "}
+                {resident.floor_number} · Room{" "}
+                {resident.room_number}
+              </p>
 
-            <p className="mt-2 text-slate-500">
-              {resident.bed_number}
-            </p>
+              <h1 className="mt-2 text-4xl font-bold">
+                {resident.full_name}
+              </h1>
+
+              <p className="mt-2 text-slate-500">
+                {resident.bed_number}
+              </p>
+            </div>
           </div>
 
           <span
@@ -530,7 +555,7 @@ export default async function ResidentPage({
 
         <DocumentsSection
           residentId={resident.resident_id}
-          initialDocuments={documents}
+          initialDocuments={otherDocuments}
         />
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

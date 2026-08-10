@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import ResidentPhoto from "@/components/ResidentPhoto";
+import DocumentsSection from "@/components/DocumentsSection";
 
 type BookingDetails = {
   booking_id: number;
@@ -45,6 +47,20 @@ type Settlement = {
   deductions: Deduction[];
 };
 
+type DocumentRow = {
+  document_id: number;
+  document_type: string;
+  document_subtype: string | null;
+  file_name: string;
+  storage_path: string;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  notes: string | null;
+  is_primary: boolean;
+  uploaded_at: string;
+  uploaded_by_name: string | null;
+};
+
 type TransferRecord = {
   transfer_id: number;
   old_booking_id: number;
@@ -85,6 +101,14 @@ async function getTransferHistory(residentId: number): Promise<TransferRecord[]>
   });
 }
 
+async function getResidentDocuments(
+  residentId: number
+): Promise<DocumentRow[]> {
+  return callRpcServer<DocumentRow[]>("get_resident_documents", {
+    p_resident_id: residentId,
+  });
+}
+
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString(
     "en-IN",
@@ -117,6 +141,13 @@ export default async function BookingHistoryDetailsPage({
       : null;
 
   const transfers = await getTransferHistory(booking.resident_id);
+  const documents = await getResidentDocuments(booking.resident_id);
+  const primaryPhoto = documents.find(
+    (d) => d.document_type === "Resident Photo" && d.is_primary
+  );
+  const otherDocuments = documents.filter(
+    (d) => d.document_type !== "Resident Photo"
+  );
   const outgoingTransfer = transfers.find(
     (t) => t.old_booking_id === booking.booking_id
   );
@@ -141,19 +172,34 @@ export default async function BookingHistoryDetailsPage({
 
         <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
 
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-              Booking #{booking.booking_id}
-            </p>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <ResidentPhoto
+              residentId={booking.resident_id}
+              fullName={booking.full_name}
+              photo={
+                primaryPhoto
+                  ? {
+                      documentId: primaryPhoto.document_id,
+                      storagePath: primaryPhoto.storage_path,
+                    }
+                  : null
+              }
+            />
 
-            <h1 className="mt-2 text-4xl font-bold">
-              {booking.full_name}
-            </h1>
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
+                Booking #{booking.booking_id}
+              </p>
 
-            <p className="mt-2 text-slate-500">
-              {booking.hostel_name} · Room {booking.room_number} ·{" "}
-              {booking.bed_code || booking.bed_number}
-            </p>
+              <h1 className="mt-2 text-4xl font-bold">
+                {booking.full_name}
+              </h1>
+
+              <p className="mt-2 text-slate-500">
+                {booking.hostel_name} · Room {booking.room_number} ·{" "}
+                {booking.bed_code || booking.bed_number}
+              </p>
+            </div>
           </div>
 
           <span
@@ -350,6 +396,11 @@ export default async function BookingHistoryDetailsPage({
 
           </section>
         )}
+
+        <DocumentsSection
+          residentId={booking.resident_id}
+          initialDocuments={otherDocuments}
+        />
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
