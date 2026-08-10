@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { formatFiscalYear } from "@/lib/format";
 
 type PnlRow = {
   hostel_name: string;
@@ -73,6 +74,10 @@ export default function PnlView({
             </option>
           ))}
         </select>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+          {formatFiscalYear(month, year)}
+        </span>
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
