@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { slugifyHostelName } from "@/lib/hostel";
+import { slugifyHostelName } from "@/lib/hostelSlug";
 
 type AvailableBedRow = {
   bed_id: number;

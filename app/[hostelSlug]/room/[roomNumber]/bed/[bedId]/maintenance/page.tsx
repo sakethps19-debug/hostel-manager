@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { resolveHostelName } from "@/lib/hostel";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import MaintenanceForm from "./MaintenanceForm";
 import CompleteMaintenanceButton from "./CompleteMaintenanceButton";
 
@@ -29,32 +30,6 @@ type PageProps = {
   }>;
 };
 
-async function callRpc<T>(name: string, body: object): Promise<T> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`${name} failed: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -72,7 +47,7 @@ export default async function BedMaintenancePage({ params }: PageProps) {
     notFound();
   }
 
-  const beds = await callRpc<BedRow[]>("get_room_beds", {
+  const beds = await callRpcServer<BedRow[]>("get_room_beds", {
     p_hostel_name: hostelName,
     p_room_number: roomNumber,
   });
@@ -83,7 +58,7 @@ export default async function BedMaintenancePage({ params }: PageProps) {
     notFound();
   }
 
-  const history = await callRpc<MaintenanceRecord[]>(
+  const history = await callRpcServer<MaintenanceRecord[]>(
     "get_bed_maintenance_history",
     { p_bed_id: Number(bedId) }
   );

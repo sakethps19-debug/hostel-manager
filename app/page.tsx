@@ -3,6 +3,7 @@ import OccupancyProgressBar from "@/components/OccupancyProgressBar";
 import OccupancyLegend from "@/components/OccupancyLegend";
 import AlertCard from "@/components/AlertCard";
 import LogoutButton from "@/components/LogoutButton";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -35,97 +36,16 @@ type OperationalAlerts = {
 };
 
 async function getHostelDashboard(): Promise<HostelDashboardRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_hostel_dashboard`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load hostel dashboard: ${response.status} ${response.statusText}`
-    );
-  }
-
-  return response.json();
+  return callRpcServer<HostelDashboardRow[]>("get_hostel_dashboard");
 }
 
 async function getRentSummary(): Promise<RentSummary | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_rent_dashboard_summary`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load rent summary: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const data: RentSummary[] = await response.json();
+  const data = await callRpcServer<RentSummary[]>("get_rent_dashboard_summary");
   return data.length > 0 ? data[0] : null;
 }
 
 async function getOperationalAlerts(): Promise<OperationalAlerts | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_operational_alerts`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to load operational alerts: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const data: OperationalAlerts[] = await response.json();
+  const data = await callRpcServer<OperationalAlerts[]>("get_operational_alerts");
   return data.length > 0 ? data[0] : null;
 }
 

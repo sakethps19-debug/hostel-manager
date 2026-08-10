@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { slugifyHostelName } from "@/lib/hostel";
+import { slugifyHostelName } from "@/lib/hostelSlug";
 import { downloadCsv } from "@/lib/csv";
 
 type LedgerRow = {

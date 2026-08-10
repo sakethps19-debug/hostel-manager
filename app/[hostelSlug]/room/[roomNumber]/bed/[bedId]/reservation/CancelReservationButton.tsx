@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 export default function CancelReservationButton({
   bookingId,
@@ -21,33 +22,13 @@ export default function CancelReservationButton({
   async function handleCancel() {
     setErrorMessage("");
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/cancel_booking`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          p_booking_id: bookingId,
-          p_reason: reason || null,
-        }),
+      await callRpcClient("cancel_booking", {
+        p_booking_id: bookingId,
+        p_reason: reason || null,
       });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
 
       await logAuditEvent("reservation_cancelled", "booking", bookingId, {
         reason,

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -28,37 +29,14 @@ export default function CompleteMaintenanceButton({
   async function handleComplete() {
     setErrorMessage("");
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/complete_maintenance`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_maintenance_id: maintenanceId,
-            p_actual_completion_date: completionDate,
-            p_notes: notes,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await callRpcClient("complete_maintenance", {
+        p_maintenance_id: maintenanceId,
+        p_actual_completion_date: completionDate,
+        p_notes: notes,
+      });
 
       await logAuditEvent("maintenance_completed", "maintenance", maintenanceId, {
         completion_date: completionDate,

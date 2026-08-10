@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { slugifyHostelName } from "@/lib/hostel";
+import { slugifyHostelName } from "@/lib/hostelSlug";
 import { logAuditEvent } from "@/lib/audit";
 
 type AvailableBedRow = {

@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 export default function BookingForm({
   hostelSlug,
@@ -99,60 +100,36 @@ export default function BookingForm({
       return;
     }
 
-    const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-    const supabaseKey =
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage(
-        "Supabase environment variables are missing."
-      );
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/create_booking`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_bed_id: bedId,
-            p_full_name: fullName,
-            p_mobile_number: mobileNumber,
-            p_email: email,
-            p_emergency_contact: emergencyContact,
-            p_id_proof_type: idProofType,
-            p_id_proof_number: idProofNumber,
-            p_home_address: homeAddress,
-            p_work_college_address: workCollegeAddress,
-            p_notes: notes,
-            p_start_date: startDate,
-            p_end_date: endDate,
-            p_monthly_rent: agreedRent,
-            p_security_deposit: deposit,
-          }),
-        }
-      );
+      try {
+        await callRpcClient("create_booking", {
+          p_bed_id: bedId,
+          p_full_name: fullName,
+          p_mobile_number: mobileNumber,
+          p_email: email,
+          p_emergency_contact: emergencyContact,
+          p_id_proof_type: idProofType,
+          p_id_proof_number: idProofNumber,
+          p_home_address: homeAddress,
+          p_work_college_address: workCollegeAddress,
+          p_notes: notes,
+          p_start_date: startDate,
+          p_end_date: endDate,
+          p_monthly_rent: agreedRent,
+          p_security_deposit: deposit,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
 
-      if (!response.ok) {
-        const error = await response.text();
-
-        if (error.includes("already booked")) {
+        if (message.includes("already booked")) {
           throw new Error(
             "This bed is already booked for the selected dates."
           );
         }
 
-        throw new Error(error);
+        throw err;
       }
 
       await logAuditEvent("booking_created", "booking", null, {
@@ -165,17 +142,9 @@ export default function BookingForm({
 
       if (enquiryId) {
         try {
-          await fetch(`${supabaseUrl}/rest/v1/rpc/update_enquiry_status`, {
-            method: "POST",
-            headers: {
-              apikey: supabaseKey,
-              Authorization: `Bearer ${supabaseKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              p_enquiry_id: Number(enquiryId),
-              p_status: "Converted",
-            }),
+          await callRpcClient("update_enquiry_status", {
+            p_enquiry_id: Number(enquiryId),
+            p_status: "Converted",
           });
         } catch {
           // Booking already succeeded - don't block on this best-effort update.

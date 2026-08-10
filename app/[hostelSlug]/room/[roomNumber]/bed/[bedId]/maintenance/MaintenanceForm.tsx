@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -36,40 +37,17 @@ export default function MaintenanceForm({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/start_maintenance`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_bed_id: bedId,
-            p_reason: reason,
-            p_start_date: startDate,
-            p_expected_completion_date: expectedCompletionDate || null,
-            p_notes: notes,
-            p_cost: cost ? Number(cost) : null,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      await callRpcClient("start_maintenance", {
+        p_bed_id: bedId,
+        p_reason: reason,
+        p_start_date: startDate,
+        p_expected_completion_date: expectedCompletionDate || null,
+        p_notes: notes,
+        p_cost: cost ? Number(cost) : null,
+      });
 
       await logAuditEvent("maintenance_started", "bed", bedId, {
         reason,
