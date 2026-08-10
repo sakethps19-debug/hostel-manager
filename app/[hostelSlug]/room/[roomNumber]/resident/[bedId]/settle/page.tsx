@@ -1,7 +1,15 @@
 import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+import { getChecklistItems } from "@/lib/checklists";
 import SettlementForm from "./SettlementForm";
+
+type ChecklistStateRow = {
+  item_key: string;
+  is_checked: boolean;
+  checked_at: string | null;
+  checked_by_name: string | null;
+};
 
 type ResidentSummary = {
   booking_id: number;
@@ -60,6 +68,21 @@ export default async function SettlePage({ params }: PageProps) {
 
   const depositHeld = depositRows.length > 0 ? depositRows[0].deposit_held : 0;
 
+  const savedChecklist = await callRpcServer<ChecklistStateRow[]>(
+    "get_booking_checklist",
+    { p_booking_id: resident.booking_id, p_checklist_type: "move_out" }
+  );
+  const savedByKey = new Map(savedChecklist.map((row) => [row.item_key, row]));
+  const moveOutChecklist = getChecklistItems("move_out").map((def) => {
+    const row = savedByKey.get(def.key);
+    return {
+      ...def,
+      is_checked: row?.is_checked ?? false,
+      checked_at: row?.checked_at ?? null,
+      checked_by_name: row?.checked_by_name ?? null,
+    };
+  });
+
   return (
     <SettlementForm
       hostelSlug={hostelSlug}
@@ -71,6 +94,7 @@ export default async function SettlePage({ params }: PageProps) {
       bedLabel={resident.bed_code || resident.bed_number}
       outstandingRent={Number(outstandingRent)}
       depositHeld={Number(depositHeld)}
+      moveOutChecklist={moveOutChecklist}
     />
   );
 }

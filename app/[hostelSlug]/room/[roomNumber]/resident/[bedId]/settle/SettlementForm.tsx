@@ -4,6 +4,14 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import BookingChecklist from "@/components/BookingChecklist";
+import type { ChecklistItemDef } from "@/lib/checklists";
+
+type MoveOutChecklistItem = ChecklistItemDef & {
+  is_checked: boolean;
+  checked_at: string | null;
+  checked_by_name: string | null;
+};
 
 const DEDUCTION_CATEGORIES = [
   "Damage",
@@ -33,6 +41,7 @@ export default function SettlementForm({
   bedLabel,
   outstandingRent,
   depositHeld,
+  moveOutChecklist,
 }: {
   hostelSlug: string;
   roomNumber: string;
@@ -43,6 +52,7 @@ export default function SettlementForm({
   bedLabel: string;
   outstandingRent: number;
   depositHeld: number;
+  moveOutChecklist: MoveOutChecklistItem[];
 }) {
   const router = useRouter();
 
@@ -147,6 +157,13 @@ export default function SettlementForm({
 
           <p className="mt-2 text-slate-500">{residentName}</p>
         </div>
+
+        <BookingChecklist
+          bookingId={bookingId}
+          checklistType="move_out"
+          title="Move-Out Checklist"
+          items={moveOutChecklist}
+        />
 
         {!confirming ? (
           <div className="mt-10 space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
