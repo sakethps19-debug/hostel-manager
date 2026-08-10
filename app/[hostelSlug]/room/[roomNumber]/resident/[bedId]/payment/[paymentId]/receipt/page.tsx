@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import PrintButton from "./PrintButton";
 import CopyTextButton from "@/components/CopyTextButton";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type ResidentSummary = {
   booking_id: number;
@@ -38,32 +39,9 @@ type PageProps = {
 async function getResidentSummary(
   bedId: string
 ): Promise<ResidentSummary | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_resident_details`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_bed_id: Number(bedId) }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load resident: ${await response.text()}`);
-  }
-
-  const data: ResidentSummary[] = await response.json();
+  const data = await callRpcServer<ResidentSummary[]>("get_resident_details", {
+    p_bed_id: Number(bedId),
+  });
   return data.length > 0 ? data[0] : null;
 }
 
@@ -71,32 +49,9 @@ async function getPayment(
   bookingId: number,
   paymentId: string
 ): Promise<PaymentRow | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_payment_history`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_booking_id: bookingId }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load payment: ${await response.text()}`);
-  }
-
-  const data: PaymentRow[] = await response.json();
+  const data = await callRpcServer<PaymentRow[]>("get_payment_history", {
+    p_booking_id: bookingId,
+  });
   return data.find((p) => p.payment_id === Number(paymentId)) || null;
 }
 

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import TransferForm from "./TransferForm";
 
 type ResidentDetails = {
@@ -35,36 +36,10 @@ type PageProps = {
   }>;
 };
 
-async function callRpc<T>(name: string, body: object): Promise<T> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`${name} failed: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
 export default async function TransferResidentPage({ params }: PageProps) {
   const { hostelSlug, roomNumber, bedId } = await params;
 
-  const residentRows = await callRpc<ResidentDetails[]>(
+  const residentRows = await callRpcServer<ResidentDetails[]>(
     "get_resident_details",
     { p_bed_id: Number(bedId) }
   );
@@ -75,7 +50,7 @@ export default async function TransferResidentPage({ params }: PageProps) {
     notFound();
   }
 
-  const availableBeds = await callRpc<AvailableBedRow[]>(
+  const availableBeds = await callRpcServer<AvailableBedRow[]>(
     "get_available_beds",
     {}
   );

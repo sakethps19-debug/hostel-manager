@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import PaymentForm from "./PaymentForm";
 
 type ResidentSummary = {
@@ -22,32 +23,9 @@ type PageProps = {
 async function getResidentSummary(
   bedId: string
 ): Promise<ResidentSummary | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_resident_details`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_bed_id: Number(bedId) }),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load resident: ${await response.text()}`);
-  }
-
-  const data: ResidentSummary[] = await response.json();
+  const data = await callRpcServer<ResidentSummary[]>("get_resident_details", {
+    p_bed_id: Number(bedId),
+  });
   return data.length > 0 ? data[0] : null;
 }
 

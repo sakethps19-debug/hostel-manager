@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type ResidentDetails = {
   resident_id: number;
@@ -82,32 +83,6 @@ type PageProps = {
   }>;
 };
 
-async function callRpc<T>(name: string, body: object): Promise<T> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`${name} failed: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
 function formatDate(date: string) {
   return new Date(date.length === 10 ? `${date}T00:00:00` : date).toLocaleDateString(
     "en-IN",
@@ -129,7 +104,7 @@ function toneClasses(tone: TimelineEvent["tone"]) {
 export default async function ResidentTimelinePage({ params }: PageProps) {
   const { hostelSlug, roomNumber, bedId } = await params;
 
-  const residentRows = await callRpc<ResidentDetails[]>(
+  const residentRows = await callRpcServer<ResidentDetails[]>(
     "get_resident_details",
     { p_bed_id: Number(bedId) }
   );
@@ -139,7 +114,7 @@ export default async function ResidentTimelinePage({ params }: PageProps) {
     notFound();
   }
 
-  const transfers = await callRpc<TransferRecord[]>("get_transfer_history", {
+  const transfers = await callRpcServer<TransferRecord[]>("get_transfer_history", {
     p_resident_id: resident.resident_id,
   });
 
@@ -154,13 +129,13 @@ export default async function ResidentTimelinePage({ params }: PageProps) {
 
   for (const bookingId of bookingIds) {
     const [bookingRows, payments, rentHistory] = await Promise.all([
-      callRpc<BookingDetails[]>("get_booking_details", {
+      callRpcServer<BookingDetails[]>("get_booking_details", {
         p_booking_id: bookingId,
       }),
-      callRpc<PaymentHistoryRow[]>("get_payment_history", {
+      callRpcServer<PaymentHistoryRow[]>("get_payment_history", {
         p_booking_id: bookingId,
       }),
-      callRpc<RentRevisionRow[]>("get_rent_history", {
+      callRpcServer<RentRevisionRow[]>("get_rent_history", {
         p_booking_id: bookingId,
       }),
     ]);
@@ -208,7 +183,7 @@ export default async function ResidentTimelinePage({ params }: PageProps) {
 
     if (booking.booking_status === "completed" && !wasTransferredOut) {
       try {
-        const settlementRows = await callRpc<Settlement[]>(
+        const settlementRows = await callRpcServer<Settlement[]>(
           "get_booking_settlement",
           { p_booking_id: bookingId }
         );

@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 const DEDUCTION_CATEGORIES = [
   "Damage",
@@ -93,59 +94,21 @@ export default function SettlementForm({
       }
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const settleResponse = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/finalize_settlement`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_booking_id: bookingId,
-            p_other_charges: otherChargesNumber,
-            p_deductions: deductions.map((d) => ({
-              category: d.category,
-              amount: Number(d.amount),
-              notes: d.notes,
-            })),
-            p_notes: notes,
-          }),
-        }
-      );
+      await callRpcClient("finalize_settlement", {
+        p_booking_id: bookingId,
+        p_other_charges: otherChargesNumber,
+        p_deductions: deductions.map((d) => ({
+          category: d.category,
+          amount: Number(d.amount),
+          notes: d.notes,
+        })),
+        p_notes: notes,
+      });
 
-      if (!settleResponse.ok) {
-        throw new Error(await settleResponse.text());
-      }
-
-      const vacateResponse = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/vacate_bed`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ p_booking_id: bookingId }),
-        }
-      );
-
-      if (!vacateResponse.ok) {
-        throw new Error(await vacateResponse.text());
-      }
+      await callRpcClient("vacate_bed", { p_booking_id: bookingId });
 
       await logAuditEvent("resident_vacated", "booking", bookingId, {
         refund_amount: refundAmount,

@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugifyHostelName } from "@/lib/hostelSlug";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 type AvailableBedRow = {
   bed_id: number;
@@ -132,52 +133,34 @@ export default function TransferForm({
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/transfer_resident`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_booking_id: bookingId,
-            p_new_bed_id: selectedBed.bed_id,
-            p_transfer_date: transferDate,
-            p_reason: reason,
-            p_notes: notes || null,
-            p_new_monthly_rent: rent,
-            p_new_security_deposit: deposit,
-            p_new_end_date: newEndDate || null,
-          }),
-        }
-      );
+      let data: TransferResult[];
 
-      if (!response.ok) {
-        const error = await response.text();
+      try {
+        data = await callRpcClient<TransferResult[]>("transfer_resident", {
+          p_booking_id: bookingId,
+          p_new_bed_id: selectedBed.bed_id,
+          p_transfer_date: transferDate,
+          p_reason: reason,
+          p_notes: notes || null,
+          p_new_monthly_rent: rent,
+          p_new_security_deposit: deposit,
+          p_new_end_date: newEndDate || null,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
 
-        if (error.includes("already booked")) {
+        if (message.includes("already booked")) {
           throw new Error(
             "The selected bed is already booked for part of the requested period."
           );
         }
 
-        throw new Error(error);
+        throw err;
       }
 
-      const data: TransferResult[] = await response.json();
       const result = data.length > 0 ? data[0] : null;
 
       if (!result) {
