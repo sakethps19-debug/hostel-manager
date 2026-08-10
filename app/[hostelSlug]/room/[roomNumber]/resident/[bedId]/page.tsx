@@ -7,6 +7,7 @@ import DocumentsSection from "@/components/DocumentsSection";
 import ResidentPhoto from "@/components/ResidentPhoto";
 import IdProofViewer from "@/components/IdProofViewer";
 import BookingChecklist from "@/components/BookingChecklist";
+import ResidentTags from "@/components/ResidentTags";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -198,6 +199,21 @@ async function getResidentDocuments(
   });
 }
 
+type TagRow = { tag_id: number; tag_label: string };
+
+async function getResidentTags(residentId: number): Promise<TagRow[]> {
+  return callRpcServer<TagRow[]>("get_resident_tags", {
+    p_resident_id: residentId,
+  });
+}
+
+async function getAllTagLabels(): Promise<string[]> {
+  const rows = await callRpcServer<{ tag_label: string }[]>(
+    "get_all_resident_tags"
+  );
+  return Array.from(new Set(rows.map((r) => r.tag_label))).sort();
+}
+
 type ChecklistStateRow = {
   item_key: string;
   is_checked: boolean;
@@ -351,6 +367,11 @@ export default async function ResidentPage({
   const documents = canManageDocuments
     ? await getResidentDocuments(resident.resident_id)
     : [];
+
+  const [residentTags, allTagLabels] = await Promise.all([
+    getResidentTags(resident.resident_id),
+    getAllTagLabels(),
+  ]);
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
   );
@@ -477,6 +498,18 @@ export default async function ResidentPage({
                 {item.done ? "✓" : "○"} {item.label}
               </span>
             ))}
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold">Tags</h2>
+
+          <div className="mt-4">
+            <ResidentTags
+              residentId={resident.resident_id}
+              initialTags={residentTags}
+              suggestions={allTagLabels}
+            />
           </div>
         </section>
 
