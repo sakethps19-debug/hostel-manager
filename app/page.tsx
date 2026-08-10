@@ -181,6 +181,7 @@ export default async function Home() {
           : []),
         { label: "P&L", href: "/reports/pnl" },
         { label: "Occupancy History", href: "/reports/occupancy-history" },
+        { label: "Hostel Comparison", href: "/reports/hostel-comparison" },
       ]}
     />
   )}
