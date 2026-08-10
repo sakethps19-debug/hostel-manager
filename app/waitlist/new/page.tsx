@@ -1,8 +1,20 @@
 import NewWaitlistForm from "./NewWaitlistForm";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+
+type HostelRow = {
+  hostel_name: string;
+};
+
+async function getHostelNames(): Promise<string[]> {
+  const hostels = await callRpcServer<HostelRow[]>("get_hostel_dashboard");
+  return hostels.map((h) => h.hostel_name);
+}
 
 export default async function NewWaitlistPage() {
   await requirePermission("manageOperationalRecords");
+
+  const hostelNames = await getHostelNames();
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -22,7 +34,7 @@ export default async function NewWaitlistPage() {
           </p>
         </div>
 
-        <NewWaitlistForm />
+        <NewWaitlistForm hostelNames={hostelNames} />
       </div>
     </main>
   );

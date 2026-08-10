@@ -34,8 +34,10 @@ const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
 
 export default function ComplaintForm({
   residents,
+  hostelNames,
 }: {
   residents: ResidentRow[];
+  hostelNames: string[];
 }) {
   const router = useRouter();
 
@@ -183,9 +185,11 @@ export default function ComplaintForm({
               className="input-style"
             >
               <option value="">Not specified</option>
-              <option value="Hostel A">Hostel A</option>
-              <option value="Hostel B">Hostel B</option>
-              <option value="Hostel C">Hostel C</option>
+              {hostelNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
             </select>
           </label>
 

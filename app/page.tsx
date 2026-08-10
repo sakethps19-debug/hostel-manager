@@ -307,7 +307,7 @@ export default async function Home() {
                   <AlertCard
                     count={alerts.maintenance_count}
                     label="Beds under maintenance"
-                    href="/"
+                    href="/maintenance"
                     tone="slate"
                   />
                 )}

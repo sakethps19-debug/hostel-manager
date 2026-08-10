@@ -5,22 +5,39 @@ import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
-const SOURCES = ["Walk-in", "Referral", "Phone Call", "Online", "Other"];
+const CATEGORIES = [
+  "Electricity",
+  "Water",
+  "Housekeeping",
+  "Repairs & Maintenance",
+  "Wi-Fi",
+  "Salaries",
+  "Supplies",
+  "Rent / Lease",
+  "Taxes / Charges",
+  "Other",
+];
 
-export default function NewEnquiryForm({
+const PAYMENT_MODES = ["Cash", "UPI", "Bank Transfer", "Other"];
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function NewExpenseForm({
   hostelNames,
 }: {
   hostelNames: string[];
 }) {
   const router = useRouter();
 
-  const [fullName, setFullName] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [preferredHostel, setPreferredHostel] = useState("");
-  const [preferredSharing, setPreferredSharing] = useState("");
-  const [budget, setBudget] = useState("");
-  const [expectedJoiningDate, setExpectedJoiningDate] = useState("");
-  const [source, setSource] = useState("");
+  const [hostelName, setHostelName] = useState("");
+  const [expenseDate, setExpenseDate] = useState(todayIsoDate());
+  const [category, setCategory] = useState("");
+  const [amount, setAmount] = useState("");
+  const [vendor, setVendor] = useState("");
+  const [paymentMode, setPaymentMode] = useState("Cash");
+  const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -29,40 +46,43 @@ export default function NewEnquiryForm({
     event.preventDefault();
     setErrorMessage("");
 
-    if (!fullName.trim()) {
-      setErrorMessage("Please enter the enquirer's name.");
+    const amt = Number(amount);
+
+    if (!category) {
+      setErrorMessage("Please select a category.");
       return;
     }
 
-    if (!/^\d{10}$/.test(mobileNumber)) {
-      setErrorMessage("Mobile number must contain exactly 10 digits.");
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setErrorMessage("Please enter a valid amount.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const created = await callRpcClient<{ id: number }>("create_enquiry", {
-        p_full_name: fullName,
-        p_mobile_number: mobileNumber,
-        p_preferred_hostel: preferredHostel || null,
-        p_preferred_sharing: preferredSharing ? Number(preferredSharing) : null,
-        p_budget: budget ? Number(budget) : null,
-        p_expected_joining_date: expectedJoiningDate || null,
-        p_source: source || null,
+      const created = await callRpcClient<{ id: number }>("record_expense", {
+        p_hostel_name: hostelName || null,
+        p_expense_date: expenseDate,
+        p_category: category,
+        p_amount: amt,
+        p_vendor: vendor || null,
+        p_payment_mode: paymentMode,
+        p_reference_number: referenceNumber || null,
         p_notes: notes || null,
       });
 
-      await logAuditEvent("enquiry_created", "enquiry", created?.id ?? null, {
-        full_name: fullName,
-        mobile_number: mobileNumber,
+      await logAuditEvent("expense_recorded", "expense", created?.id ?? null, {
+        category,
+        amount: amt,
+        hostel_name: hostelName || "Common",
       });
 
-      router.push("/enquiries");
+      router.push("/expenses");
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to create enquiry."
+        error instanceof Error ? error.message : "Unable to record expense."
       );
     } finally {
       setSaving(false);
@@ -74,46 +94,17 @@ export default function NewEnquiryForm({
       onSubmit={handleSubmit}
       className="mt-8 space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
     >
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Full Name *
-          </span>
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="input-style"
-            required
-          />
-        </label>
-
-        <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Mobile Number *
-          </span>
-          <input
-            type="tel"
-            value={mobileNumber}
-            onChange={(e) =>
-              setMobileNumber(e.target.value.replace(/\D/g, "").slice(0, 10))
-            }
-            className="input-style"
-            inputMode="numeric"
-            maxLength={10}
-            required
-          />
-        </label>
-
-        <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Preferred Hostel
+            Hostel
           </span>
           <select
-            value={preferredHostel}
-            onChange={(e) => setPreferredHostel(e.target.value)}
+            value={hostelName}
+            onChange={(e) => setHostelName(e.target.value)}
             className="input-style"
           >
-            <option value="">No preference</option>
+            <option value="">Common / Consolidated</option>
             {hostelNames.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -124,62 +115,87 @@ export default function NewEnquiryForm({
 
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Preferred Sharing
+            Expense Date *
+          </span>
+          <input
+            type="date"
+            value={expenseDate}
+            onChange={(e) => setExpenseDate(e.target.value)}
+            className="input-style"
+            required
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-sm font-semibold text-slate-700">
+            Category *
           </span>
           <select
-            value={preferredSharing}
-            onChange={(e) => setPreferredSharing(e.target.value)}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
             className="input-style"
+            required
           >
-            <option value="">No preference</option>
-            <option value="1">1 Sharing</option>
-            <option value="2">2 Sharing</option>
-            <option value="3">3 Sharing</option>
-            <option value="4">4 Sharing</option>
+            <option value="">Select category</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </label>
 
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Budget (per month)
+            Amount *
           </span>
           <input
             type="number"
             min="0"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             className="input-style"
+            required
           />
         </label>
 
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Expected Joining Date
+            Vendor / Payee
           </span>
           <input
-            type="date"
-            value={expectedJoiningDate}
-            onChange={(e) => setExpectedJoiningDate(e.target.value)}
+            value={vendor}
+            onChange={(e) => setVendor(e.target.value)}
             className="input-style"
           />
         </label>
 
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Source
+            Payment Mode
           </span>
           <select
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
+            value={paymentMode}
+            onChange={(e) => setPaymentMode(e.target.value)}
             className="input-style"
           >
-            <option value="">Not specified</option>
-            {SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {PAYMENT_MODES.map((m) => (
+              <option key={m} value={m}>
+                {m}
               </option>
             ))}
           </select>
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-sm font-semibold text-slate-700">
+            Reference Number
+          </span>
+          <input
+            value={referenceNumber}
+            onChange={(e) => setReferenceNumber(e.target.value)}
+            className="input-style"
+          />
         </label>
       </div>
 
@@ -203,7 +219,7 @@ export default function NewEnquiryForm({
 
       <div className="flex justify-end gap-3">
         <a
-          href="/enquiries"
+          href="/expenses"
           className="rounded-xl border border-slate-200 px-6 py-3 font-semibold hover:bg-slate-50"
         >
           Cancel
@@ -214,7 +230,7 @@ export default function NewEnquiryForm({
           disabled={saving}
           className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save Enquiry"}
+          {saving ? "Saving..." : "Save Expense"}
         </button>
       </div>
 
