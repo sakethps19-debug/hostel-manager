@@ -8,6 +8,7 @@ import ResidentPhoto from "@/components/ResidentPhoto";
 import IdProofViewer from "@/components/IdProofViewer";
 import BookingChecklist from "@/components/BookingChecklist";
 import ResidentTags from "@/components/ResidentTags";
+import DocumentExpiryTracker from "@/components/DocumentExpiryTracker";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -199,6 +200,20 @@ async function getResidentDocuments(
   });
 }
 
+type DocumentExpiryRow = {
+  document_type: string;
+  expiry_date: string | null;
+  notes: string | null;
+};
+
+async function getDocumentExpiries(
+  residentId: number
+): Promise<DocumentExpiryRow[]> {
+  return callRpcServer<DocumentExpiryRow[]>("get_resident_document_expiries", {
+    p_resident_id: residentId,
+  });
+}
+
 type TagRow = { tag_id: number; tag_label: string };
 
 async function getResidentTags(residentId: number): Promise<TagRow[]> {
@@ -368,9 +383,10 @@ export default async function ResidentPage({
     ? await getResidentDocuments(resident.resident_id)
     : [];
 
-  const [residentTags, allTagLabels] = await Promise.all([
+  const [residentTags, allTagLabels, documentExpiries] = await Promise.all([
     getResidentTags(resident.resident_id),
     getAllTagLabels(),
+    getDocumentExpiries(resident.resident_id),
   ]);
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
@@ -726,6 +742,22 @@ export default async function ResidentPage({
             residentId={resident.resident_id}
             initialDocuments={otherDocuments}
           />
+        )}
+
+        {canManageDocuments && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Document Expiry Tracking</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Tracked independently of the booking end date.
+            </p>
+
+            <div className="mt-5">
+              <DocumentExpiryTracker
+                residentId={resident.resident_id}
+                initialExpiries={documentExpiries}
+              />
+            </div>
+          </section>
         )}
 
         {rentHistory.length > 0 && (

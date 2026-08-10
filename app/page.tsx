@@ -156,6 +156,9 @@ export default async function Home() {
             { label: "Complaints", href: "/complaints" },
           ]
         : []),
+      ...(hasPermission(role, "manageDocuments")
+        ? [{ label: "Document Expiry Alerts", href: "/documents/expiring" }]
+        : []),
     ]}
   />
 
