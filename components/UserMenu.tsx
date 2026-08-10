@@ -55,10 +55,16 @@ export default function UserMenu({ role }: { role: string | null }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+          <a
+            href="/change-password"
+            className="block w-full px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Change Password
+          </a>
           <button
             onClick={handleLogout}
-            className="block w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+            className="block w-full border-t border-slate-100 px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
           >
             Log Out
           </button>
