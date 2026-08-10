@@ -205,6 +205,7 @@ export default async function Home() {
         ...(canViewAuditLog
           ? [{ label: "Audit Log", href: "/audit-log" }]
           : []),
+        { label: "Owner Daily Digest", href: "/owner/digest" },
         { label: "Users", href: "/settings/users" },
         { label: "Data Health", href: "/data-health" },
         { label: "Feature Flags", href: "/settings/feature-flags" },
