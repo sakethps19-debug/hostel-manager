@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import { logAuditEvent } from "@/lib/audit";
 
 const DOCUMENT_TYPES = ["Agreement", "Police Verification", "Other"];
 
@@ -86,6 +87,12 @@ export default function DocumentExpiryTracker({
         p_notes: row.notes || null,
         p_status:
           documentType === "Police Verification" ? row.status : null,
+      });
+
+      await logAuditEvent("document_expiry_updated", "resident", residentId, {
+        document_type: documentType,
+        expiry_date: row.expiryDate || null,
+        status: documentType === "Police Verification" ? row.status : null,
       });
     } catch (error) {
       setErrorMessage(

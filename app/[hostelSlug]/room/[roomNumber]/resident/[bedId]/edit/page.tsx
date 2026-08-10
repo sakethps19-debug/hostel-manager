@@ -35,6 +35,21 @@ type ProfileExtra = {
   emergency_contact_mobile: string | null;
 };
 
+function diffFields(
+  before: Record<string, string | number | null>,
+  after: Record<string, string | number | null>
+) {
+  const changes: Record<string, { from: string | number | null; to: string | number | null }> = {};
+  for (const key of Object.keys(after)) {
+    const beforeValue = before[key] ?? null;
+    const afterValue = after[key] ?? null;
+    if (String(beforeValue) !== String(afterValue)) {
+      changes[key] = { from: beforeValue, to: afterValue };
+    }
+  }
+  return changes;
+}
+
 export default function EditResidentPage() {
   const params = useParams();
   const router = useRouter();
@@ -44,6 +59,7 @@ export default function EditResidentPage() {
   const bedId = Number(params.bedId);
 
   const [details, setDetails] = useState<ResidentDetails | null>(null);
+  const [originalExtra, setOriginalExtra] = useState<ProfileExtra | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -107,6 +123,7 @@ setIdProofNumber(resident.id_proof_number || "");
           const extra = extraData.length > 0 ? extraData[0] : null;
 
           if (extra) {
+            setOriginalExtra(extra);
             setDateOfBirth(extra.date_of_birth || "");
             setGender(extra.gender || "");
             setEmployerOrCollege(extra.employer_or_college || "");
@@ -245,10 +262,59 @@ if (!idProofNumber.trim()) {
         );
       }
 
-      await logAuditEvent("booking_edited", "booking", details.booking_id, {
-        full_name: fullName,
-        monthly_rent: rent,
-      });
+      const changedFields = diffFields(
+        {
+          full_name: details.full_name,
+          mobile_number: details.mobile_number,
+          email: details.email,
+          emergency_contact: details.emergency_contact,
+          id_proof_type: details.id_proof_type,
+          id_proof_number: details.id_proof_number,
+          home_address: details.home_address,
+          work_college_address: details.work_college_address,
+          notes: details.notes,
+          start_date: details.start_date,
+          end_date: details.end_date,
+          monthly_rent: details.monthly_rent,
+          security_deposit: details.security_deposit,
+          date_of_birth: originalExtra?.date_of_birth ?? null,
+          gender: originalExtra?.gender ?? null,
+          employer_or_college: originalExtra?.employer_or_college ?? null,
+          occupation_or_course: originalExtra?.occupation_or_course ?? null,
+          emergency_contact_name: originalExtra?.emergency_contact_name ?? null,
+          emergency_contact_relationship:
+            originalExtra?.emergency_contact_relationship ?? null,
+          emergency_contact_mobile: originalExtra?.emergency_contact_mobile ?? null,
+        },
+        {
+          full_name: fullName,
+          mobile_number: mobileNumber,
+          email: email,
+          emergency_contact: emergencyContactMobile,
+          id_proof_type: idProofType,
+          id_proof_number: idProofNumber,
+          home_address: homeAddress,
+          work_college_address: workCollegeAddress,
+          notes: notes,
+          start_date: startDate,
+          end_date: endDate,
+          monthly_rent: rent,
+          security_deposit: deposit,
+          date_of_birth: dateOfBirth || null,
+          gender: gender || null,
+          employer_or_college: employerOrCollege || null,
+          occupation_or_course: occupationOrCourse || null,
+          emergency_contact_name: emergencyContactName || null,
+          emergency_contact_relationship: emergencyContactRelationship || null,
+          emergency_contact_mobile: emergencyContactMobile || null,
+        }
+      );
+
+      if (Object.keys(changedFields).length > 0) {
+        await logAuditEvent("booking_edited", "booking", details.booking_id, {
+          changed_fields: changedFields,
+        });
+      }
 
       router.push(
         `/${hostelSlug}/room/${roomNumber}/resident/${bedId}`

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import { logAuditEvent } from "@/lib/audit";
 
 type TagRow = {
   tag_id: number;
@@ -41,6 +42,10 @@ export default function ResidentTags({
 
       setTags((prev) => [...prev, { tag_id: tagId, tag_label: trimmed }]);
       setNewTag("");
+
+      await logAuditEvent("resident_tag_added", "resident", residentId, {
+        tag_label: trimmed,
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to add tag."
@@ -52,10 +57,15 @@ export default function ResidentTags({
 
   async function removeTag(tagId: number) {
     setErrorMessage("");
+    const removedLabel = tags.find((t) => t.tag_id === tagId)?.tag_label;
 
     try {
       await callRpcClient("remove_resident_tag", { p_tag_id: tagId });
       setTags((prev) => prev.filter((t) => t.tag_id !== tagId));
+
+      await logAuditEvent("resident_tag_removed", "resident", residentId, {
+        tag_label: removedLabel,
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to remove tag."

@@ -31,6 +31,25 @@ function actionLabel(action: string) {
     .join(" ");
 }
 
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "-";
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "from" in (value as object) &&
+    "to" in (value as object)
+  ) {
+    const { from, to } = value as { from: unknown; to: unknown };
+    return `${formatDetailValue(from)} → ${formatDetailValue(to)}`;
+  }
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => `${k}: ${formatDetailValue(v)}`)
+      .join(", ");
+  }
+  return String(value);
+}
+
 export default function AuditLogTable({
   entries,
 }: {
@@ -105,7 +124,7 @@ export default function AuditLogTable({
                   </td>
                   <td className="px-4 py-3 text-slate-500">
                     {Object.entries(entry.details || {})
-                      .map(([k, v]) => `${k}: ${v}`)
+                      .map(([k, v]) => `${k}: ${formatDetailValue(v)}`)
                       .join(" · ")}
                   </td>
                 </tr>
