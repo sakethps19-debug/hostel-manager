@@ -65,6 +65,7 @@ export default async function Home() {
   const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
   const canViewAuditLog = hasPermission(role, "viewAuditLog");
   const canManageUsers = hasPermission(role, "manageUsers");
+  const canManageRates = hasPermission(role, "manageRates");
   const overdueRentHref = canViewFinancialReports ? "/rent/overdue" : "/residents";
 
   const totalBeds = hostels.reduce(
@@ -203,6 +204,15 @@ export default async function Home() {
       className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
     >
       Users
+    </a>
+  )}
+
+  {canManageRates && (
+    <a
+      href="/settings/rates"
+      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+    >
+      Rates
     </a>
   )}
 
