@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
+import { callRpcClient } from "@/lib/supabase/callRpcClient";
 
 export default function NewWaitlistPage() {
   const router = useRouter();
@@ -32,46 +33,25 @@ export default function NewWaitlistPage() {
       return;
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      setErrorMessage("Supabase environment variables are missing.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/rpc/create_waitlist_entry`,
+      const created = await callRpcClient<{ id: number }>(
+        "create_waitlist_entry",
         {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_full_name: fullName,
-            p_mobile_number: mobileNumber,
-            p_preferred_hostel: preferredHostel || null,
-            p_preferred_sharing: preferredSharing
-              ? Number(preferredSharing)
-              : null,
-            p_preferred_floor: preferredFloor ? Number(preferredFloor) : null,
-            p_budget: budget ? Number(budget) : null,
-            p_expected_joining_date: expectedJoiningDate || null,
-            p_notes: notes || null,
-          }),
+          p_full_name: fullName,
+          p_mobile_number: mobileNumber,
+          p_preferred_hostel: preferredHostel || null,
+          p_preferred_sharing: preferredSharing
+            ? Number(preferredSharing)
+            : null,
+          p_preferred_floor: preferredFloor ? Number(preferredFloor) : null,
+          p_budget: budget ? Number(budget) : null,
+          p_expected_joining_date: expectedJoiningDate || null,
+          p_notes: notes || null,
         }
       );
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const created = await response.json();
       await logAuditEvent("waitlist_created", "waitlist", created?.id ?? null, {
         full_name: fullName,
         mobile_number: mobileNumber,

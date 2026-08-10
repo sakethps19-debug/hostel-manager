@@ -1,4 +1,5 @@
 import WaitlistTable from "./WaitlistTable";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type WaitlistRow = {
   waitlist_id: number;
@@ -27,36 +28,10 @@ type MatchRow = {
   monthly_rent: number;
 };
 
-async function callRpc<T>(name: string, body: object): Promise<T> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`${name} failed: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
 export default async function WaitlistPage() {
   const [entries, matches] = await Promise.all([
-    callRpc<WaitlistRow[]>("get_waitlist", {}),
-    callRpc<MatchRow[]>("get_waitlist_matches", {}),
+    callRpcServer<WaitlistRow[]>("get_waitlist"),
+    callRpcServer<MatchRow[]>("get_waitlist_matches"),
   ]);
 
   return (

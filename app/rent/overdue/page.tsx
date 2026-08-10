@@ -1,4 +1,5 @@
 import OverdueRentTable from "./OverdueRentTable";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type LedgerRow = {
   booking_id: number;
@@ -21,32 +22,7 @@ type LedgerRow = {
 };
 
 async function getRentLedgerAll(): Promise<LedgerRow[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/get_rent_ledger_all`,
-    {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load rent ledger: ${await response.text()}`);
-  }
-
-  return response.json();
+  return callRpcServer<LedgerRow[]>("get_rent_ledger_all");
 }
 
 export default async function OverdueRentPage() {

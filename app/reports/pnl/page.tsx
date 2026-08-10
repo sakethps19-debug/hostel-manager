@@ -1,4 +1,5 @@
 import PnlView from "./PnlView";
+import { callRpcServer } from "@/lib/supabase/callRpcServer";
 
 type PnlRow = {
   hostel_name: string;
@@ -21,32 +22,6 @@ type PageProps = {
   searchParams: Promise<{ month?: string; year?: string }>;
 };
 
-async function callRpc<T>(name: string, body: object): Promise<T> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`${name} failed: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
 export default async function PnlPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const now = new Date();
@@ -54,8 +29,8 @@ export default async function PnlPage({ searchParams }: PageProps) {
   const year = Number(params.year) || now.getFullYear();
 
   const [pnl, metrics] = await Promise.all([
-    callRpc<PnlRow[]>("get_hostel_pnl", { p_month: month, p_year: year }),
-    callRpc<MetricsRow[]>("get_hostel_metrics_snapshot", {}),
+    callRpcServer<PnlRow[]>("get_hostel_pnl", { p_month: month, p_year: year }),
+    callRpcServer<MetricsRow[]>("get_hostel_metrics_snapshot"),
   ]);
 
   return (
