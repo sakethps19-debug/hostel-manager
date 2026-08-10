@@ -353,7 +353,7 @@ export default function SettlementForm({
                 ? ` record a refund payment of ${formatMoney(refundAmount)}.`
                 : " record the final settlement."}{" "}
               This cannot be undone from this screen, but all records
-              remain visible in the booking's history.
+              remain visible in the booking&apos;s history.
             </p>
 
             {errorMessage && (
