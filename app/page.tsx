@@ -196,6 +196,7 @@ export default async function Home() {
           ? [{ label: "Audit Log", href: "/audit-log" }]
           : []),
         { label: "Users", href: "/settings/users" },
+        { label: "Data Health", href: "/data-health" },
         ...(canManageRates
           ? [
               { label: "Rates", href: "/settings/rates" },
