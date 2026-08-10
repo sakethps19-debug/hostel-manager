@@ -49,6 +49,10 @@ function getStatusClasses(status: string) {
     return "bg-red-50 text-red-700";
   }
 
+  if (status === "no_show") {
+    return "bg-orange-50 text-orange-700";
+  }
+
   return "bg-amber-50 text-amber-700";
 }
 

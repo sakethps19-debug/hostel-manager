@@ -3,6 +3,7 @@ import { resolveHostelName } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import CancelReservationButton from "./CancelReservationButton";
+import MarkNoShowButton from "./MarkNoShowButton";
 
 type FutureBooking = {
   booking_id: number;
@@ -105,7 +106,12 @@ export default async function ReservationPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-3">
+            <MarkNoShowButton
+              bookingId={booking.booking_id}
+              redirectHref={`/${hostelSlug}/room/${roomNumber}`}
+            />
+
             <CancelReservationButton
               bookingId={booking.booking_id}
               redirectHref={`/${hostelSlug}/room/${roomNumber}`}

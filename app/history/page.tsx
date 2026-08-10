@@ -40,6 +40,19 @@ export default async function HistoryPage() {
     (booking) => booking.booking_status === "completed"
   ).length;
 
+  const noShows = bookings.filter(
+    (booking) => booking.booking_status === "no_show"
+  ).length;
+
+  const futureBookingsConsidered = bookings.filter((booking) =>
+    ["confirmed", "checked_in", "no_show"].includes(booking.booking_status)
+  ).length;
+
+  const noShowRate =
+    futureBookingsConsidered === 0
+      ? 0
+      : Math.round((noShows / futureBookingsConsidered) * 1000) / 10;
+
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -67,7 +80,7 @@ export default async function HistoryPage() {
           </div>
         </div>
 
-        <section className="mt-10 grid gap-4 sm:grid-cols-3">
+        <section className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
             label="Total Bookings"
             value={bookings.length}
@@ -82,6 +95,16 @@ export default async function HistoryPage() {
           <StatCard
             label="Completed"
             value={completed}
+          />
+
+          <StatCard
+            label="No Shows"
+            value={noShows}
+          />
+
+          <StatCard
+            label="No-Show Rate %"
+            value={noShowRate}
           />
         </section>
 
