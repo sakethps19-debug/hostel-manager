@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import { downloadCsv } from "@/lib/csv";
 
 type HostelBRoomRow = {
   room_id: number;
@@ -77,6 +78,18 @@ export default function HostelBRatesTable({
     }
   }
 
+  function handleExport() {
+    downloadCsv(
+      `hostel-b-rates-${new Date().toISOString().slice(0, 10)}.csv`,
+      rows.map((r) => ({
+        floor: r.floor_name || `Floor ${r.floor_number}`,
+        room_number: r.room_number,
+        sharing_type: r.sharing_type,
+        standard_rate: r.standard_rate ?? "",
+      }))
+    );
+  }
+
   return (
     <div className="mt-4">
       {errorMessage && (
@@ -84,6 +97,17 @@ export default function HostelBRatesTable({
           {errorMessage}
         </p>
       )}
+
+      <div className="mb-3 flex justify-end">
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={rows.length === 0}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+        >
+          Export CSV
+        </button>
+      </div>
 
       <div className="space-y-6">
         {floors.map(([floorNumber, floorRooms]) => (
