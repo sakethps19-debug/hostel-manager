@@ -100,6 +100,9 @@ export default async function Home() {
   const canViewAuditLog = hasPermission(role, "viewAuditLog");
   const canManageUsers = hasPermission(role, "manageUsers");
   const canManageRates = hasPermission(role, "manageRates");
+  const canSendMessages =
+    hasPermission(role, "sendOperationalMessages") ||
+    hasPermission(role, "sendFinanceMessages");
   const overdueRentHref = canViewFinancialReports ? "/rent/overdue" : "/residents";
 
   const totalBeds = hostels.reduce(
@@ -183,6 +186,9 @@ export default async function Home() {
         : []),
       ...(hasPermission(role, "manageDocuments")
         ? [{ label: "Document Expiry Alerts", href: "/documents/expiring", section: "Manage" }]
+        : []),
+      ...(canSendMessages
+        ? [{ label: "Communications", href: "/communications", section: "Manage" }]
         : []),
       ...(canManageOperationalRecords
         ? [
