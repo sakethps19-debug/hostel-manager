@@ -195,6 +195,7 @@ export default async function Home() {
         { label: "P&L", href: "/reports/pnl" },
         { label: "Revenue Potential vs Actual", href: "/reports/revenue-potential" },
         { label: "Occupancy History", href: "/reports/occupancy-history" },
+        { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison" },
       ]}
     />
