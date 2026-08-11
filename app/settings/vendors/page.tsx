@@ -1,6 +1,8 @@
+import { notFound } from "next/navigation";
 import VendorsTable from "./VendorsTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type VendorRow = {
   vendor_id: number;
@@ -38,6 +40,10 @@ async function getExpenses(): Promise<ExpenseRow[]> {
 
 export default async function VendorsPage() {
   await requirePermission("manageExpenses");
+
+  if (!(await isFeatureEnabled("enable_expenses"))) {
+    notFound();
+  }
 
   const [vendors, expenses] = await Promise.all([
     getVendors(),
