@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import { todayIsoDateIST } from "@/lib/format";
 
 type ReconciliationRow = {
   reconciliation_id: number;
@@ -15,10 +16,6 @@ type ReconciliationRow = {
   created_by_name: string | null;
   created_at: string;
 };
-
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
@@ -42,7 +39,7 @@ export default function CashReconciliationView({
 }) {
   const [rows, setRows] = useState(reconciliations);
   const [showForm, setShowForm] = useState(false);
-  const [reconciliationDate, setReconciliationDate] = useState(todayIsoDate());
+  const [reconciliationDate, setReconciliationDate] = useState(todayIsoDateIST());
   const [hostelName, setHostelName] = useState("");
   const [countedBalance, setCountedBalance] = useState("");
   const [notes, setNotes] = useState("");

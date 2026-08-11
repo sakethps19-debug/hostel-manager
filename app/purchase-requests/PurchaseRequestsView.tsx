@@ -85,10 +85,16 @@ export default function PurchaseRequestsView({
       return;
     }
 
+    const qty = Number(quantity);
+
+    if (!Number.isInteger(qty) || qty < 1) {
+      setErrorMessage("Please enter a valid quantity (1 or more).");
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const qty = Number(quantity) || 1;
       const cost = estimatedCost ? Number(estimatedCost) : null;
       const vId = vendorId ? Number(vendorId) : null;
 
@@ -143,6 +149,8 @@ export default function PurchaseRequestsView({
   }
 
   async function handleStatusChange(requestId: number, status: string) {
+    setErrorMessage("");
+
     try {
       await callRpcClient("update_purchase_request_status", {
         p_request_id: requestId,
@@ -160,8 +168,10 @@ export default function PurchaseRequestsView({
       setRows((prev) =>
         prev.map((r) => (r.request_id === requestId ? { ...r, status } : r))
       );
-    } catch {
-      // Best-effort UI update failure is surfaced via the row staying unchanged.
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to update status."
+      );
     }
   }
 
@@ -188,6 +198,10 @@ export default function PurchaseRequestsView({
           {showForm ? "Cancel" : "+ New Request"}
         </button>
       </div>
+
+      {errorMessage && !showForm && (
+        <p className="mt-3 text-sm font-medium text-red-600">{errorMessage}</p>
+      )}
 
       {showForm && (
         <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
