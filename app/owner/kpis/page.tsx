@@ -20,7 +20,8 @@ type RentSummary = {
 
 type SnapshotRow = {
   snapshot_date: string;
-  occupancy_percent: number;
+  total_beds: number;
+  occupied_beds: number;
 };
 
 type ExpenseRow = {
@@ -81,11 +82,20 @@ export default async function OwnerKpisPage() {
     .filter((e) => e.expense_date.startsWith(currentMonth))
     .reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const occupancyTrend = [...snapshots]
-    .sort((a, b) => (a.snapshot_date < b.snapshot_date ? -1 : 1));
-  const oldestOccupancy = occupancyTrend[0]?.occupancy_percent;
+  const oldestSnapshotDate = snapshots.reduce<string | null>(
+    (earliest, s) =>
+      earliest === null || s.snapshot_date < earliest ? s.snapshot_date : earliest,
+    null
+  );
+  const oldestDaySnapshots = snapshots.filter(
+    (s) => s.snapshot_date === oldestSnapshotDate
+  );
+  const oldestTotalBeds = oldestDaySnapshots.reduce((s, r) => s + Number(r.total_beds), 0);
+  const oldestOccupiedBeds = oldestDaySnapshots.reduce((s, r) => s + Number(r.occupied_beds), 0);
+  const oldestOccupancy =
+    oldestTotalBeds > 0 ? (oldestOccupiedBeds / oldestTotalBeds) * 100 : null;
   const occupancyDelta =
-    oldestOccupancy !== undefined
+    oldestOccupancy !== null
       ? Math.round((occupancyPct - oldestOccupancy) * 10) / 10
       : null;
 

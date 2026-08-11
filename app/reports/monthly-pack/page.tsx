@@ -47,8 +47,16 @@ export default async function MonthlyReportPackPage({ searchParams }: PageProps)
 
   const params = await searchParams;
   const [todayYear, todayMonth] = todayIsoDateIST().split("-").map(Number);
-  const month = Number(params.month) || todayMonth;
-  const year = Number(params.year) || todayYear;
+  const parsedMonth = Number(params.month);
+  const parsedYear = Number(params.year);
+  const month =
+    Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+      ? parsedMonth
+      : todayMonth;
+  const year =
+    Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100
+      ? parsedYear
+      : todayYear;
   const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
 
   const [pnl, metrics, expenses, referrals] = await Promise.all([
