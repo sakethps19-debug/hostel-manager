@@ -56,12 +56,23 @@ export default async function CommunicationsPage() {
             <h1 className="mt-2 text-4xl font-bold">Broadcast History</h1>
           </div>
 
-          <a
-            href="/communications/new"
-            className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white"
-          >
-            + New Broadcast
-          </a>
+          <div className="flex gap-3">
+            {hasPermission(role, "viewAuditLog") && (
+              <a
+                href="/reports/communications"
+                className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Communication Reports
+              </a>
+            )}
+
+            <a
+              href="/communications/new"
+              className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white"
+            >
+              + New Broadcast
+            </a>
+          </div>
         </div>
 
         {setupMissing && (

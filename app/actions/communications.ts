@@ -53,7 +53,11 @@ export async function sendResidentMessageAction(
     p_action: "resident_message_sent",
     p_entity_type: "resident",
     p_entity_id: input.residentId,
-    p_details: { channel: input.channel, status: result.status },
+    p_details: {
+      channel: input.channel,
+      status: result.status,
+      template_id: input.templateId,
+    },
   }).catch(() => {});
 
   return {
