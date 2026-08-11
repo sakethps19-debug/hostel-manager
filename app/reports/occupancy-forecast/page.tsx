@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import OccupancyForecastView from "./OccupancyForecastView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
-import { requirePermission } from "@/lib/auth";
+import { getMyRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -45,7 +47,14 @@ async function getUpcomingVacancies(): Promise<VacancyRow[]> {
 }
 
 export default async function OccupancyForecastPage() {
-  await requirePermission("viewFinancialReports");
+  const role = await getMyRole();
+  const canView =
+    hasPermission(role, "viewFinancialReports") ||
+    hasPermission(role, "manageOperationalRecords");
+
+  if (!canView) {
+    redirect("/");
+  }
 
   const [hostels, checkins, vacancies] = await Promise.all([
     getHostelDashboard(),

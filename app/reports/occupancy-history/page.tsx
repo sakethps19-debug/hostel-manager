@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
-import { requirePermission } from "@/lib/auth";
+import { getMyRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type SnapshotRow = {
   snapshot_date: string;
@@ -28,7 +30,14 @@ function formatDate(date: string) {
 }
 
 export default async function OccupancyHistoryPage() {
-  await requirePermission("viewFinancialReports");
+  const role = await getMyRole();
+  const canView =
+    hasPermission(role, "viewFinancialReports") ||
+    hasPermission(role, "manageOperationalRecords");
+
+  if (!canView) {
+    redirect("/");
+  }
 
   const snapshots = await getOccupancySnapshots();
 
