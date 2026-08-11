@@ -64,6 +64,16 @@ export default function BookingSearchTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHostel, setSelectedHostel] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [startFrom, setStartFrom] = useState("");
+  const [startTo, setStartTo] = useState("");
+  const [endFrom, setEndFrom] = useState("");
+  const [endTo, setEndTo] = useState("");
+
+  const statusOptions = useMemo(
+    () => Array.from(new Set(bookings.map((booking) => booking.booking_status))).sort(),
+    [bookings]
+  );
 
   const hostelOptions = useMemo(
     () =>
@@ -95,9 +105,37 @@ export default function BookingSearchTable({
       const matchesRoom =
         !selectedRoom || booking.room_number === selectedRoom;
 
-      return matchesName && matchesHostel && matchesRoom;
+      const matchesStatus =
+        !selectedStatus || booking.booking_status === selectedStatus;
+
+      const matchesStartRange =
+        (!startFrom || booking.start_date >= startFrom) &&
+        (!startTo || booking.start_date <= startTo);
+
+      const matchesEndRange =
+        (!endFrom || booking.end_date >= endFrom) &&
+        (!endTo || booking.end_date <= endTo);
+
+      return (
+        matchesName &&
+        matchesHostel &&
+        matchesRoom &&
+        matchesStatus &&
+        matchesStartRange &&
+        matchesEndRange
+      );
     });
-  }, [bookings, searchTerm, selectedHostel, selectedRoom]);
+  }, [
+    bookings,
+    searchTerm,
+    selectedHostel,
+    selectedRoom,
+    selectedStatus,
+    startFrom,
+    startTo,
+    endFrom,
+    endTo,
+  ]);
 
   function handleExport() {
     downloadCsv(
@@ -165,6 +203,19 @@ export default function BookingSearchTable({
             ))}
           </select>
 
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">All Statuses</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+
           <button
             type="button"
             onClick={handleExport}
@@ -173,6 +224,45 @@ export default function BookingSearchTable({
           >
             Export CSV
           </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="text-xs text-slate-500">
+            Start Date From
+            <input
+              type="date"
+              value={startFrom}
+              onChange={(e) => setStartFrom(e.target.value)}
+              className="mt-1 block rounded-xl border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
+            />
+          </label>
+          <label className="text-xs text-slate-500">
+            Start Date To
+            <input
+              type="date"
+              value={startTo}
+              onChange={(e) => setStartTo(e.target.value)}
+              className="mt-1 block rounded-xl border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
+            />
+          </label>
+          <label className="text-xs text-slate-500">
+            End Date From
+            <input
+              type="date"
+              value={endFrom}
+              onChange={(e) => setEndFrom(e.target.value)}
+              className="mt-1 block rounded-xl border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
+            />
+          </label>
+          <label className="text-xs text-slate-500">
+            End Date To
+            <input
+              type="date"
+              value={endTo}
+              onChange={(e) => setEndTo(e.target.value)}
+              className="mt-1 block rounded-xl border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
+            />
+          </label>
         </div>
       </div>
 

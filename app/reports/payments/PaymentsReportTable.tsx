@@ -60,9 +60,20 @@ export default function PaymentsReportTable({
     [payments, hostelFilter]
   );
 
-  const activeTotal = filtered
-    .filter((p) => p.status !== "reversed")
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const activePayments = filtered.filter((p) => p.status !== "reversed");
+
+  const activeTotal = activePayments.reduce(
+    (sum, p) => sum + Number(p.amount),
+    0
+  );
+
+  const modeSummary = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const p of activePayments) {
+      totals.set(p.payment_mode, (totals.get(p.payment_mode) || 0) + Number(p.amount));
+    }
+    return Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+  }, [activePayments]);
 
   function applyDateFilter() {
     const qs = new URLSearchParams();
@@ -153,6 +164,19 @@ export default function PaymentsReportTable({
         {filtered.length} payment{filtered.length === 1 ? "" : "s"} ·{" "}
         {formatMoney(activeTotal)} collected (excluding reversed)
       </p>
+
+      {modeSummary.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-3">
+          {modeSummary.map(([mode, amount]) => (
+            <span
+              key={mode}
+              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+            >
+              {mode}: {formatMoney(amount)}
+            </span>
+          ))}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center text-slate-500 shadow-sm">
