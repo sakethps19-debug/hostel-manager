@@ -1,7 +1,9 @@
+import { notFound } from "next/navigation";
 import ExpenseApprovalsView from "./ExpenseApprovalsView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { getHostelList } from "@/lib/hostel";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type RequestRow = {
   request_id: number;
@@ -25,6 +27,10 @@ async function getRequests(): Promise<RequestRow[]> {
 
 export default async function ExpenseApprovalsPage() {
   await requirePermission("manageExpenses");
+
+  if (!(await isFeatureEnabled("enable_expenses"))) {
+    notFound();
+  }
 
   const [requests, hostels] = await Promise.all([
     getRequests(),

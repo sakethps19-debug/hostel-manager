@@ -1,7 +1,9 @@
+import { notFound } from "next/navigation";
 import CashReconciliationView from "./CashReconciliationView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { getHostelList } from "@/lib/hostel";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type ReconciliationRow = {
   reconciliation_id: number;
@@ -21,6 +23,10 @@ async function getReconciliations(): Promise<ReconciliationRow[]> {
 
 export default async function CashReconciliationPage() {
   await requirePermission("manageExpenses");
+
+  if (!(await isFeatureEnabled("enable_expenses"))) {
+    notFound();
+  }
 
   const [reconciliations, hostels] = await Promise.all([
     getReconciliations(),
