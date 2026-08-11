@@ -210,6 +210,7 @@ export default async function Home() {
         { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast" },
         { label: "Referral Performance", href: "/reports/referral-performance" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison" },
+        { label: "Monthly Report Pack", href: "/reports/monthly-pack" },
       ]}
     />
   )}
@@ -222,6 +223,8 @@ export default async function Home() {
           ? [{ label: "Audit Log", href: "/audit-log" }]
           : []),
         { label: "Owner Daily Digest", href: "/owner/digest" },
+        { label: "Owner KPIs", href: "/owner/kpis" },
+        { label: "Notifications Centre", href: "/notifications" },
         { label: "Users", href: "/settings/users" },
         { label: "Data Health", href: "/data-health" },
         { label: "Feature Flags", href: "/settings/feature-flags" },
