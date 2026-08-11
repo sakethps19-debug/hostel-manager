@@ -79,6 +79,16 @@ async function getPrimaryPhotoUrl(residentId: number): Promise<string | null> {
   return getResidentFileSignedUrlServer(photo.storage_path, 3600);
 }
 
+async function getDeclarationText(): Promise<string | null> {
+  try {
+    return await callRpcServer<string | null>("get_text_setting", {
+      p_key: "admission_form_declaration",
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default async function ApplicationFormPage({ params }: PageProps) {
   const { hostelSlug, roomNumber, bedId } = await params;
 
@@ -88,10 +98,11 @@ export default async function ApplicationFormPage({ params }: PageProps) {
   const booking = await getBookingDetails(bookingId);
   if (!booking) notFound();
 
-  const [profileExtra, standardRate, photoUrl] = await Promise.all([
+  const [profileExtra, standardRate, photoUrl, declarationText] = await Promise.all([
     getProfileExtra(booking.resident_id),
     getStandardRate(booking.hostel_name, booking.room_number),
     getPrimaryPhotoUrl(booking.resident_id),
+    getDeclarationText(),
   ]);
 
   return (
@@ -112,7 +123,7 @@ export default async function ApplicationFormPage({ params }: PageProps) {
           profileExtra={profileExtra}
           standardRate={standardRate}
           photoUrl={photoUrl}
-          declarationText={null}
+          declarationText={declarationText}
           generatedAt={new Date().toISOString()}
         />
       </div>
