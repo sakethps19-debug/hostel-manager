@@ -57,6 +57,7 @@ export default function HousekeepingView({
   const [assignedTo, setAssignedTo] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   const filtered = useMemo(
@@ -74,15 +75,19 @@ export default function HousekeepingView({
 
     setSaving(true);
 
+    const trimmedRoomNumber = roomNumber.trim() || null;
+    const trimmedBedCode = bedCode.trim() || null;
+    const trimmedAssignedTo = assignedTo.trim() || null;
+
     try {
       const id = await callRpcClient<number>("add_housekeeping_task", {
         p_hostel_name: hostelName || null,
-        p_room_number: roomNumber || null,
-        p_bed_code: bedCode || null,
+        p_room_number: trimmedRoomNumber,
+        p_bed_code: trimmedBedCode,
         p_bed_id: null,
         p_task_type: taskType,
         p_description: description.trim(),
-        p_assigned_to: assignedTo || null,
+        p_assigned_to: trimmedAssignedTo,
         p_due_date: dueDate || null,
       });
 
@@ -95,13 +100,13 @@ export default function HousekeepingView({
         {
           task_id: id,
           hostel_name: hostelName || null,
-          room_number: roomNumber || null,
-          bed_code: bedCode || null,
+          room_number: trimmedRoomNumber,
+          bed_code: trimmedBedCode,
           bed_id: null,
           task_type: taskType,
           description: description.trim(),
           status: "Pending",
-          assigned_to: assignedTo || null,
+          assigned_to: trimmedAssignedTo,
           due_date: dueDate || null,
           completed_at: null,
           created_at: new Date().toISOString(),
@@ -125,6 +130,11 @@ export default function HousekeepingView({
   }
 
   async function handleStatusChange(taskId: number, status: string) {
+    if (updatingTaskId === taskId) return;
+
+    setErrorMessage("");
+    setUpdatingTaskId(taskId);
+
     try {
       await callRpcClient("update_housekeeping_task_status", {
         p_task_id: taskId,
@@ -146,8 +156,12 @@ export default function HousekeepingView({
             : t
         )
       );
-    } catch {
-      // Best-effort UI update failure is surfaced via the row staying unchanged.
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to update task status."
+      );
+    } finally {
+      setUpdatingTaskId(null);
     }
   }
 
@@ -175,6 +189,10 @@ export default function HousekeepingView({
         </button>
       </div>
 
+      {errorMessage && !showForm && (
+        <p className="mt-3 text-sm font-medium text-red-600">{errorMessage}</p>
+      )}
+
       {showForm && (
         <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -201,7 +219,7 @@ export default function HousekeepingView({
             <input
               value={bedCode}
               onChange={(e) => setBedCode(e.target.value)}
-              placeholder="Bed ID (optional)"
+              placeholder="Bed code (optional)"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
 
@@ -289,7 +307,8 @@ export default function HousekeepingView({
                       <select
                         value={task.status}
                         onChange={(e) => handleStatusChange(task.task_id, e.target.value)}
-                        className={`rounded-full border-0 px-3 py-1 text-xs font-semibold outline-none ${getStatusClasses(task.status)}`}
+                        disabled={updatingTaskId === task.task_id}
+                        className={`rounded-full border-0 px-3 py-1 text-xs font-semibold outline-none disabled:opacity-50 ${getStatusClasses(task.status)}`}
                       >
                         {STATUSES.map((s) => (
                           <option key={s} value={s}>
