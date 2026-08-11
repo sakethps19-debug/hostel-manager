@@ -440,8 +440,10 @@ export default async function ResidentPage({
     getResidentTags(resident.resident_id),
     getAllTagLabels(),
     getDocumentExpiries(resident.resident_id),
-    getReferralSources(),
-    getBookingReferral(resident.booking_id),
+    canManageBookings ? getReferralSources() : Promise.resolve([]),
+    canManageBookings
+      ? getBookingReferral(resident.booking_id)
+      : Promise.resolve(null),
     getResidentCommunications(resident.resident_id),
   ]);
   const primaryPhoto = documents.find(
