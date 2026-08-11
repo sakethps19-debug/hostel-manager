@@ -18,14 +18,32 @@ type ComplaintRow = {
   closed_at: string | null;
 };
 
+type EscalationRow = {
+  escalation_id: number;
+  complaint_id: number;
+  escalated_to: string;
+  reason: string;
+  escalated_by_name: string | null;
+  escalated_at: string;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+};
+
 async function getComplaints(): Promise<ComplaintRow[]> {
   return callRpcServer<ComplaintRow[]>("get_complaints");
+}
+
+async function getComplaintEscalations(): Promise<EscalationRow[]> {
+  return callRpcServer<EscalationRow[]>("get_complaint_escalations");
 }
 
 export default async function ComplaintsPage() {
   await requirePermission("manageOperationalRecords");
 
-  const complaints = await getComplaints();
+  const [complaints, escalations] = await Promise.all([
+    getComplaints(),
+    getComplaintEscalations(),
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
@@ -57,7 +75,7 @@ export default async function ComplaintsPage() {
           </a>
         </div>
 
-        <ComplaintsTable complaints={complaints} />
+        <ComplaintsTable complaints={complaints} escalations={escalations} />
       </div>
     </main>
   );

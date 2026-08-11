@@ -20,7 +20,19 @@ type ComplaintRow = {
   closed_at: string | null;
 };
 
+type EscalationRow = {
+  escalation_id: number;
+  complaint_id: number;
+  escalated_to: string;
+  reason: string;
+  escalated_by_name: string | null;
+  escalated_at: string;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+};
+
 const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
+const ESCALATE_TO_OPTIONS = ["Owner", "Operations Manager", "Finance Manager"];
 
 function statusClasses(status: string) {
   if (status === "Open") return "bg-red-50 text-red-700";
@@ -48,20 +60,105 @@ function formatDate(date: string | null) {
 
 export default function ComplaintsTable({
   complaints,
+  escalations,
 }: {
   complaints: ComplaintRow[];
+  escalations: EscalationRow[];
 }) {
   const [rows, setRows] = useState(complaints);
+  const [escalationRows, setEscalationRows] = useState(escalations);
   const [statusFilter, setStatusFilter] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [resolutionDraft, setResolutionDraft] = useState<
     Record<number, string>
   >({});
+  const [escalatingId, setEscalatingId] = useState<number | null>(null);
+  const [escalateTo, setEscalateTo] = useState(ESCALATE_TO_OPTIONS[0]);
+  const [escalateReason, setEscalateReason] = useState("");
+  const [escalateSaving, setEscalateSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const filtered = useMemo(() => {
     return rows.filter((row) => !statusFilter || row.status === statusFilter);
   }, [rows, statusFilter]);
+
+  const activeEscalationByComplaint = useMemo(() => {
+    const map = new Map<number, EscalationRow>();
+    for (const esc of escalationRows) {
+      if (!esc.resolved_at) map.set(esc.complaint_id, esc);
+    }
+    return map;
+  }, [escalationRows]);
+
+  async function handleEscalate(complaintId: number) {
+    if (!escalateReason.trim()) {
+      setErrorMessage("Please enter a reason for escalation.");
+      return;
+    }
+
+    setErrorMessage("");
+    setEscalateSaving(true);
+
+    try {
+      const id = await callRpcClient<number>("escalate_complaint", {
+        p_complaint_id: complaintId,
+        p_escalated_to: escalateTo,
+        p_reason: escalateReason.trim(),
+      });
+
+      await logAuditEvent("complaint_escalated", "complaint", complaintId, {
+        escalated_to: escalateTo,
+      });
+
+      setEscalationRows((prev) => [
+        {
+          escalation_id: id,
+          complaint_id: complaintId,
+          escalated_to: escalateTo,
+          reason: escalateReason.trim(),
+          escalated_by_name: null,
+          escalated_at: new Date().toISOString(),
+          resolved_at: null,
+          resolution_notes: null,
+        },
+        ...prev,
+      ]);
+
+      setEscalatingId(null);
+      setEscalateReason("");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to escalate complaint."
+      );
+    } finally {
+      setEscalateSaving(false);
+    }
+  }
+
+  async function handleResolveEscalation(escalationId: number) {
+    setErrorMessage("");
+
+    try {
+      await callRpcClient("resolve_complaint_escalation", {
+        p_escalation_id: escalationId,
+        p_resolution_notes: null,
+      });
+
+      await logAuditEvent("complaint_escalation_resolved", "complaint_escalation", escalationId, {});
+
+      setEscalationRows((prev) =>
+        prev.map((esc) =>
+          esc.escalation_id === escalationId
+            ? { ...esc, resolved_at: new Date().toISOString() }
+            : esc
+        )
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to resolve escalation."
+      );
+    }
+  }
 
   async function updateStatus(
     complaintId: number,
@@ -133,10 +230,17 @@ export default function ComplaintsTable({
         </div>
       ) : (
         <div className="mt-6 space-y-4">
-          {filtered.map((row) => (
+          {filtered.map((row) => {
+            const activeEscalation = activeEscalationByComplaint.get(
+              row.complaint_id
+            );
+
+            return (
             <div
               key={row.complaint_id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className={`rounded-2xl border bg-white p-5 shadow-sm ${
+                activeEscalation ? "border-red-300" : "border-slate-200"
+              }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -149,6 +253,11 @@ export default function ComplaintsTable({
                     <span className="text-sm font-semibold text-slate-700">
                       {row.category}
                     </span>
+                    {activeEscalation && (
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+                        Escalated to {activeEscalation.escalated_to}
+                      </span>
+                    )}
                   </div>
 
                   <p className="mt-2 text-sm text-slate-500">
@@ -172,6 +281,12 @@ export default function ComplaintsTable({
                   {row.resolution && (
                     <p className="mt-2 text-sm text-emerald-700">
                       Resolution: {row.resolution}
+                    </p>
+                  )}
+
+                  {activeEscalation && (
+                    <p className="mt-2 text-sm text-red-700">
+                      Escalation reason: {activeEscalation.reason}
                     </p>
                   )}
                 </div>
@@ -234,10 +349,70 @@ export default function ComplaintsTable({
                   >
                     Close
                   </button>
+
+                  {!activeEscalation && (
+                    <button
+                      onClick={() =>
+                        setEscalatingId(
+                          escalatingId === row.complaint_id
+                            ? null
+                            : row.complaint_id
+                        )
+                      }
+                      className="rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                    >
+                      {escalatingId === row.complaint_id ? "Cancel" : "Escalate"}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {activeEscalation && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                  <button
+                    onClick={() =>
+                      handleResolveEscalation(activeEscalation.escalation_id)
+                    }
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                  >
+                    Mark Escalation Resolved
+                  </button>
+                </div>
+              )}
+
+              {escalatingId === row.complaint_id && !activeEscalation && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                  <select
+                    value={escalateTo}
+                    onChange={(e) => setEscalateTo(e.target.value)}
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none"
+                  >
+                    {ESCALATE_TO_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    value={escalateReason}
+                    onChange={(e) => setEscalateReason(e.target.value)}
+                    placeholder="Reason for escalation..."
+                    className="min-w-[200px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none"
+                  />
+
+                  <button
+                    onClick={() => handleEscalate(row.complaint_id)}
+                    disabled={escalateSaving}
+                    className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {escalateSaving ? "Escalating..." : "Confirm Escalation"}
+                  </button>
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
