@@ -186,6 +186,7 @@ export default async function Home() {
       label="Finance"
       items={[
         { label: "Overdue Rent", href: "/rent/overdue" },
+        { label: "Rent Calendar", href: "/rent/calendar" },
         { label: "Payments Report", href: "/reports/payments" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [{ label: "Expenses", href: "/expenses" }]
