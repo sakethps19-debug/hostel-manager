@@ -10,6 +10,7 @@ import {
   type TemplateCategory,
 } from "@/lib/communications/templateCategories";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { CHANNEL_LABELS, ENABLED_CHANNELS } from "@/lib/communications/channels";
 
 type TemplateRow = {
   template_id: number;
@@ -69,7 +70,7 @@ export default function SendResidentMessageButton({
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [history, setHistory] = useState<MessageHistoryRow[]>([]);
 
-  const [channel, setChannel] = useState<"whatsapp" | "sms">("whatsapp");
+  const [channel, setChannel] = useState<"whatsapp" | "sms">(ENABLED_CHANNELS[0]);
   const [templateId, setTemplateId] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -216,17 +217,26 @@ export default function SendResidentMessageButton({
               <span className="mb-1 block text-sm font-semibold text-indigo-800">
                 Channel
               </span>
-              <select
-                value={channel}
-                onChange={(e) => {
-                  setChannel(e.target.value as "whatsapp" | "sms");
-                  setTemplateId("");
-                }}
-                className="w-full rounded-xl border border-indigo-200 px-4 py-2 outline-none"
-              >
-                <option value="whatsapp">WhatsApp</option>
-                <option value="sms">SMS</option>
-              </select>
+              {ENABLED_CHANNELS.length > 1 ? (
+                <select
+                  value={channel}
+                  onChange={(e) => {
+                    setChannel(e.target.value as "whatsapp" | "sms");
+                    setTemplateId("");
+                  }}
+                  className="w-full rounded-xl border border-indigo-200 px-4 py-2 outline-none"
+                >
+                  {ENABLED_CHANNELS.map((c) => (
+                    <option key={c} value={c}>
+                      {CHANNEL_LABELS[c]}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm text-slate-600">
+                  {CHANNEL_LABELS[channel]}
+                </p>
+              )}
             </label>
 
             <label className="block">

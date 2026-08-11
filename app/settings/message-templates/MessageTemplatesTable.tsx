@@ -8,6 +8,7 @@ import {
   TEMPLATE_CATEGORY_LABELS,
   type TemplateCategory,
 } from "@/lib/communications/templateCategories";
+import { CHANNEL_LABELS, ENABLED_CHANNELS } from "@/lib/communications/channels";
 
 type TemplateRow = {
   template_id: number;
@@ -28,7 +29,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   category: "general_notice",
   name: "",
-  channel: "both",
+  channel: ENABLED_CHANNELS.length > 1 ? "both" : ENABLED_CHANNELS[0],
   body: "",
 };
 
@@ -226,20 +227,26 @@ export default function MessageTemplatesTable({
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
 
-            <select
-              value={form.channel}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  channel: e.target.value as "whatsapp" | "sms" | "both",
-                })
-              }
-              className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
-            >
-              <option value="both">WhatsApp + SMS</option>
-              <option value="whatsapp">WhatsApp only</option>
-              <option value="sms">SMS only</option>
-            </select>
+            {ENABLED_CHANNELS.length > 1 ? (
+              <select
+                value={form.channel}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    channel: e.target.value as "whatsapp" | "sms" | "both",
+                  })
+                }
+                className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              >
+                <option value="both">WhatsApp + SMS</option>
+                <option value="whatsapp">WhatsApp only</option>
+                <option value="sms">SMS only</option>
+              </select>
+            ) : (
+              <div className="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-500">
+                {CHANNEL_LABELS[form.channel as "whatsapp" | "sms"]} only
+              </div>
+            )}
           </div>
 
           <textarea
