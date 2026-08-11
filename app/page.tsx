@@ -159,6 +159,9 @@ export default async function Home() {
     label="Operations"
     items={[
       { label: "Residents", href: "/residents" },
+      ...(hasPermission(role, "manageMaintenance")
+        ? [{ label: "Housekeeping", href: "/housekeeping" }]
+        : []),
       ...(canManageResidents
         ? [{ label: "Emergency Directory", href: "/emergency-directory" }]
         : []),
