@@ -196,6 +196,8 @@ export default async function Home() {
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [
               { label: "Expenses", href: "/expenses" },
+              { label: "Recurring Expenses", href: "/expenses/recurring" },
+              { label: "Petty Cash / Cashbook", href: "/expenses/petty-cash" },
               { label: "Vendors", href: "/settings/vendors" },
             ]
           : []),
