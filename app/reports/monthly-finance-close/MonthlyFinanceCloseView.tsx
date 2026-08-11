@@ -59,6 +59,12 @@ export default function MonthlyFinanceCloseView({
 
   async function handleClose() {
     setErrorMessage("");
+
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      setErrorMessage("Please enter a valid year.");
+      return;
+    }
+
     setSaving(-1);
 
     try {
