@@ -12,6 +12,8 @@ type OperationalAlerts = {
 };
 
 type ExpiringDocRow = {
+  resident_id: number;
+  full_name: string;
   document_type: string;
   expiry_date: string;
 };
@@ -54,6 +56,11 @@ type NotificationItem = {
 };
 
 async function fetchAll() {
+  // Bed holds whose hold_expiry_at has passed still show up as "active"
+  // until this runs - matches the pattern used by every other page that
+  // reads bed holds (app/holds, hostel/floor/room pages).
+  await callRpcServer("release_expired_holds").catch(() => {});
+
   const [
     alerts,
     pendingPoliceVerification,
@@ -166,9 +173,9 @@ export default async function NotificationsPage() {
   for (const doc of expiringDocs) {
     const isExpired = doc.expiry_date < today;
     items.push({
-      id: `doc-${doc.document_type}-${doc.expiry_date}`,
+      id: `doc-${doc.resident_id}-${doc.document_type}`,
       tone: isExpired ? "red" : "amber",
-      message: `${doc.document_type} ${isExpired ? "expired" : "expiring"} on ${formatDate(doc.expiry_date)}`,
+      message: `${doc.full_name}: ${doc.document_type} ${isExpired ? "expired" : "expiring"} on ${formatDate(doc.expiry_date)}`,
       href: "/documents/expiring",
     });
   }
@@ -209,7 +216,14 @@ export default async function NotificationsPage() {
   for (const hold of bedHolds) {
     const expiresInHours =
       (new Date(hold.hold_expiry_at).getTime() - Date.now()) / (1000 * 60 * 60);
-    if (expiresInHours < 2) {
+    if (expiresInHours < 0) {
+      items.push({
+        id: `hold-${hold.hold_id}`,
+        tone: "red",
+        message: `Bed hold for ${hold.prospect_name} (${hold.bed_code}) has expired and needs releasing`,
+        href: "/holds",
+      });
+    } else if (expiresInHours < 2) {
       items.push({
         id: `hold-${hold.hold_id}`,
         tone: "blue",
