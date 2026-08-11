@@ -26,8 +26,10 @@ function todayIsoDate() {
 
 export default function NewExpenseForm({
   hostelNames,
+  vendorNames,
 }: {
   hostelNames: string[];
+  vendorNames: string[];
 }) {
   const router = useRouter();
 
@@ -166,8 +168,14 @@ export default function NewExpenseForm({
           <input
             value={vendor}
             onChange={(e) => setVendor(e.target.value)}
+            list="vendor-names"
             className="input-style"
           />
+          <datalist id="vendor-names">
+            {vendorNames.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
         </label>
 
         <label className="block">

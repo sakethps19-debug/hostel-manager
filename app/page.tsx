@@ -194,7 +194,10 @@ export default async function Home() {
         { label: "Receivable Ageing", href: "/rent/ageing" },
         { label: "Payments Report", href: "/reports/payments" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
-          ? [{ label: "Expenses", href: "/expenses" }]
+          ? [
+              { label: "Expenses", href: "/expenses" },
+              { label: "Vendors", href: "/settings/vendors" },
+            ]
           : []),
         { label: "P&L", href: "/reports/pnl" },
         { label: "Revenue Potential vs Actual", href: "/reports/revenue-potential" },
