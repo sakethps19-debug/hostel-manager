@@ -96,7 +96,12 @@ export default async function CommunicationsPage() {
                   {broadcasts.map((b) => (
                     <tr key={b.broadcast_id} className="hover:bg-slate-50">
                       <td className="max-w-xs px-4 py-3">
-                        <p className="truncate font-semibold">{b.message_body}</p>
+                        <a
+                          href={`/communications/${b.broadcast_id}`}
+                          className="truncate font-semibold text-indigo-600 hover:text-indigo-700"
+                        >
+                          {b.message_body}
+                        </a>
                       </td>
                       <td className="px-4 py-3 text-slate-500">{b.target_group_label}</td>
                       <td className="px-4 py-3 capitalize">{b.channel}</td>
