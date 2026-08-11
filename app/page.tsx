@@ -192,6 +192,7 @@ export default async function Home() {
         : []),
       ...(canManageOperationalRecords
         ? [
+            { label: "Current Occupancy", href: "/reports/current-occupancy", section: "Reports" },
             { label: "Floor Performance", href: "/reports/floor-performance", section: "Reports" },
             { label: "Enquiry Conversion", href: "/reports/enquiry-conversion", section: "Reports" },
           ]
@@ -206,6 +207,7 @@ export default async function Home() {
         { label: "Overdue Rent", href: "/rent/overdue", section: "Rent & Payments" },
         { label: "Rent Calendar", href: "/rent/calendar", section: "Rent & Payments" },
         { label: "Receivable Ageing", href: "/rent/ageing", section: "Rent & Payments" },
+        { label: "Advance Rent", href: "/reports/advance-rent", section: "Rent & Payments" },
         { label: "Payments Report", href: "/reports/payments", section: "Rent & Payments" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [
