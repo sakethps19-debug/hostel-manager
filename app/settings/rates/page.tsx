@@ -45,17 +45,26 @@ export default async function RatesSettingsPage() {
           ← Back to Dashboard
         </a>
 
-        <div className="mt-7">
-          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-            Administration
-          </p>
-          <h1 className="mt-2 text-4xl font-bold">Standard Rates</h1>
-          <p className="mt-2 text-slate-500">
-            These are the default/standard rates shown on room cards, Find a
-            Bed, and prefilled on new bookings. A booking&apos;s actual
-            Agreed Monthly Rent is always separate and stays editable per
-            booking — changing it here never touches existing bookings.
-          </p>
+        <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
+              Administration
+            </p>
+            <h1 className="mt-2 text-4xl font-bold">Standard Rates</h1>
+            <p className="mt-2 max-w-2xl text-slate-500">
+              These are the default/standard rates shown on room cards, Find a
+              Bed, and prefilled on new bookings. A booking&apos;s actual
+              Agreed Monthly Rent is always separate and stays editable per
+              booking — changing it here never touches existing bookings.
+            </p>
+          </div>
+
+          <a
+            href="/settings/rates/history"
+            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+          >
+            View Rate History →
+          </a>
         </div>
 
         <section className="mt-8">
