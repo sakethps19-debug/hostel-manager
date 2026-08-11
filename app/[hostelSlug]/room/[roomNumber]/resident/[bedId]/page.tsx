@@ -11,6 +11,7 @@ import ResidentTags from "@/components/ResidentTags";
 import DocumentExpiryTracker from "@/components/DocumentExpiryTracker";
 import ReferralAttribution from "./ReferralAttribution";
 import ResidentCommunications from "@/components/ResidentCommunications";
+import SendResidentMessageButton from "@/components/SendResidentMessageButton";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -1132,6 +1133,19 @@ export default async function ResidentPage({
           >
             Print Application Form
           </a>
+
+          <SendResidentMessageButton
+            residentId={resident.resident_id}
+            bookingId={resident.booking_id}
+            fullName={resident.full_name}
+            mobileNumber={resident.mobile_number}
+            hostelName={resident.hostel_name}
+            roomNumber={resident.room_number}
+            bedCode={resident.bed_code}
+            monthlyRent={resident.monthly_rent}
+            outstanding={ledger?.balance_outstanding ?? null}
+            role={role}
+          />
 
           {canManageBookings && !resident.notice_given_at && (
             <a
