@@ -236,6 +236,7 @@ export default async function Home() {
           ? [{ label: "Audit Log", href: "/audit-log", section: "Insights" }]
           : []),
         { label: "Users", href: "/settings/users", section: "Settings" },
+        { label: "Message Templates", href: "/settings/message-templates", section: "Settings" },
         { label: "Data Health", href: "/data-health", section: "Settings" },
         { label: "Feature Flags", href: "/settings/feature-flags", section: "Settings" },
         { label: "Import / Export", href: "/settings/data-tools", section: "Settings" },
