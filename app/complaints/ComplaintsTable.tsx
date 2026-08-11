@@ -76,6 +76,9 @@ export default function ComplaintsTable({
   const [escalateTo, setEscalateTo] = useState(ESCALATE_TO_OPTIONS[0]);
   const [escalateReason, setEscalateReason] = useState("");
   const [escalateSaving, setEscalateSaving] = useState(false);
+  const [resolvingEscalationId, setResolvingEscalationId] = useState<
+    number | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   const filtered = useMemo(() => {
@@ -136,7 +139,10 @@ export default function ComplaintsTable({
   }
 
   async function handleResolveEscalation(escalationId: number) {
+    if (resolvingEscalationId === escalationId) return;
+
     setErrorMessage("");
+    setResolvingEscalationId(escalationId);
 
     try {
       await callRpcClient("resolve_complaint_escalation", {
@@ -157,6 +163,8 @@ export default function ComplaintsTable({
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to resolve escalation."
       );
+    } finally {
+      setResolvingEscalationId(null);
     }
   }
 
@@ -352,13 +360,13 @@ export default function ComplaintsTable({
 
                   {!activeEscalation && (
                     <button
-                      onClick={() =>
-                        setEscalatingId(
-                          escalatingId === row.complaint_id
-                            ? null
-                            : row.complaint_id
-                        )
-                      }
+                      onClick={() => {
+                        const opening = escalatingId !== row.complaint_id;
+                        setEscalatingId(opening ? row.complaint_id : null);
+                        setEscalateTo(ESCALATE_TO_OPTIONS[0]);
+                        setEscalateReason("");
+                        setErrorMessage("");
+                      }}
                       className="rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
                     >
                       {escalatingId === row.complaint_id ? "Cancel" : "Escalate"}
@@ -373,9 +381,12 @@ export default function ComplaintsTable({
                     onClick={() =>
                       handleResolveEscalation(activeEscalation.escalation_id)
                     }
-                    className="rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                    disabled={resolvingEscalationId === activeEscalation.escalation_id}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                   >
-                    Mark Escalation Resolved
+                    {resolvingEscalationId === activeEscalation.escalation_id
+                      ? "Resolving..."
+                      : "Mark Escalation Resolved"}
                   </button>
                 </div>
               )}
