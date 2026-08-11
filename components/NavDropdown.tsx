@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 
+type NavItem = { label: string; href: string; section?: string };
+
 export default function NavDropdown({
   label,
   items,
   variant = "default",
 }: {
   label: string;
-  items: { label: string; href: string }[];
+  items: NavItem[];
   variant?: "default" | "primary";
 }) {
   const [open, setOpen] = useState(false);
@@ -58,16 +60,35 @@ export default function NavDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-10 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-          {items.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="block border-t border-slate-100 px-4 py-3 text-left text-sm font-semibold text-slate-700 first:border-t-0 hover:bg-slate-50"
-            >
-              {item.label}
-            </a>
-          ))}
+        <div className="absolute left-0 z-10 mt-2 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+          {items.map((item, index) => {
+            const showSectionHeader =
+              item.section && item.section !== items[index - 1]?.section;
+
+            return (
+              <div key={item.href}>
+                {showSectionHeader && (
+                  <p
+                    className={`px-4 pb-1 text-xs font-bold uppercase tracking-wide text-slate-400 ${
+                      index === 0 ? "pt-3" : "border-t border-slate-100 pt-3"
+                    }`}
+                  >
+                    {item.section}
+                  </p>
+                )}
+                <a
+                  href={item.href}
+                  className={`block px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 ${
+                    !showSectionHeader && index > 0 && !item.section
+                      ? "border-t border-slate-100"
+                      : ""
+                  }`}
+                >
+                  {item.label}
+                </a>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
