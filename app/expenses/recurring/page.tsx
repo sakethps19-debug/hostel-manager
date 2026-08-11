@@ -1,7 +1,9 @@
+import { notFound } from "next/navigation";
 import RecurringExpensesView from "./RecurringExpensesView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { getHostelList } from "@/lib/hostel";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type RecurringTemplateRow = {
   template_id: number;
@@ -25,6 +27,10 @@ async function getTemplates(): Promise<RecurringTemplateRow[]> {
 
 export default async function RecurringExpensesPage() {
   await requirePermission("manageExpenses");
+
+  if (!(await isFeatureEnabled("enable_expenses"))) {
+    notFound();
+  }
 
   const [templates, hostels] = await Promise.all([
     getTemplates(),

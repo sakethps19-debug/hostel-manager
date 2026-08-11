@@ -1,8 +1,10 @@
+import { notFound } from "next/navigation";
 import BudgetVsActualView from "./BudgetVsActualView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { getHostelList } from "@/lib/hostel";
 import { todayIsoDateIST } from "@/lib/format";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type BudgetRow = {
   budget_id: number;
@@ -42,10 +44,22 @@ async function getBudgetVsActual(
 export default async function BudgetVsActualPage({ searchParams }: PageProps) {
   await requirePermission("manageExpenses");
 
+  if (!(await isFeatureEnabled("enable_expenses"))) {
+    notFound();
+  }
+
   const params = await searchParams;
   const [todayYear, todayMonth] = todayIsoDateIST().split("-").map(Number);
-  const month = Number(params.month) || todayMonth;
-  const year = Number(params.year) || todayYear;
+  const parsedMonth = Number(params.month);
+  const parsedYear = Number(params.year);
+  const month =
+    Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+      ? parsedMonth
+      : todayMonth;
+  const year =
+    Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100
+      ? parsedYear
+      : todayYear;
 
   const [budgets, comparison, hostels] = await Promise.all([
     getBudgets(),

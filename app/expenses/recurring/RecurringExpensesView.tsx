@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import { todayIsoDateIST } from "@/lib/format";
 
 type RecurringTemplateRow = {
   template_id: number;
@@ -198,6 +199,22 @@ export default function RecurringExpensesView({
           ? `Generated ${count} expense${count === 1 ? "" : "s"} into the Expenses log.`
           : "No templates were due today."
       );
+
+      if (count > 0) {
+        const today = todayIsoDateIST();
+        const todayOfMonth = Number(today.slice(8, 10));
+        const monthStart = today.slice(0, 7) + "-01";
+
+        setRows((prev) =>
+          prev.map((t) =>
+            t.is_active &&
+            t.day_of_month <= todayOfMonth &&
+            (!t.last_generated_for || t.last_generated_for < monthStart)
+              ? { ...t, last_generated_for: monthStart }
+              : t
+          )
+        );
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error

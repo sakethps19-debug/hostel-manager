@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import { todayIsoDateIST } from "@/lib/format";
 
 type PettyCashTransactionRow = {
   transaction_id: number;
@@ -16,10 +17,6 @@ type PettyCashTransactionRow = {
 };
 
 const TRANSACTION_TYPES = ["Top-up", "Expense", "Adjustment"];
-
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function formatDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
@@ -41,13 +38,13 @@ export default function PettyCashView({
   transactions: PettyCashTransactionRow[];
   hostelNames: string[];
 }) {
-  const [rows, setRows] = useState(transactions);
+  const [rows] = useState(transactions);
   const [showForm, setShowForm] = useState(false);
   const [hostelName, setHostelName] = useState("");
   const [transactionType, setTransactionType] = useState("Top-up");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [transactionDate, setTransactionDate] = useState(todayIsoDate());
+  const [transactionDate, setTransactionDate] = useState(todayIsoDateIST());
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -84,32 +81,11 @@ export default function PettyCashView({
         { transaction_type: transactionType, amount: amt }
       );
 
-      const signedAmount =
-        transactionType === "Top-up"
-          ? Math.abs(amt)
-          : transactionType === "Expense"
-            ? -Math.abs(amt)
-            : amt;
-
-      const previousBalance = rows[0]?.running_balance ?? 0;
-
-      setRows((prev) => [
-        {
-          transaction_id: id,
-          hostel_name: hostelName || null,
-          transaction_type: transactionType,
-          amount: signedAmount,
-          description: description.trim(),
-          transaction_date: transactionDate,
-          running_balance: previousBalance + signedAmount,
-          created_at: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-
-      setAmount("");
-      setDescription("");
-      setShowForm(false);
+      // Reload rather than patch local state optimistically - the running
+      // balance and the page-level current-balance card both depend on
+      // server-computed order (by transaction_date), which a naive prepend
+      // would get wrong for a backdated entry.
+      window.location.reload();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to add transaction."

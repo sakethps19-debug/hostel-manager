@@ -1,7 +1,9 @@
+import { notFound } from "next/navigation";
 import PettyCashView from "./PettyCashView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { getHostelList } from "@/lib/hostel";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 type PettyCashTransactionRow = {
   transaction_id: number;
@@ -26,6 +28,10 @@ async function getBalance(): Promise<number> {
 
 export default async function PettyCashPage() {
   await requirePermission("manageExpenses");
+
+  if (!(await isFeatureEnabled("enable_expenses"))) {
+    notFound();
+  }
 
   const [transactions, balance, hostels] = await Promise.all([
     getTransactions(),
