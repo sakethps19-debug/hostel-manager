@@ -163,6 +163,7 @@ export default async function Home() {
         ? [
             { label: "Housekeeping", href: "/housekeeping", section: "Manage" },
             { label: "Asset Register", href: "/settings/assets", section: "Manage" },
+            { label: "Purchase Requests", href: "/purchase-requests", section: "Manage" },
           ]
         : []),
       ...(canManageResidents
@@ -205,6 +206,9 @@ export default async function Home() {
               { label: "Expenses", href: "/expenses", section: "Expenses" },
               { label: "Recurring Expenses", href: "/expenses/recurring", section: "Expenses" },
               { label: "Petty Cash / Cashbook", href: "/expenses/petty-cash", section: "Expenses" },
+              { label: "Cash Reconciliation", href: "/expenses/cash-reconciliation", section: "Expenses" },
+              { label: "Expense Approvals", href: "/expenses/approvals", section: "Expenses" },
+              { label: "Budget vs Actual", href: "/reports/budget-vs-actual", section: "Expenses" },
               { label: "Vendors", href: "/settings/vendors", section: "Expenses" },
             ]
           : []),
@@ -215,6 +219,7 @@ export default async function Home() {
         { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast", section: "Reports" },
         { label: "Referral Performance", href: "/reports/referral-performance", section: "Reports" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison", section: "Reports" },
+        { label: "Deposit Reconciliation", href: "/reports/deposit-reconciliation", section: "Reports" },
       ]}
     />
   )}
@@ -226,6 +231,7 @@ export default async function Home() {
         { label: "Owner Daily Digest", href: "/owner/digest", section: "Insights" },
         { label: "Owner KPIs", href: "/owner/kpis", section: "Insights" },
         { label: "Notifications Centre", href: "/notifications", section: "Insights" },
+        { label: "Monthly Finance Close", href: "/reports/monthly-finance-close", section: "Insights" },
         ...(canViewAuditLog
           ? [{ label: "Audit Log", href: "/audit-log", section: "Insights" }]
           : []),
