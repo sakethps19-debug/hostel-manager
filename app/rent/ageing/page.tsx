@@ -1,4 +1,4 @@
-import RentCalendarView from "./RentCalendarView";
+import RentAgeingView from "./RentAgeingView";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 
@@ -12,21 +12,16 @@ type LedgerRow = {
   bed_id: number;
   bed_code: string | null;
   monthly_rent: number;
-  months_elapsed: number;
-  amount_due: number;
-  amount_paid: number;
   balance_outstanding: number;
-  last_payment_date: string | null;
   payment_status: string;
   start_date: string;
-  end_date: string;
 };
 
 async function getRentLedgerAll(): Promise<LedgerRow[]> {
   return callRpcServer<LedgerRow[]>("get_rent_ledger_all");
 }
 
-export default async function RentCalendarPage() {
+export default async function RentAgeingPage() {
   await requirePermission("viewFinancialReports");
 
   const ledger = await getRentLedgerAll();
@@ -45,19 +40,16 @@ export default async function RentCalendarPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
             Hostel Management
           </p>
-          <h1 className="mt-2 text-4xl font-bold">Rent Calendar</h1>
-          <p className="mt-2 text-slate-500">
-            Every active resident, grouped by the day of the month their rent
-            is due — starting from today and wrapping around.
-          </p>
-          <p className="mt-2 max-w-3xl text-sm text-slate-500">
-            Due day is the resident&apos;s joining-date anniversary — the day
-            of the month they moved in, derived from the booking&apos;s start
-            date.
+          <h1 className="mt-2 text-4xl font-bold">Receivable Ageing</h1>
+          <p className="mt-2 max-w-3xl text-slate-500">
+            Outstanding balances grouped by how overdue they are, measured
+            from the most recent rent-due date each resident has missed (the
+            joining-date anniversary of their booking&apos;s start date, the
+            same day the Rent Calendar uses).
           </p>
         </div>
 
-        <RentCalendarView ledger={ledger} />
+        <RentAgeingView ledger={ledger} />
       </div>
     </main>
   );
