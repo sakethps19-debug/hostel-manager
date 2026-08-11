@@ -193,6 +193,8 @@ export default async function Home() {
       ...(canManageOperationalRecords
         ? [
             { label: "Current Occupancy", href: "/reports/current-occupancy", section: "Reports" },
+            { label: "Occupancy History", href: "/reports/occupancy-history", section: "Reports" },
+            { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast", section: "Reports" },
             { label: "Floor Performance", href: "/reports/floor-performance", section: "Reports" },
             { label: "Enquiry Conversion", href: "/reports/enquiry-conversion", section: "Reports" },
           ]
