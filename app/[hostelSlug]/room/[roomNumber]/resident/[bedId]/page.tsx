@@ -1126,6 +1126,13 @@ export default async function ResidentPage({
             View Timeline
           </a>
 
+          <a
+            href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/application-form`}
+            className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Print Application Form
+          </a>
+
           {canManageBookings && !resident.notice_given_at && (
             <a
               href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/transfer`}

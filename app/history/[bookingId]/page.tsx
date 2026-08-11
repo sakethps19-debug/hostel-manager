@@ -171,12 +171,21 @@ export default async function BookingHistoryDetailsPage({
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
       <div className="mx-auto max-w-5xl">
 
-        <a
-          href="/history"
-          className="text-sm font-semibold text-indigo-600"
-        >
-          ← Back to Booking History
-        </a>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <a
+            href="/history"
+            className="text-sm font-semibold text-indigo-600"
+          >
+            ← Back to Booking History
+          </a>
+
+          <a
+            href={`/history/${booking.booking_id}/application-form`}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Print Application Form
+          </a>
+        </div>
 
         <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
 
