@@ -18,8 +18,14 @@ async function getHostelNames(): Promise<string[]> {
 }
 
 async function getVendorNames(): Promise<string[]> {
-  const vendors = await callRpcServer<VendorRow[]>("get_vendors");
-  return vendors.filter((v) => v.is_active).map((v) => v.name);
+  // Best-effort: vendor autocomplete is a convenience, not a dependency of
+  // recording an expense, so a failure here must not take down the page.
+  try {
+    const vendors = await callRpcServer<VendorRow[]>("get_vendors");
+    return vendors.filter((v) => v.is_active).map((v) => v.name);
+  } catch {
+    return [];
+  }
 }
 
 export default async function NewExpensePage() {

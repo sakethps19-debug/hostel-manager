@@ -104,7 +104,7 @@ export default function VendorsTable({ vendors }: { vendors: VendorRow[] }) {
     setSaving(true);
 
     try {
-      if (editingId) {
+      if (editingId !== null) {
         await callRpcClient("update_vendor", {
           p_vendor_id: editingId,
           p_name: form.name.trim(),
@@ -187,6 +187,15 @@ export default function VendorsTable({ vendors }: { vendors: VendorRow[] }) {
 
   async function handleToggleActive(vendor: VendorRow) {
     const nextActive = !vendor.is_active;
+
+    if (
+      !nextActive &&
+      !window.confirm(
+        `Deactivate ${vendor.name}? It will no longer appear in the expense form's vendor autocomplete or the default vendor list.`
+      )
+    ) {
+      return;
+    }
 
     try {
       await callRpcClient("set_vendor_active", {
