@@ -10,6 +10,7 @@ import BookingChecklist from "@/components/BookingChecklist";
 import ResidentTags from "@/components/ResidentTags";
 import DocumentExpiryTracker from "@/components/DocumentExpiryTracker";
 import ReferralAttribution from "./ReferralAttribution";
+import ResidentCommunications from "@/components/ResidentCommunications";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -241,6 +242,22 @@ async function getReferralSources(): Promise<ReferralSourceRow[]> {
   return callRpcServer<ReferralSourceRow[]>("get_referral_sources");
 }
 
+type CommunicationRow = {
+  communication_id: number;
+  communication_type: string;
+  note: string;
+  created_by_name: string | null;
+  created_at: string;
+};
+
+async function getResidentCommunications(
+  residentId: number
+): Promise<CommunicationRow[]> {
+  return callRpcServer<CommunicationRow[]>("get_resident_communications", {
+    p_resident_id: residentId,
+  });
+}
+
 type BookingReferralRow = {
   booking_id: number;
   referral_source_id: number;
@@ -412,14 +429,21 @@ export default async function ResidentPage({
     ? await getResidentDocuments(resident.resident_id)
     : [];
 
-  const [residentTags, allTagLabels, documentExpiries, referralSources, bookingReferral] =
-    await Promise.all([
-      getResidentTags(resident.resident_id),
-      getAllTagLabels(),
-      getDocumentExpiries(resident.resident_id),
-      getReferralSources(),
-      getBookingReferral(resident.booking_id),
-    ]);
+  const [
+    residentTags,
+    allTagLabels,
+    documentExpiries,
+    referralSources,
+    bookingReferral,
+    communications,
+  ] = await Promise.all([
+    getResidentTags(resident.resident_id),
+    getAllTagLabels(),
+    getDocumentExpiries(resident.resident_id),
+    getReferralSources(),
+    getBookingReferral(resident.booking_id),
+    getResidentCommunications(resident.resident_id),
+  ]);
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
   );
@@ -557,6 +581,21 @@ export default async function ResidentPage({
               residentId={resident.resident_id}
               initialTags={residentTags}
               suggestions={allTagLabels}
+            />
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold">Communication Notes</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Calls, WhatsApp messages, visits — a running log independent of
+            the system activity timeline.
+          </p>
+
+          <div className="mt-4">
+            <ResidentCommunications
+              residentId={resident.resident_id}
+              initialEntries={communications}
             />
           </div>
         </section>
