@@ -158,32 +158,36 @@ export default async function Home() {
   <NavDropdown
     label="Operations"
     items={[
-      { label: "Residents", href: "/residents" },
+      { label: "Residents", href: "/residents", section: "Manage" },
       ...(hasPermission(role, "manageMaintenance")
         ? [
-            { label: "Housekeeping", href: "/housekeeping" },
-            { label: "Asset Register", href: "/settings/assets" },
+            { label: "Housekeeping", href: "/housekeeping", section: "Manage" },
+            { label: "Asset Register", href: "/settings/assets", section: "Manage" },
           ]
         : []),
       ...(canManageResidents
-        ? [{ label: "Emergency Directory", href: "/emergency-directory" }]
+        ? [{ label: "Emergency Directory", href: "/emergency-directory", section: "Manage" }]
         : []),
-      { label: "Booking History", href: "/history" },
+      { label: "Booking History", href: "/history", section: "Manage" },
       ...(canManageOperationalRecords
         ? [
-            { label: "Enquiries", href: "/enquiries" },
+            { label: "Enquiries", href: "/enquiries", section: "Manage" },
             ...(isFeatureEnabled("enable_waitlist")
-              ? [{ label: "Waitlist", href: "/waitlist" }]
+              ? [{ label: "Waitlist", href: "/waitlist", section: "Manage" }]
               : []),
-            { label: "Bed Holds", href: "/holds" },
-            { label: "Complaints", href: "/complaints" },
-            { label: "Referral Sources", href: "/settings/referrals" },
-            { label: "Floor Performance", href: "/reports/floor-performance" },
-            { label: "Enquiry Conversion", href: "/reports/enquiry-conversion" },
+            { label: "Bed Holds", href: "/holds", section: "Manage" },
+            { label: "Complaints", href: "/complaints", section: "Manage" },
+            { label: "Referral Sources", href: "/settings/referrals", section: "Manage" },
           ]
         : []),
       ...(hasPermission(role, "manageDocuments")
-        ? [{ label: "Document Expiry Alerts", href: "/documents/expiring" }]
+        ? [{ label: "Document Expiry Alerts", href: "/documents/expiring", section: "Manage" }]
+        : []),
+      ...(canManageOperationalRecords
+        ? [
+            { label: "Floor Performance", href: "/reports/floor-performance", section: "Reports" },
+            { label: "Enquiry Conversion", href: "/reports/enquiry-conversion", section: "Reports" },
+          ]
         : []),
     ]}
   />
@@ -192,25 +196,25 @@ export default async function Home() {
     <NavDropdown
       label="Finance"
       items={[
-        { label: "Overdue Rent", href: "/rent/overdue" },
-        { label: "Rent Calendar", href: "/rent/calendar" },
-        { label: "Receivable Ageing", href: "/rent/ageing" },
-        { label: "Payments Report", href: "/reports/payments" },
+        { label: "Overdue Rent", href: "/rent/overdue", section: "Rent & Payments" },
+        { label: "Rent Calendar", href: "/rent/calendar", section: "Rent & Payments" },
+        { label: "Receivable Ageing", href: "/rent/ageing", section: "Rent & Payments" },
+        { label: "Payments Report", href: "/reports/payments", section: "Rent & Payments" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [
-              { label: "Expenses", href: "/expenses" },
-              { label: "Recurring Expenses", href: "/expenses/recurring" },
-              { label: "Petty Cash / Cashbook", href: "/expenses/petty-cash" },
-              { label: "Vendors", href: "/settings/vendors" },
+              { label: "Expenses", href: "/expenses", section: "Expenses" },
+              { label: "Recurring Expenses", href: "/expenses/recurring", section: "Expenses" },
+              { label: "Petty Cash / Cashbook", href: "/expenses/petty-cash", section: "Expenses" },
+              { label: "Vendors", href: "/settings/vendors", section: "Expenses" },
             ]
           : []),
-        { label: "P&L", href: "/reports/pnl" },
-        { label: "Revenue Potential vs Actual", href: "/reports/revenue-potential" },
-        { label: "Occupancy History", href: "/reports/occupancy-history" },
-        { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast" },
-        { label: "Referral Performance", href: "/reports/referral-performance" },
-        { label: "Hostel Comparison", href: "/reports/hostel-comparison" },
-        { label: "Monthly Report Pack", href: "/reports/monthly-pack" },
+        { label: "P&L", href: "/reports/pnl", section: "Reports" },
+        { label: "Monthly Report Pack", href: "/reports/monthly-pack", section: "Reports" },
+        { label: "Revenue Potential vs Actual", href: "/reports/revenue-potential", section: "Reports" },
+        { label: "Occupancy History", href: "/reports/occupancy-history", section: "Reports" },
+        { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast", section: "Reports" },
+        { label: "Referral Performance", href: "/reports/referral-performance", section: "Reports" },
+        { label: "Hostel Comparison", href: "/reports/hostel-comparison", section: "Reports" },
       ]}
     />
   )}
@@ -219,20 +223,20 @@ export default async function Home() {
     <NavDropdown
       label="Admin"
       items={[
+        { label: "Owner Daily Digest", href: "/owner/digest", section: "Insights" },
+        { label: "Owner KPIs", href: "/owner/kpis", section: "Insights" },
+        { label: "Notifications Centre", href: "/notifications", section: "Insights" },
         ...(canViewAuditLog
-          ? [{ label: "Audit Log", href: "/audit-log" }]
+          ? [{ label: "Audit Log", href: "/audit-log", section: "Insights" }]
           : []),
-        { label: "Owner Daily Digest", href: "/owner/digest" },
-        { label: "Owner KPIs", href: "/owner/kpis" },
-        { label: "Notifications Centre", href: "/notifications" },
-        { label: "Users", href: "/settings/users" },
-        { label: "Data Health", href: "/data-health" },
-        { label: "Feature Flags", href: "/settings/feature-flags" },
-        { label: "Import / Export", href: "/settings/data-tools" },
+        { label: "Users", href: "/settings/users", section: "Settings" },
+        { label: "Data Health", href: "/data-health", section: "Settings" },
+        { label: "Feature Flags", href: "/settings/feature-flags", section: "Settings" },
+        { label: "Import / Export", href: "/settings/data-tools", section: "Settings" },
         ...(canManageRates
           ? [
-              { label: "Rates", href: "/settings/rates" },
-              { label: "Discount Analytics", href: "/reports/discounts" },
+              { label: "Rates", href: "/settings/rates", section: "Settings" },
+              { label: "Discount Analytics", href: "/reports/discounts", section: "Settings" },
             ]
           : []),
       ]}
