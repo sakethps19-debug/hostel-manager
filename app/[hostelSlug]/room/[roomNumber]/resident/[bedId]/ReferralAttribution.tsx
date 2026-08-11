@@ -33,11 +33,25 @@ export default function ReferralAttribution({
     current ? String(current.referral_source_id) : ""
   );
   const [commission, setCommission] = useState(
-    current?.commission_amount ? String(current.commission_amount) : ""
+    current?.commission_amount != null ? String(current.commission_amount) : ""
   );
   const [notes, setNotes] = useState(current?.notes || "");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  function handleOpen() {
+    // Re-seed from the current prop each time the form opens, since a
+    // previous save/remove updates `current` via router.refresh() without
+    // remounting this component - without this, reopening the form after
+    // a change shows stale values from before that change.
+    setSourceId(current ? String(current.referral_source_id) : "");
+    setCommission(
+      current?.commission_amount != null ? String(current.commission_amount) : ""
+    );
+    setNotes(current?.notes || "");
+    setErrorMessage("");
+    setOpen(true);
+  }
 
   async function handleSave() {
     setErrorMessage("");
@@ -50,10 +64,12 @@ export default function ReferralAttribution({
     setSaving(true);
 
     try {
+      const commissionValue = commission !== "" ? Number(commission) : null;
+
       await callRpcClient("set_booking_referral", {
         p_booking_id: bookingId,
         p_referral_source_id: Number(sourceId),
-        p_commission_amount: commission ? Number(commission) : null,
+        p_commission_amount: commissionValue,
         p_notes: notes || null,
       });
 
@@ -63,7 +79,7 @@ export default function ReferralAttribution({
 
       await logAuditEvent("booking_referral_set", "booking", bookingId, {
         referral_source_name: sourceName,
-        commission_amount: commission ? Number(commission) : null,
+        commission_amount: commissionValue,
       });
 
       setOpen(false);
@@ -98,7 +114,7 @@ export default function ReferralAttribution({
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
       >
         {current ? `Referral: ${current.referral_source_name}` : "Attribute Referral"}

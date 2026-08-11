@@ -121,7 +121,9 @@ export default function ReferralPerformanceView({
                     </td>
                     <td className="px-4 py-3">{row.referral_source_name}</td>
                     <td className="px-4 py-3 text-right">
-                      {row.commission_amount ? formatMoney(row.commission_amount) : "-"}
+                      {row.commission_amount != null
+                        ? formatMoney(row.commission_amount)
+                        : "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {row.booking && (
