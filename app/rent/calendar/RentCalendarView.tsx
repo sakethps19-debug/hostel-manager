@@ -25,7 +25,8 @@ function formatMoney(value: number) {
 }
 
 function dueDayOfMonth(startDate: string) {
-  return new Date(`${startDate}T00:00:00`).getDate();
+  const day = new Date(`${startDate}T00:00:00`).getDate();
+  return Number.isNaN(day) ? null : day;
 }
 
 function ordinal(day: number) {
@@ -77,6 +78,7 @@ export default function RentCalendarView({
 
     for (const row of filtered) {
       const day = dueDayOfMonth(row.start_date);
+      if (day === null) continue;
       const list = byDay.get(day) || [];
       list.push(row);
       byDay.set(day, list);
@@ -102,13 +104,15 @@ export default function RentCalendarView({
     downloadCsv(
       `rent-calendar-${new Date().toISOString().slice(0, 10)}.csv`,
       filtered
-        .map((row) => ({
-          due_day_of_month: dueDayOfMonth(row.start_date),
+        .map((row) => ({ row, day: dueDayOfMonth(row.start_date) }))
+        .filter((entry): entry is { row: LedgerRow; day: number } => entry.day !== null)
+        .map(({ row, day }) => ({
+          due_day_of_month: day,
           full_name: row.full_name,
           mobile_number: row.mobile_number || "",
           hostel_name: row.hostel_name,
           room_number: row.room_number,
-          bed_id: row.bed_code || row.bed_id,
+          bed_code_or_id: row.bed_code || row.bed_id,
           monthly_rent: row.monthly_rent,
           balance_outstanding: row.balance_outstanding,
           payment_status: row.payment_status,
