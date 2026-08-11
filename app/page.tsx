@@ -171,6 +171,7 @@ export default async function Home() {
               : []),
             { label: "Bed Holds", href: "/holds" },
             { label: "Complaints", href: "/complaints" },
+            { label: "Referral Sources", href: "/settings/referrals" },
             { label: "Floor Performance", href: "/reports/floor-performance" },
             { label: "Enquiry Conversion", href: "/reports/enquiry-conversion" },
           ]
@@ -196,6 +197,7 @@ export default async function Home() {
         { label: "Revenue Potential vs Actual", href: "/reports/revenue-potential" },
         { label: "Occupancy History", href: "/reports/occupancy-history" },
         { label: "Occupancy Forecasting", href: "/reports/occupancy-forecast" },
+        { label: "Referral Performance", href: "/reports/referral-performance" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison" },
       ]}
     />

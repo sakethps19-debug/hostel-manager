@@ -9,6 +9,7 @@ import IdProofViewer from "@/components/IdProofViewer";
 import BookingChecklist from "@/components/BookingChecklist";
 import ResidentTags from "@/components/ResidentTags";
 import DocumentExpiryTracker from "@/components/DocumentExpiryTracker";
+import ReferralAttribution from "./ReferralAttribution";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -230,6 +231,33 @@ async function getAllTagLabels(): Promise<string[]> {
   return Array.from(new Set(rows.map((r) => r.tag_label))).sort();
 }
 
+type ReferralSourceRow = {
+  referral_source_id: number;
+  name: string;
+  source_type: string;
+};
+
+async function getReferralSources(): Promise<ReferralSourceRow[]> {
+  return callRpcServer<ReferralSourceRow[]>("get_referral_sources");
+}
+
+type BookingReferralRow = {
+  booking_id: number;
+  referral_source_id: number;
+  referral_source_name: string;
+  commission_amount: number | null;
+  notes: string | null;
+};
+
+async function getBookingReferral(
+  bookingId: number
+): Promise<BookingReferralRow | null> {
+  const rows = await callRpcServer<BookingReferralRow[]>("get_booking_referral", {
+    p_booking_id: bookingId,
+  });
+  return rows.length > 0 ? rows[0] : null;
+}
+
 type ChecklistStateRow = {
   item_key: string;
   is_checked: boolean;
@@ -384,11 +412,14 @@ export default async function ResidentPage({
     ? await getResidentDocuments(resident.resident_id)
     : [];
 
-  const [residentTags, allTagLabels, documentExpiries] = await Promise.all([
-    getResidentTags(resident.resident_id),
-    getAllTagLabels(),
-    getDocumentExpiries(resident.resident_id),
-  ]);
+  const [residentTags, allTagLabels, documentExpiries, referralSources, bookingReferral] =
+    await Promise.all([
+      getResidentTags(resident.resident_id),
+      getAllTagLabels(),
+      getDocumentExpiries(resident.resident_id),
+      getReferralSources(),
+      getBookingReferral(resident.booking_id),
+    ]);
   const primaryPhoto = documents.find(
     (d) => d.document_type === "Resident Photo" && d.is_primary
   );
@@ -1106,6 +1137,14 @@ export default async function ResidentPage({
             >
               Vacate / Final Settlement
             </a>
+          )}
+
+          {canManageBookings && (
+            <ReferralAttribution
+              bookingId={resident.booking_id}
+              sources={referralSources}
+              current={bookingReferral}
+            />
           )}
 
         </section>
