@@ -215,7 +215,7 @@ returns table(category text, line_item text, amount numeric) as $$
       end as bucket,
       (cl.debit - cl.credit) as net_cash -- positive = inflow, negative = outflow (Cash/Bank/UPI are debit-normal)
     from cash_lines cl
-    left join payments p on cl.source_type = 'payment' and p.payment_id = cl.source_id
+    left join payments p on cl.source_type = 'payment' and p.id = cl.source_id
   )
   select split_part(bucket, '|', 1), split_part(bucket, '|', 2), sum(net_cash)
     from classified
@@ -424,13 +424,13 @@ begin
     v_period_date := (date_trunc('month', p_as_of_date) + (v_month_offset || ' months')::interval)::date;
     period_year := extract(year from v_period_date)::int;
     period_month := extract(month from v_period_date)::int;
-    select coalesce(sum(accounting_rent_amount_for_period(b.booking_id, period_year, period_month)), 0)
+    select coalesce(sum(accounting_rent_amount_for_period(b.id, period_year, period_month)), 0)
       into expected_amount
       from bookings b
-     where b.booking_status in ('confirmed', 'checked_in')
+     where b.status = 'confirmed'
        and b.start_date <= (v_period_date + interval '1 month - 1 day')
        and (b.end_date is null or b.end_date >= v_period_date)
-       and (p_hostel_name is null or b.hostel_name = p_hostel_name);
+       and (p_hostel_name is null or accounting_hostel_name_for_booking(b.id) = p_hostel_name);
     return next;
   end loop;
 end;
@@ -608,17 +608,17 @@ begin
   end if;
 
   for v_row in
-    select payment_id from payments
+    select id as payment_id from payments
      where status <> 'reversed'
-       and not exists (select 1 from accounting_journal_entries where source_type = 'payment' and source_id = payment_id)
+       and not exists (select 1 from accounting_journal_entries where source_type = 'payment' and source_id = payments.id)
   loop
     if accounting_raise_flag_if_new('unjournaled_payment', 'Payment has no journal entry', 'payment', v_row.payment_id)
     then v_flag_count := v_flag_count + 1; end if;
   end loop;
 
   for v_row in
-    select expense_id from expenses
-     where not exists (select 1 from accounting_journal_entries where source_type = 'expense' and source_id = expense_id)
+    select id as expense_id from expenses
+     where not exists (select 1 from accounting_journal_entries where source_type = 'expense' and source_id = expenses.id)
   loop
     if accounting_raise_flag_if_new('unjournaled_expense', 'Expense has no journal entry', 'expense', v_row.expense_id)
     then v_flag_count := v_flag_count + 1; end if;

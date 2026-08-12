@@ -12,18 +12,23 @@
 -- retry, a reconciliation catch-up run, or an accidental double-call never
 -- double-posts.
 --
--- ASSUMED existing table shapes (inferred from RPC row types only — verify
--- against the live schema before applying):
---   bookings(booking_id pk, resident_id, hostel_name, start_date, end_date,
---            monthly_rent, booking_status)
---   rent_revisions(revision_id pk, booking_id, previous_rent, new_rent,
+-- CONFIRMED table shapes (via information_schema against the live database —
+-- the original draft of this file guessed table_id-style primary keys and a
+-- direct bookings.hostel_name column; both were wrong and have been fixed):
+--   bookings(id pk, resident_id, bed_id, start_date, end_date, monthly_rent,
+--            security_deposit, status ['confirmed'|'completed'], ...) —
+--            NO hostel_name column; reached via
+--            bed_id -> beds.room_id -> rooms.floor_id -> floors.hostel_id ->
+--            hostels.name (see accounting_hostel_name_for_booking() below).
+--   rent_revisions(id pk, booking_id, previous_rent, new_rent,
 --            effective_date, reason, notes)
---   payments(payment_id pk, booking_id, receipt_number, payment_date,
+--   payments(id pk, booking_id, resident_id, receipt_number, payment_date,
 --            payment_for_month, payment_type, amount, payment_mode,
---            reference_number, notes, status, reversed_reason)
---   expenses(expense_id pk, hostel_name, expense_date, category, amount,
---            vendor, payment_mode, reference_number, notes)
--- If any name differs, the affected function will fail with a clear
+--            reference_number, notes, status, reversed_at, reversed_reason)
+--   expenses(id pk, hostel_name, expense_date, category, amount, vendor,
+--            payment_mode, reference_number, notes) — hostel_name IS a
+--            direct column here (denormalized), unlike bookings/payments.
+-- If any other name differs, the affected function will fail with a clear
 -- "relation does not exist" / "column does not exist" error — fix the
 -- assumption in this file, not by silently catching the error.
 -- ============================================================================
@@ -34,6 +39,21 @@ create or replace function accounting_cash_account_code(p_payment_mode text) ret
   select a.code from accounting_payment_mode_map m
   join accounting_accounts a on a.account_id = m.account_id
   where m.payment_mode = p_payment_mode;
+$$ language sql stable;
+
+-- bookings has no hostel_name column of its own (unlike expenses/
+-- recurring_expense_templates/assets, which denormalize it directly) —
+-- confirmed via information_schema: hostel_name only exists on hostels.name,
+-- reached from a booking via bed_id -> beds.room_id -> rooms.floor_id ->
+-- floors.hostel_id -> hostels.id.
+create or replace function accounting_hostel_name_for_booking(p_booking_id bigint) returns text as $$
+  select h.name
+    from bookings b
+    join beds bd on bd.id = b.bed_id
+    join rooms r on r.id = bd.room_id
+    join floors f on f.id = r.floor_id
+    join hostels h on h.id = f.hostel_id
+   where b.id = p_booking_id;
 $$ language sql stable;
 
 -- ----------------------------------------------------------------------------
@@ -68,7 +88,7 @@ returns numeric as $$
       where rr.booking_id = p_booking_id
         and rr.effective_date <= (make_date(p_period_year, p_period_month, 1) + interval '1 month - 1 day')
       order by rr.effective_date desc limit 1),
-    (select b.monthly_rent from bookings b where b.booking_id = p_booking_id)
+    (select b.monthly_rent from bookings b where b.id = p_booking_id)
   );
 $$ language sql stable;
 
@@ -83,7 +103,7 @@ declare
 begin
   perform accounting_require_role(array['owner', 'finance_manager']);
 
-  select * into v_booking from bookings where booking_id = p_booking_id;
+  select * into v_booking from bookings where id = p_booking_id;
   if not found then
     raise exception 'post_rent_accrual: booking % not found', p_booking_id;
   end if;
@@ -104,7 +124,7 @@ begin
   v_due_date := accounting_rent_due_date(v_booking.start_date, p_period_year, p_period_month);
 
   v_journal_entry_id := accounting_post_entry(
-    v_due_date, v_booking.hostel_name, 'rent_accrual', p_booking_id,
+    v_due_date, accounting_hostel_name_for_booking(p_booking_id), 'rent_accrual', p_booking_id,
     'Rent due for ' || to_char(make_date(p_period_year, p_period_month, 1), 'Mon YYYY') || ' — booking #' || p_booking_id,
     jsonb_build_array(
       jsonb_build_object('account_code', '1140', 'debit', v_amount, 'credit', 0,
@@ -118,7 +138,7 @@ begin
   insert into accounting_rent_accruals
     (booking_id, resident_id, hostel_name, period_month, period_year, amount, due_date, journal_entry_id)
   values
-    (p_booking_id, v_booking.resident_id, v_booking.hostel_name, p_period_month, p_period_year, v_amount, v_due_date, v_journal_entry_id);
+    (p_booking_id, v_booking.resident_id, accounting_hostel_name_for_booking(p_booking_id), p_period_month, p_period_year, v_amount, v_due_date, v_journal_entry_id);
 
   return v_journal_entry_id;
 end;
@@ -136,8 +156,8 @@ declare
   v_count int := 0;
 begin
   for v_booking in
-    select booking_id from bookings
-     where booking_status in ('confirmed', 'checked_in')
+    select id as booking_id from bookings
+     where status = 'confirmed'
        and start_date <= (v_period_start + interval '1 month - 1 day')
        and (end_date is null or end_date >= v_period_start)
   loop
@@ -162,7 +182,7 @@ declare
   v_journal_entry_id bigint;
   v_lines jsonb;
 begin
-  select * into v_payment from payments where payment_id = p_payment_id;
+  select * into v_payment from payments where id = p_payment_id;
   if not found then
     raise exception 'post_payment_journal: payment % not found', p_payment_id;
   end if;
@@ -182,7 +202,7 @@ begin
     return null;
   end if;
 
-  select * into v_booking from bookings where booking_id = v_payment.booking_id;
+  select * into v_booking from bookings where id = v_payment.booking_id;
   v_cash_code := coalesce(accounting_cash_account_code(v_payment.payment_mode), '1110');
 
   if v_payment.payment_type = 'Monthly Rent' then
@@ -226,7 +246,7 @@ begin
   end if;
 
   v_journal_entry_id := accounting_post_entry(
-    v_payment.payment_date, v_booking.hostel_name, 'payment', p_payment_id,
+    v_payment.payment_date, accounting_hostel_name_for_booking(v_payment.booking_id), 'payment', p_payment_id,
     v_payment.payment_type || ' payment — booking #' || v_payment.booking_id,
     v_lines, p_created_by
   );
@@ -257,7 +277,7 @@ declare
   v_cash_code text;
   v_journal_entry_id bigint;
 begin
-  select * into v_expense from expenses where expense_id = p_expense_id;
+  select * into v_expense from expenses where id = p_expense_id;
   if not found then
     raise exception 'post_expense_journal: expense % not found', p_expense_id;
   end if;
@@ -657,9 +677,9 @@ declare
   v_asset_count int := 0;
 begin
   for v_row in
-    select p.payment_id from payments p
+    select p.id as payment_id from payments p
      where p.status <> 'reversed'
-       and not exists (select 1 from accounting_journal_entries je where je.source_type = 'payment' and je.source_id = p.payment_id)
+       and not exists (select 1 from accounting_journal_entries je where je.source_type = 'payment' and je.source_id = p.id)
   loop
     if post_payment_journal(v_row.payment_id, p_created_by) is not null then
       v_payment_count := v_payment_count + 1;
@@ -667,8 +687,8 @@ begin
   end loop;
 
   for v_row in
-    select e.expense_id from expenses e
-     where not exists (select 1 from accounting_journal_entries je where je.source_type = 'expense' and je.source_id = e.expense_id)
+    select e.id as expense_id from expenses e
+     where not exists (select 1 from accounting_journal_entries je where je.source_type = 'expense' and je.source_id = e.id)
   loop
     if post_expense_journal(v_row.expense_id, p_created_by) is not null then
       v_expense_count := v_expense_count + 1;

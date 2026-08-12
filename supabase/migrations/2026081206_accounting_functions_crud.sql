@@ -320,7 +320,7 @@ declare
   v_accrued int;
 begin
   select count(*) into v_total from bookings
-   where booking_status in ('confirmed', 'checked_in')
+   where status = 'confirmed'
      and start_date <= (v_period_start + interval '1 month - 1 day')
      and (end_date is null or end_date >= v_period_start);
 

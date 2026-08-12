@@ -46,16 +46,17 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- bed_maintenance already exists (Phase 6 maintenance flow); this exposes
--- its rows filtered by the new asset_id FK added in 2026081200, for the
--- Asset Register detail page's Maintenance History section. Assumed column
--- names match get_bed_maintenance_history's existing return shape.
+-- bed_maintenance already exists (Phase 6 maintenance flow) with primary
+-- key `id`, not `maintenance_id` — confirmed via information_schema; this
+-- exposes its rows (aliasing id -> maintenance_id for a stable RPC contract)
+-- filtered by the new asset_id FK added in 2026081200, for the Asset
+-- Register detail page's Maintenance History section.
 create or replace function get_asset_maintenance_history(p_asset_id bigint)
 returns table(
   maintenance_id bigint, bed_id bigint, reason text, start_date date,
   expected_completion_date date, actual_completion_date date, notes text, cost numeric, status text
 ) as $$
-  select maintenance_id, bed_id, reason, start_date, expected_completion_date, actual_completion_date, notes, cost, status
+  select id, bed_id, reason, start_date, expected_completion_date, actual_completion_date, notes, cost, status
     from bed_maintenance
    where asset_id = p_asset_id
    order by start_date desc;
