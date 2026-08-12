@@ -247,6 +247,8 @@ declare
   v_equity numeric;
   v_snapshot_id bigint;
 begin
+  perform accounting_require_role(array['owner', 'finance_manager']);
+
   select coalesce(sum(case when a.code in ('1110', '1120', '1130') then l.debit - l.credit else 0 end), 0),
          coalesce(sum(case when a.code in ('1140', '1150') then l.debit - l.credit else 0 end), 0),
          coalesce(sum(case when a.code in ('1160', '1170', '1190') then l.debit - l.credit else 0 end), 0),
@@ -382,9 +384,18 @@ $$ language sql stable;
 
 -- Keep `status` current (due -> overdue) — call this before rendering the
 -- Payables page/ageing report, or on a schedule; it never touches amount/
--- amount_paid, only the status label.
+-- amount_paid, only the status label. SECURITY DEFINER because
+-- accounting_payables has no direct UPDATE policy (see 2026081205's RLS
+-- comment — writes to finance tables go through SECURITY DEFINER functions
+-- only); a plain invoker-rights version here would silently update zero
+-- rows for every caller, including Owner.
 create or replace function refresh_payable_statuses(p_as_of_date date default current_date)
 returns int as $$
+declare
+  v_count int;
+begin
+  perform accounting_require_role(array['owner', 'finance_manager']);
+
   with updated as (
     update accounting_payables
        set status = 'overdue'
@@ -393,8 +404,11 @@ returns int as $$
        and amount_paid < amount
     returning payable_id
   )
-  select count(*)::int from updated;
-$$ language sql volatile;
+  select count(*)::int into v_count from updated;
+
+  return v_count;
+end;
+$$ language plpgsql security definer;
 
 -- ----------------------------------------------------------------------------
 -- Forecast: future contracted rent, future expenses, cash surplus/shortfall
@@ -628,6 +642,18 @@ begin
     having round(sum(l.debit), 2) <> round(sum(l.credit), 2)
   loop
     if accounting_raise_flag_if_new('unbalanced_journal_entry', 'Journal entry does not balance', 'journal_entry', v_row.journal_entry_id)
+    then v_flag_count := v_flag_count + 1; end if;
+  end loop;
+
+  -- Structurally near-impossible via the app's own code paths (journal_entry_id
+  -- has ON DELETE CASCADE), but checked explicitly as defense-in-depth against
+  -- direct database edits bypassing the FK, per the spec's own audit checklist.
+  for v_row in
+    select l.journal_entry_line_id
+      from accounting_journal_entry_lines l
+     where not exists (select 1 from accounting_journal_entries je where je.journal_entry_id = l.journal_entry_id)
+  loop
+    if accounting_raise_flag_if_new('orphan_journal_line', 'Journal entry line has no parent entry', 'journal_entry_line', v_row.journal_entry_line_id)
     then v_flag_count := v_flag_count + 1; end if;
   end loop;
 
