@@ -51,7 +51,7 @@ export default async function ForecastPage({ searchParams }: PageProps) {
           <p className="mt-2 max-w-2xl text-slate-500">
             <span className="font-semibold text-amber-700">FORECAST</span> — expected future
             contracted rent and recurring expenses, not present accounting balances. Compare against
-            Accounts Receivable and Accounts Payable for what's already accrued.
+            Accounts Receivable and Accounts Payable for what&apos;s already accrued.
           </p>
         </div>
 

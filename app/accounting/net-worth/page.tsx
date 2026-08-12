@@ -53,7 +53,7 @@ export default async function NetWorthPage({ searchParams }: PageProps) {
           <h1 className="mt-2 text-4xl font-bold">Net Worth</h1>
           <p className="mt-2 max-w-2xl text-slate-500">
             Total Assets minus Total Liabilities — accounting net worth / owner equity. This is not a
-            business valuation: it doesn't reflect goodwill, brand value, or future earnings potential.
+            business valuation: it doesn&apos;t reflect goodwill, brand value, or future earnings potential.
           </p>
         </div>
 

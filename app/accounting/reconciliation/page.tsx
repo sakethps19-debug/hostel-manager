@@ -22,9 +22,9 @@ export default async function ReconciliationPage() {
           <h1 className="mt-2 text-4xl font-bold">Reconciliation</h1>
           <p className="mt-2 max-w-2xl text-slate-500">
             Checks the ledger for exceptions — unbalanced entries, transactions missing their
-            accounting posting, and the Asset Register's depreciation cache drifting from the ledger.
+            accounting posting, and the Asset Register&apos;s depreciation cache drifting from the ledger.
             Numbers on the financial statements are never silently displayed if a check like this
-            fails; they're flagged here instead.
+            fails; they&apos;re flagged here instead.
           </p>
         </div>
 

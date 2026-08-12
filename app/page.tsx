@@ -230,6 +230,21 @@ export default async function Home() {
         { label: "Referral Performance", href: "/reports/referral-performance", section: "Reports" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison", section: "Reports" },
         { label: "Deposit Reconciliation", href: "/reports/deposit-reconciliation", section: "Reports" },
+        ...(isFeatureEnabled("enable_accounting")
+          ? [
+              { label: "Accounts Receivable", href: "/accounting/receivables", section: "Accounting" },
+              { label: "Accounts Payable", href: "/accounting/payables", section: "Accounting" },
+              { label: "Ledger P&L", href: "/accounting/pnl", section: "Accounting" },
+              { label: "Balance Sheet", href: "/accounting/balance-sheet", section: "Accounting" },
+              { label: "Cash Flow Statement", href: "/accounting/cash-flow", section: "Accounting" },
+              { label: "Net Worth", href: "/accounting/net-worth", section: "Accounting" },
+              { label: "Forecast / Working Capital", href: "/accounting/forecast", section: "Accounting" },
+              { label: "Trial Balance", href: "/accounting/trial-balance", section: "Accounting" },
+              { label: "General Ledger", href: "/accounting/ledger", section: "Accounting" },
+              { label: "Journal Entries", href: "/accounting/journal-entries", section: "Accounting" },
+              { label: "Reconciliation", href: "/accounting/reconciliation", section: "Accounting" },
+            ]
+          : []),
       ]}
     />
   )}
@@ -251,6 +266,12 @@ export default async function Home() {
         { label: "Data Health", href: "/data-health", section: "Settings" },
         { label: "Feature Flags", href: "/settings/feature-flags", section: "Settings" },
         { label: "Import / Export", href: "/settings/data-tools", section: "Settings" },
+        ...(isFeatureEnabled("enable_accounting")
+          ? [
+              { label: "Chart of Accounts", href: "/settings/accounting", section: "Settings" },
+              { label: "Opening Balances", href: "/settings/accounting/opening-balances", section: "Settings" },
+            ]
+          : []),
         ...(canManageRates
           ? [
               { label: "Rates", href: "/settings/rates", section: "Settings" },

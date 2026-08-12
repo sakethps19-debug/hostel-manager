@@ -38,12 +38,12 @@ export default async function OpeningBalancesPage() {
           </p>
           <h1 className="mt-2 text-4xl font-bold">Opening Balances</h1>
           <p className="mt-2 max-w-2xl text-slate-500">
-            Since this ledger starts recording from whenever it's switched on, not from when the
+            Since this ledger starts recording from whenever it&apos;s switched on, not from when the
             hostel business actually began, enter the balances that existed as of a chosen date here
             — cash on hand, bank balance, existing fixed assets and their accumulated depreciation,
             outstanding receivables/payables, resident deposits already held, and owner capital. A
             batch must balance (debits = credits) before it can be posted; use the Opening Balance
-            Equity account as a plug if the true owner capital figure isn't yet determined.
+            Equity account as a plug if the true owner capital figure isn&apos;t yet determined.
           </p>
         </div>
 

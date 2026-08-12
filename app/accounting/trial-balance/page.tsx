@@ -4,6 +4,7 @@ import { isFeatureEnabled } from "@/lib/featureFlags";
 import { getHostelList } from "@/lib/hostel";
 import { getTrialBalance } from "@/lib/accounting/queries";
 import { formatMoney, todayIsoDateIST } from "@/lib/format";
+import XlsxExportButton from "@/components/XlsxExportButton";
 
 type PageProps = {
   searchParams: Promise<{ as_of?: string; hostel?: string }>;
@@ -37,7 +38,7 @@ export default async function TrialBalancePage({ searchParams }: PageProps) {
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Accounting</p>
           <h1 className="mt-2 text-4xl font-bold">Trial Balance</h1>
           <p className="mt-2 max-w-3xl text-slate-500">
-            Every account's debit or credit balance as of the selected date. Total debits must equal
+            Every account&apos;s debit or credit balance as of the selected date. Total debits must equal
             total credits — every financial statement in this module depends on that holding true.
           </p>
         </div>
@@ -73,6 +74,25 @@ export default async function TrialBalancePage({ searchParams }: PageProps) {
           >
             Apply
           </button>
+
+          <XlsxExportButton
+            filename={`trial-balance-${asOf}`}
+            sheetName="Trial Balance"
+            columns={[
+              { header: "Code", key: "code" },
+              { header: "Account", key: "name" },
+              { header: "Type", key: "type" },
+              { header: "Debit", key: "debit", type: "number" },
+              { header: "Credit", key: "credit", type: "number" },
+            ]}
+            rows={rows.map((r) => ({
+              code: r.account_code,
+              name: r.account_name,
+              type: r.account_type,
+              debit: r.debit_balance,
+              credit: r.credit_balance,
+            }))}
+          />
         </form>
 
         <div

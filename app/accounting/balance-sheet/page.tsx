@@ -5,6 +5,7 @@ import { getHostelList } from "@/lib/hostel";
 import { getBalanceSheet, verifyBalanceSheetBalances } from "@/lib/accounting/queries";
 import { formatMoney, todayIsoDateIST } from "@/lib/format";
 import type { BalanceSheetRow } from "@/lib/accounting/types";
+import XlsxExportButton from "@/components/XlsxExportButton";
 
 type PageProps = {
   searchParams: Promise<{ as_of?: string; hostel?: string }>;
@@ -105,6 +106,17 @@ export default async function BalanceSheetPage({ searchParams }: PageProps) {
           <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white">
             Apply
           </button>
+
+          <XlsxExportButton
+            filename={`balance-sheet-${asOf}`}
+            sheetName="Balance Sheet"
+            columns={[
+              { header: "Section", key: "section" },
+              { header: "Account", key: "name" },
+              { header: "Amount", key: "amount", type: "number" },
+            ]}
+            rows={rows.map((r) => ({ section: r.section, name: r.account_name, amount: r.amount }))}
+          />
         </form>
 
         <div className={`mt-6 rounded-2xl px-5 py-4 text-sm font-semibold ${balanced ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>

@@ -5,6 +5,7 @@ import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
 import { formatDate, formatMoney } from "@/lib/format";
 import { downloadCsv } from "@/lib/csv";
+import { downloadXlsx } from "@/lib/accounting/xlsxExport";
 import type { PayableRow, PayableAgeingRow } from "@/lib/accounting/types";
 
 const CATEGORIES = [
@@ -206,6 +207,37 @@ export default function PayablesView({
     );
   }
 
+  async function handleExportXlsx() {
+    await downloadXlsx(
+      `accounts-payable-${new Date().toISOString().slice(0, 10)}`,
+      "Accounts Payable",
+      [
+        { header: "Vendor", key: "vendor" },
+        { header: "Hostel", key: "hostel" },
+        { header: "Category", key: "category" },
+        { header: "Invoice", key: "invoice" },
+        { header: "Invoice Date", key: "invoiceDate", type: "date" },
+        { header: "Due Date", key: "dueDate", type: "date" },
+        { header: "Amount", key: "amount", type: "number" },
+        { header: "Paid", key: "paid", type: "number" },
+        { header: "Outstanding", key: "outstanding", type: "number" },
+        { header: "Status", key: "status" },
+      ],
+      filtered.map((p) => ({
+        vendor: p.vendor_name,
+        hostel: p.hostel_name || "",
+        category: p.category,
+        invoice: p.invoice_number || "",
+        invoiceDate: formatDate(p.invoice_date),
+        dueDate: formatDate(p.due_date),
+        amount: p.amount,
+        paid: p.amount_paid,
+        outstanding: p.amount - p.amount_paid,
+        status: STATUS_LABELS[p.status] || p.status,
+      }))
+    );
+  }
+
   return (
     <section className="mt-8">
       <div className="flex flex-wrap items-center gap-3">
@@ -232,6 +264,13 @@ export default function PayablesView({
           className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Export CSV
+        </button>
+        <button
+          onClick={handleExportXlsx}
+          disabled={filtered.length === 0}
+          className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Export Excel
         </button>
 
         <button

@@ -5,6 +5,7 @@ import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
 import { formatDate, formatMoney } from "@/lib/format";
 import { downloadCsv } from "@/lib/csv";
+import { downloadXlsx } from "@/lib/accounting/xlsxExport";
 import type { ReceivableAgeingRow } from "@/lib/accounting/types";
 
 type ResidentRow = {
@@ -104,6 +105,31 @@ export default function ReceivablesView({
     );
   }
 
+  async function handleExportXlsx() {
+    await downloadXlsx(
+      `accounts-receivable-${new Date().toISOString().slice(0, 10)}`,
+      "Accounts Receivable",
+      [
+        { header: "Resident", key: "resident" },
+        { header: "Hostel", key: "hostel" },
+        { header: "Room/Bed", key: "roomBed" },
+        { header: "Outstanding", key: "outstanding", type: "number" },
+        { header: "Oldest Due Date", key: "oldestDueDate", type: "date" },
+        { header: "Days Overdue", key: "daysOverdue", type: "number" },
+        { header: "Ageing Bucket", key: "ageingBucket" },
+      ],
+      rows.map((r) => ({
+        resident: r.resident?.full_name || `Booking #${r.booking_id}`,
+        hostel: r.resident?.hostel_name || r.hostel_name || "",
+        roomBed: [r.resident?.room_number, r.resident?.bed_code].filter(Boolean).join(" · "),
+        outstanding: r.outstanding,
+        oldestDueDate: r.oldest_due_date ? formatDate(r.oldest_due_date) : "",
+        daysOverdue: r.days_overdue,
+        ageingBucket: r.ageing_bucket,
+      }))
+    );
+  }
+
   return (
     <section className="mt-8">
       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
@@ -158,6 +184,13 @@ export default function ReceivablesView({
           className="ml-auto rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Export CSV
+        </button>
+        <button
+          onClick={handleExportXlsx}
+          disabled={rows.length === 0}
+          className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Export Excel
         </button>
       </div>
 

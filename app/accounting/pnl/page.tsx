@@ -4,6 +4,7 @@ import { isFeatureEnabled } from "@/lib/featureFlags";
 import { getHostelList } from "@/lib/hostel";
 import { getLedgerPnl, getLedgerPnlSummary } from "@/lib/accounting/queries";
 import { formatMoney, formatFiscalYear } from "@/lib/format";
+import XlsxExportButton from "@/components/XlsxExportButton";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -49,7 +50,7 @@ export default async function LedgerPnlPage({ searchParams }: PageProps) {
           </h1>
           <p className="mt-2 max-w-2xl text-slate-500">
             Built from the general ledger (accrual basis) — revenue is recognized when rent becomes
-            due, not when it's collected.
+            due, not when it&apos;s collected.
           </p>
         </div>
 
@@ -87,6 +88,23 @@ export default async function LedgerPnlPage({ searchParams }: PageProps) {
           <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white">
             Apply
           </button>
+
+          <XlsxExportButton
+            filename={`pnl-${year}-${String(month).padStart(2, "0")}`}
+            sheetName="P&L"
+            columns={[
+              { header: "Section", key: "section" },
+              { header: "Account", key: "name" },
+              { header: "Amount", key: "amount", type: "number" },
+            ]}
+            rows={[
+              ...revenueRows.map((r) => ({ section: "Revenue", name: r.account_name, amount: r.amount })),
+              { section: "Revenue", name: "Total Revenue", amount: summary?.total_revenue || 0 },
+              ...expenseRows.map((r) => ({ section: "Expense", name: r.account_name, amount: r.amount })),
+              { section: "Expense", name: "Total Expenses", amount: summary?.total_expenses || 0 },
+              { section: "Summary", name: "Net Operating Surplus", amount: summary?.net_surplus || 0 },
+            ]}
+          />
         </form>
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
