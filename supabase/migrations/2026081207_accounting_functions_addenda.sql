@@ -8,6 +8,10 @@ create or replace function get_asset_by_id(p_asset_id bigint) returns setof asse
   select * from assets where asset_id = p_asset_id;
 $$ language sql stable security definer;
 
+create or replace function get_accounting_settings() returns setof accounting_settings as $$
+  select * from accounting_settings order by setting_key;
+$$ language sql stable security definer;
+
 create or replace function get_journal_entry(p_journal_entry_id bigint)
 returns table(
   journal_entry_id bigint, entry_date date, hostel_name text, source_type text, source_id bigint,
