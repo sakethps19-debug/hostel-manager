@@ -20,7 +20,7 @@ export type RecipientCandidate = {
   isDocumentPending: boolean;
 };
 
-const ACTIVE_STATUSES = ["confirmed", "checked_in"];
+export const ACTIVE_STATUSES = ["confirmed", "checked_in"];
 
 type ResidentMasterRow = {
   resident_id: number;
