@@ -78,6 +78,7 @@ export type SendBroadcastInput = {
   channel: CommunicationChannel;
   templateId: number | null;
   targetGroupLabel: string;
+  templateBody: string;
   recipients: BroadcastRecipientInput[];
 };
 
@@ -105,7 +106,7 @@ export async function sendBroadcastAction(
   const broadcastId = await callRpcServer<number>("create_message_broadcast", {
     p_channel: input.channel,
     p_template_id: input.templateId,
-    p_message_body: input.recipients[0].messageBody,
+    p_message_body: input.templateBody,
     p_target_group_label: input.targetGroupLabel,
     p_recipient_count: input.recipients.length,
   });

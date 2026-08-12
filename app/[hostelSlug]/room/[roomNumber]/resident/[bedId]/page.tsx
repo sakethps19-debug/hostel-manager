@@ -415,6 +415,9 @@ export default async function ResidentPage({
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManagePayments = hasPermission(role, "managePayments");
   const canManageDocuments = hasPermission(role, "manageDocuments");
+  const canSendMessages =
+    hasPermission(role, "sendOperationalMessages") ||
+    hasPermission(role, "sendFinanceMessages");
 
   const moveInChecklist = await getBookingChecklist(
     resident.booking_id,
@@ -1134,18 +1137,20 @@ export default async function ResidentPage({
             Print Application Form
           </a>
 
-          <SendResidentMessageButton
-            residentId={resident.resident_id}
-            bookingId={resident.booking_id}
-            fullName={resident.full_name}
-            mobileNumber={resident.mobile_number}
-            hostelName={resident.hostel_name}
-            roomNumber={resident.room_number}
-            bedCode={resident.bed_code}
-            monthlyRent={resident.monthly_rent}
-            outstanding={ledger?.balance_outstanding ?? null}
-            role={role}
-          />
+          {canSendMessages && (
+            <SendResidentMessageButton
+              residentId={resident.resident_id}
+              bookingId={resident.booking_id}
+              fullName={resident.full_name}
+              mobileNumber={resident.mobile_number}
+              hostelName={resident.hostel_name}
+              roomNumber={resident.room_number}
+              bedCode={resident.bed_code}
+              monthlyRent={resident.monthly_rent}
+              outstanding={ledger?.balance_outstanding ?? null}
+              role={role}
+            />
+          )}
 
           {canManageBookings && !resident.notice_given_at && (
             <a

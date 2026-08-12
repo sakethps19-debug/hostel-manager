@@ -90,7 +90,7 @@ export default function ApplicationFormDocument({
     <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
       <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">VNR Boys Hostel</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{booking.hostel_name}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-slate-600">
             Resident Application / Admission Form
           </p>

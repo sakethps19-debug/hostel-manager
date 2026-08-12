@@ -189,6 +189,7 @@ export default function BroadcastComposer({
         channel,
         templateId: templateId ? Number(templateId) : null,
         targetGroupLabel: QUICK_FILTERS.find((f) => f.key === quickFilter)?.label || "Custom selection",
+        templateBody: messageBody,
         recipients: withMobile.map((r) => ({
           residentId: r.residentId,
           bookingId: r.bookingId,

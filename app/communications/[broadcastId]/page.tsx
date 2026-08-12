@@ -50,7 +50,12 @@ export default async function BroadcastDetailPage({ params }: PageProps) {
     redirect("/");
   }
 
-  const broadcasts = await callRpcServer<BroadcastRow[]>("get_message_broadcasts");
+  let broadcasts: BroadcastRow[];
+  try {
+    broadcasts = await callRpcServer<BroadcastRow[]>("get_message_broadcasts");
+  } catch {
+    broadcasts = [];
+  }
   const broadcast = broadcasts.find((b) => String(b.broadcast_id) === broadcastId);
 
   if (!broadcast) {
