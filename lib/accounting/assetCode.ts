@@ -3,6 +3,8 @@ const HOSTEL_INITIAL_FALLBACK = "X";
 const CATEGORY_PREFIXES: Record<string, string> = {
   "Cot / Bed Frame": "BED",
   Mattress: "MAT",
+  "Bed Sheets": "BEDSHEET",
+  Pillows: "PILLOW",
   Locker: "LOCK",
   Cupboard: "CUPB",
   Table: "TBL",

@@ -11,15 +11,12 @@ import type { AssetRow, AssetStatus } from "./types";
 import { ASSET_STATUS_LABELS } from "./types";
 import { suggestNextAssetCode } from "@/lib/accounting/assetCode";
 
-const CATEGORIES = [
-  "Furniture",
-  "Electrical Appliance",
-  "Electronics",
-  "Kitchen Equipment",
-  "Fire Safety",
-  "Plumbing Fixture",
-  "Other",
-];
+// Fallback list used only if the asset_categories table can't be reached
+// (e.g. accounting migrations not yet applied) - AssetsPage passes the real
+// broad-grouping list fetched from the database as the `categories` prop.
+const FALLBACK_CATEGORIES = ["Furniture", "Electronics", "Other"];
+
+const OTHER_CATEGORY_VALUE = "__other__";
 
 const CONDITIONS = ["Good", "Fair", "Needs Repair", "Disposed"];
 
@@ -43,6 +40,7 @@ function conditionClasses(condition: string) {
 type FormState = {
   name: string;
   category: string;
+  customCategory: string;
   hostelName: string;
   roomNumber: string;
   bedCode: string;
@@ -54,35 +52,48 @@ type FormState = {
   paymentMode: string;
 };
 
-const EMPTY_FORM: FormState = {
-  name: "",
-  category: "Other",
-  hostelName: "",
-  roomNumber: "",
-  bedCode: "",
-  purchaseDate: "",
-  purchaseCost: "",
-  warrantyExpiry: "",
-  notes: "",
-  assetCode: "",
-  paymentMode: "",
-};
+function emptyForm(categories: string[]): FormState {
+  return {
+    name: "",
+    category: categories[0] ?? OTHER_CATEGORY_VALUE,
+    customCategory: "",
+    hostelName: "",
+    roomNumber: "",
+    bedCode: "",
+    purchaseDate: "",
+    purchaseCost: "",
+    warrantyExpiry: "",
+    notes: "",
+    assetCode: "",
+    paymentMode: "",
+  };
+}
 
 export default function AssetsTable({
   assets,
   hostelNames,
+  categories: categoriesProp,
   canManageFinance,
 }: {
   assets: AssetRow[];
   hostelNames: string[];
+  categories: string[];
   canManageFinance: boolean;
 }) {
+  const categories = categoriesProp.length > 0 ? categoriesProp : FALLBACK_CATEGORIES;
+
   const [rows, setRows] = useState(assets);
   const [conditionFilter, setConditionFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(() => emptyForm(categories));
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // The actual category text to save - either the picked broad grouping, or
+  // whatever the owner typed when they picked "Other" (never the literal
+  // sentinel value).
+  const resolvedCategory =
+    form.category === OTHER_CATEGORY_VALUE ? form.customCategory.trim() : form.category;
 
   const filtered = useMemo(
     () => rows.filter((a) => !conditionFilter || a.condition === conditionFilter),
@@ -102,6 +113,11 @@ export default function AssetsTable({
       return;
     }
 
+    if (form.category === OTHER_CATEGORY_VALUE && !resolvedCategory) {
+      setErrorMessage("Please specify what \"Other\" category this asset is.");
+      return;
+    }
+
     const cost = form.purchaseCost ? Number(form.purchaseCost) : null;
     if (cost !== null && (Number.isNaN(cost) || cost < 0)) {
       setErrorMessage("Purchase cost cannot be negative.");
@@ -114,7 +130,7 @@ export default function AssetsTable({
 
       const id = await callRpcClient<number>("add_asset", {
         p_name: form.name.trim(),
-        p_category: form.category,
+        p_category: resolvedCategory,
         p_hostel_name: form.hostelName || null,
         p_room_number: form.roomNumber || null,
         p_bed_code: form.bedCode || null,
@@ -127,7 +143,7 @@ export default function AssetsTable({
 
       await logAuditEvent("asset_added", "asset", id, {
         name: form.name.trim(),
-        category: form.category,
+        category: resolvedCategory,
       });
 
       const assetCode = form.assetCode.trim();
@@ -157,7 +173,7 @@ export default function AssetsTable({
         {
           asset_id: id,
           name: form.name.trim(),
-          category: form.category,
+          category: resolvedCategory,
           hostel_name: form.hostelName || null,
           room_number: form.roomNumber || null,
           bed_code: form.bedCode || null,
@@ -193,7 +209,7 @@ export default function AssetsTable({
         ...prev,
       ]);
 
-      setForm(EMPTY_FORM);
+      setForm(emptyForm(categories));
       setShowForm(false);
     } catch (error) {
       setErrorMessage(
@@ -273,17 +289,28 @@ export default function AssetsTable({
               placeholder="Asset name *"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <div>
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value={OTHER_CATEGORY_VALUE}>Other (please specify)</option>
+              </select>
+              {form.category === OTHER_CATEGORY_VALUE && (
+                <input
+                  value={form.customCategory}
+                  onChange={(e) => setForm({ ...form, customCategory: e.target.value })}
+                  placeholder="What is this asset? *"
+                  className="mt-2 w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+                />
+              )}
+            </div>
             <select
               value={form.hostelName}
               onChange={(e) => setForm({ ...form, hostelName: e.target.value })}
@@ -359,7 +386,7 @@ export default function AssetsTable({
                     assetCode: suggestNextAssetCode(
                       rows.map((r) => r.asset_code).filter((c): c is string => Boolean(c)),
                       f.hostelName || null,
-                      f.category
+                      f.category === OTHER_CATEGORY_VALUE ? f.customCategory.trim() : f.category
                     ),
                   }))
                 }

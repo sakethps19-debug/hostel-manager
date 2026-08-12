@@ -165,7 +165,6 @@ export default async function Home() {
       ...(hasPermission(role, "manageMaintenance")
         ? [
             { label: "Housekeeping", href: "/housekeeping", section: "Manage" },
-            { label: "Asset Register", href: "/settings/assets", section: "Manage" },
             { label: "Purchase Requests", href: "/purchase-requests", section: "Manage" },
           ]
         : []),
@@ -230,6 +229,7 @@ export default async function Home() {
         { label: "Referral Performance", href: "/reports/referral-performance", section: "Reports" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison", section: "Reports" },
         { label: "Deposit Reconciliation", href: "/reports/deposit-reconciliation", section: "Reports" },
+        { label: "Asset Register", href: "/settings/assets", section: "Fixed Assets" },
         ...(isFeatureEnabled("enable_accounting")
           ? [
               { label: "Accounts Receivable", href: "/accounting/receivables", section: "Accounting" },

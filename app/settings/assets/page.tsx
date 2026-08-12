@@ -5,18 +5,28 @@ import { hasPermission } from "@/lib/permissions";
 import { getHostelList } from "@/lib/hostel";
 import type { AssetRow } from "./types";
 
+type AssetCategoryRow = { category_id: number; name: string; code_prefix: string };
+
 async function getAssets(): Promise<AssetRow[]> {
   return callRpcServer<AssetRow[]>("get_assets");
 }
 
+async function getAssetCategories(): Promise<AssetCategoryRow[]> {
+  return callRpcServer<AssetCategoryRow[]>("get_asset_categories");
+}
+
 export default async function AssetsPage() {
-  await requirePermission("manageMaintenance");
+  await requirePermission("viewAssetRegister");
   const role = await getMyRole();
   const canManageFinance = hasPermission(role, "manageAssetFinance");
 
-  const [rawAssets, hostels] = await Promise.all([
+  const [rawAssets, hostels, categories] = await Promise.all([
     getAssets(),
     getHostelList(),
+    // Fail-soft: if the accounting migrations aren't applied yet, fall back
+    // to an empty list rather than taking down the whole page - AssetsTable
+    // already has its own "Other" free-text fallback for this case.
+    getAssetCategories().catch(() => []),
   ]);
 
   // Strip finance figures from the payload itself for roles that shouldn't
@@ -60,6 +70,7 @@ export default async function AssetsPage() {
         <AssetsTable
           assets={assets}
           hostelNames={hostels.map((h) => h.hostel_name)}
+          categories={categories.map((c) => c.name)}
           canManageFinance={canManageFinance}
         />
       </div>

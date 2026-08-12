@@ -36,7 +36,7 @@ type PageProps = {
 };
 
 export default async function AssetDetailPage({ params }: PageProps) {
-  await requirePermission("manageMaintenance");
+  await requirePermission("viewAssetRegister");
   const role = await getMyRole();
   const canManageFinance = hasPermission(role, "manageAssetFinance");
 
