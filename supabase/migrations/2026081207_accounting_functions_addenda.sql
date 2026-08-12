@@ -8,6 +8,18 @@ create or replace function get_asset_by_id(p_asset_id bigint) returns setof asse
   select * from assets where asset_id = p_asset_id;
 $$ language sql stable security definer;
 
+create or replace function get_journal_entry(p_journal_entry_id bigint)
+returns table(
+  journal_entry_id bigint, entry_date date, hostel_name text, source_type text, source_id bigint,
+  narration text, status text, total_amount numeric, created_at timestamptz
+) as $$
+  select je.journal_entry_id, je.entry_date, je.hostel_name, je.source_type, je.source_id,
+         je.narration, je.status, coalesce((select sum(debit) from accounting_journal_entry_lines where journal_entry_id = je.journal_entry_id), 0),
+         je.created_at
+    from accounting_journal_entries je
+   where je.journal_entry_id = p_journal_entry_id;
+$$ language sql stable security definer;
+
 -- Sibling to the existing set_asset_condition RPC — operates on the new
 -- lifecycle `status` column (In Use/Available/Under Maintenance/.../
 -- Retired/Sold/Lost/Written Off) added in 2026081200, distinct from the
