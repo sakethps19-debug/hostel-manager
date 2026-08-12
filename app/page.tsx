@@ -7,8 +7,10 @@ import NavDropdown from "@/components/NavDropdown";
 import GlobalSearchForm from "@/components/GlobalSearchForm";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, roleLabel, type Role } from "@/lib/permissions";
 import { getFeatureFlags } from "@/lib/featureFlags";
+
+const PREVIEWABLE_ROLES: Role[] = ["finance_manager", "operations_manager"];
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -73,7 +75,11 @@ function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
 
-export default async function Home() {
+type PageProps = {
+  searchParams: Promise<{ viewAs?: string }>;
+};
+
+export default async function Home({ searchParams }: PageProps) {
   await callRpcServer("capture_daily_occupancy_snapshot_if_missing").catch(
     () => {}
   );
@@ -88,7 +94,20 @@ export default async function Home() {
     const flag = featureFlags.find((f) => f.key === key);
     return flag ? flag.enabled : true;
   };
-  const role = await getMyRole();
+  const actualRole = await getMyRole();
+  const { viewAs } = await searchParams;
+  // Owner-only "view as" preview: lets the Owner see what the nav/quick
+  // actions look like for Finance Manager or Operations Manager, without
+  // actually switching accounts. Every hasPermission(role, ...) check below
+  // uses this effective role, so the preview only ever narrows what's shown
+  // - it can't grant the Owner anything they don't already have, and every
+  // linked page still re-checks the REAL session role server-side regardless
+  // of what's clicked here.
+  const previewRole =
+    actualRole === "owner" && PREVIEWABLE_ROLES.includes(viewAs as Role)
+      ? (viewAs as Role)
+      : null;
+  const role = previewRole ?? actualRole;
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManageResidents = hasPermission(role, "manageResidents");
   const canManageOperationalRecords = hasPermission(
@@ -143,6 +162,52 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {actualRole === "owner" && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+            {previewRole ? (
+              <>
+                <span className="font-semibold text-amber-800">
+                  Previewing the nav as {roleLabel(previewRole)} — this only changes what&apos;s shown below;
+                  you&apos;re still signed in as Owner and every page still checks your real access.
+                </span>
+                <a
+                  href="/"
+                  className="ml-auto rounded-lg border border-amber-300 bg-white px-3 py-1 font-semibold text-amber-800 hover:bg-amber-100"
+                >
+                  Exit Preview
+                </a>
+              </>
+            ) : (
+              <form method="get" className="flex flex-wrap items-center gap-2">
+                <label htmlFor="viewAs" className="font-semibold text-amber-800">
+                  Preview dashboard as:
+                </label>
+                <select
+                  id="viewAs"
+                  name="viewAs"
+                  defaultValue=""
+                  className="rounded-lg border border-amber-300 bg-white px-2 py-1.5 text-sm outline-none"
+                >
+                  <option value="" disabled>
+                    Choose a role…
+                  </option>
+                  {PREVIEWABLE_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {roleLabel(r)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-700"
+                >
+                  Preview
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-indigo-600">
@@ -282,7 +347,7 @@ export default async function Home() {
     />
   )}
 
-  <UserMenu role={role} />
+  <UserMenu role={actualRole} />
 
   <NavDropdown
     label="+ Quick Actions"
