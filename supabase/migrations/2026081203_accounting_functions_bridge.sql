@@ -463,6 +463,8 @@ declare
   v_journal_entry_id bigint;
   v_count int := 0;
 begin
+  perform accounting_require_role(array['owner', 'finance_manager']);
+
   for v_asset in
     select * from assets
      where capitalized = true

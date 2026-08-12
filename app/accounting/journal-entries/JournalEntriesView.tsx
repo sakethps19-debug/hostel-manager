@@ -47,6 +47,35 @@ export default function JournalEntriesView({
   const [lines, setLines] = useState<LineDraft[]>(EMPTY_LINES);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [runningDepreciation, setRunningDepreciation] = useState(false);
+  const [depreciationMessage, setDepreciationMessage] = useState("");
+
+  const now = new Date();
+
+  async function handleRunDepreciation() {
+    setDepreciationMessage("");
+    setRunningDepreciation(true);
+    try {
+      const count = await callRpcClient<number>("post_depreciation_run", {
+        p_period_year: now.getFullYear(),
+        p_period_month: now.getMonth() + 1,
+      });
+      await logAuditEvent("depreciation_run", "accounting", null, {
+        period_year: now.getFullYear(),
+        period_month: now.getMonth() + 1,
+        count,
+      });
+      setDepreciationMessage(
+        count === 0
+          ? "No assets due for depreciation this period (already run, or none capitalized)."
+          : `Posted depreciation for ${count} asset${count === 1 ? "" : "s"}. Reload to see the entries below.`
+      );
+    } catch (error) {
+      setDepreciationMessage(error instanceof Error ? error.message : "Unable to run depreciation.");
+    } finally {
+      setRunningDepreciation(false);
+    }
+  }
 
   const totalDebit = lines
     .filter((l) => l.side === "debit")
@@ -112,7 +141,30 @@ export default function JournalEntriesView({
 
   return (
     <section className="mt-8">
-      <form method="get" className="flex flex-wrap items-end gap-3">
+      {canPostManual && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-indigo-800">
+                Depreciation for {now.getMonth() + 1}/{now.getFullYear()}
+              </p>
+              <p className="text-sm text-slate-600">
+                Straight-line, run once per period — assets already processed this period are skipped.
+              </p>
+            </div>
+            <button
+              onClick={handleRunDepreciation}
+              disabled={runningDepreciation}
+              className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {runningDepreciation ? "Running..." : "Run Depreciation"}
+            </button>
+          </div>
+          {depreciationMessage && <p className="mt-2 text-sm font-medium text-indigo-800">{depreciationMessage}</p>}
+        </div>
+      )}
+
+      <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
         <label className="block text-sm">
           From
           <input
