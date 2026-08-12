@@ -274,11 +274,13 @@ export default async function Home() {
       ...(canManageOperationalRecords
         ? [
             { label: "New Enquiry", href: "/enquiries/new" },
-            { label: "Add to Waitlist", href: "/waitlist/new" },
+            ...(isFeatureEnabled("enable_waitlist")
+              ? [{ label: "Add to Waitlist", href: "/waitlist/new" }]
+              : []),
             { label: "New Complaint", href: "/complaints/new" },
           ]
         : []),
-      ...(canManageExpenses
+      ...(canManageExpenses && isFeatureEnabled("enable_expenses")
         ? [{ label: "New Expense", href: "/expenses/new" }]
         : []),
     ]}
