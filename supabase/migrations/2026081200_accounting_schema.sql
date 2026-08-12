@@ -201,7 +201,7 @@ alter table assets add column if not exists asset_code text;
 alter table assets add column if not exists description text;
 alter table assets add column if not exists floor_number int;
 alter table assets add column if not exists location_notes text;
-alter table assets add column if not exists vendor_id bigint references vendors(vendor_id);
+alter table assets add column if not exists vendor_id bigint references vendors(id);
 alter table assets add column if not exists invoice_number text;
 alter table assets add column if not exists payment_mode text;
 alter table assets add column if not exists serial_number text;
@@ -320,7 +320,7 @@ alter table bed_maintenance add column if not exists asset_id bigint references 
 
 create table if not exists accounting_payables (
   payable_id       bigint generated always as identity primary key,
-  vendor_id        bigint references vendors(vendor_id),
+  vendor_id        bigint references vendors(id),
   vendor_name      text not null, -- denormalized snapshot, kept even if vendor_id is null (ad-hoc payee)
   hostel_name      text,
   category         text not null,
