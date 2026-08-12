@@ -3,22 +3,11 @@
 import { useMemo, useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
-
-type AssetRow = {
-  asset_id: number;
-  name: string;
-  category: string;
-  hostel_name: string | null;
-  room_number: string | null;
-  bed_code: string | null;
-  bed_id: number | null;
-  purchase_date: string | null;
-  purchase_cost: number | null;
-  condition: string;
-  warranty_expiry: string | null;
-  notes: string | null;
-  created_at: string;
-};
+import {
+  formatDate as formatDateShared,
+  formatMoney as formatMoneyShared,
+} from "@/lib/format";
+import type { AssetRow } from "./types";
 
 const CATEGORIES = [
   "Furniture",
@@ -34,16 +23,12 @@ const CONDITIONS = ["Good", "Fair", "Needs Repair", "Disposed"];
 
 function formatDate(date: string | null) {
   if (!date) return "-";
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateShared(date);
 }
 
 function formatMoney(value: number | null) {
   if (value === null) return "-";
-  return `Rs. ${Number(value).toLocaleString("en-IN")}`;
+  return formatMoneyShared(value);
 }
 
 function conditionClasses(condition: string) {
@@ -109,10 +94,15 @@ export default function AssetsTable({
       return;
     }
 
+    const cost = form.purchaseCost ? Number(form.purchaseCost) : null;
+    if (cost !== null && (Number.isNaN(cost) || cost < 0)) {
+      setErrorMessage("Purchase cost cannot be negative.");
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const cost = form.purchaseCost ? Number(form.purchaseCost) : null;
 
       const id = await callRpcClient<number>("add_asset", {
         p_name: form.name.trim(),
@@ -163,6 +153,8 @@ export default function AssetsTable({
   }
 
   async function handleConditionChange(assetId: number, condition: string) {
+    setErrorMessage("");
+
     try {
       await callRpcClient("set_asset_condition", {
         p_asset_id: assetId,
@@ -176,8 +168,14 @@ export default function AssetsTable({
       setRows((prev) =>
         prev.map((a) => (a.asset_id === assetId ? { ...a, condition } : a))
       );
-    } catch {
-      // Best-effort UI update failure is surfaced via the row staying unchanged.
+    } catch (error) {
+      // Force a re-render so the controlled <select> reverts to the saved
+      // condition - without this the browser's own selection stays shown
+      // even though rows (and the database) still hold the old value.
+      setRows((prev) => [...prev]);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to update condition."
+      );
     }
   }
 
@@ -208,6 +206,10 @@ export default function AssetsTable({
           {showForm ? "Cancel" : "+ Add Asset"}
         </button>
       </div>
+
+      {errorMessage && !showForm && (
+        <p className="mt-3 text-sm font-medium text-red-600">{errorMessage}</p>
+      )}
 
       {showForm && (
         <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
