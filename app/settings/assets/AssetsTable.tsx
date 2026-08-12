@@ -7,7 +7,9 @@ import {
   formatDate as formatDateShared,
   formatMoney as formatMoneyShared,
 } from "@/lib/format";
-import type { AssetRow } from "./types";
+import type { AssetRow, AssetStatus } from "./types";
+import { ASSET_STATUS_LABELS } from "./types";
+import { suggestNextAssetCode } from "@/lib/accounting/assetCode";
 
 const CATEGORIES = [
   "Furniture",
@@ -48,6 +50,8 @@ type FormState = {
   purchaseCost: string;
   warrantyExpiry: string;
   notes: string;
+  assetCode: string;
+  paymentMode: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -60,14 +64,18 @@ const EMPTY_FORM: FormState = {
   purchaseCost: "",
   warrantyExpiry: "",
   notes: "",
+  assetCode: "",
+  paymentMode: "",
 };
 
 export default function AssetsTable({
   assets,
   hostelNames,
+  canManageFinance,
 }: {
   assets: AssetRow[];
   hostelNames: string[];
+  canManageFinance: boolean;
 }) {
   const [rows, setRows] = useState(assets);
   const [conditionFilter, setConditionFilter] = useState("");
@@ -122,6 +130,29 @@ export default function AssetsTable({
         category: form.category,
       });
 
+      const assetCode = form.assetCode.trim();
+      if (assetCode) {
+        await callRpcClient("set_asset_code", { p_asset_id: id, p_asset_code: assetCode });
+      }
+
+      if (cost && cost > 0) {
+        if (form.paymentMode) {
+          await callRpcClient("update_asset_finance_fields", {
+            p_asset_id: id,
+            p_payment_mode: form.paymentMode,
+          });
+        }
+        // Books the purchase (Dr Fixed Asset or expense / Cr Cash-Bank) — a
+        // best-effort second step after add_asset succeeds, mirroring how
+        // logAuditEvent is already called here; reconcile_journal_postings()
+        // on the Reconciliation page catches any asset that fails to post.
+        try {
+          await callRpcClient("post_asset_purchase_journal", { p_asset_id: id });
+        } catch {
+          // surfaced via the Reconciliation page's unjournaled-asset check, not here
+        }
+      }
+
       setRows((prev) => [
         {
           asset_id: id,
@@ -137,6 +168,27 @@ export default function AssetsTable({
           warranty_expiry: form.warrantyExpiry || null,
           notes: form.notes || null,
           created_at: new Date().toISOString(),
+          asset_code: assetCode || null,
+          description: null,
+          floor_number: null,
+          location_notes: null,
+          vendor_id: null,
+          invoice_number: null,
+          payment_mode: form.paymentMode || null,
+          serial_number: null,
+          model: null,
+          brand: null,
+          warranty_start_date: null,
+          useful_life_months: null,
+          depreciation_method: "straight_line",
+          residual_value: 0,
+          depreciation_start_date: null,
+          accumulated_depreciation: 0,
+          status: "in_use",
+          last_service_date: null,
+          next_service_date: null,
+          capitalized: true,
+          gl_account_id: null,
         },
         ...prev,
       ]);
@@ -196,7 +248,8 @@ export default function AssetsTable({
         </select>
 
         <p className="text-sm text-slate-500">
-          {filtered.length} assets · {formatMoney(totalValue)} total purchase value
+          {filtered.length} assets
+          {canManageFinance ? ` · ${formatMoney(totalValue)} total purchase value` : ""}
         </p>
 
         <button
@@ -264,16 +317,18 @@ export default function AssetsTable({
               placeholder="Purchase date"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
-            <input
-              type="number"
-              min="0"
-              value={form.purchaseCost}
-              onChange={(e) =>
-                setForm({ ...form, purchaseCost: e.target.value })
-              }
-              placeholder="Purchase cost (optional)"
-              className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
-            />
+            {canManageFinance && (
+              <input
+                type="number"
+                min="0"
+                value={form.purchaseCost}
+                onChange={(e) =>
+                  setForm({ ...form, purchaseCost: e.target.value })
+                }
+                placeholder="Purchase cost (optional)"
+                className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              />
+            )}
             <input
               type="date"
               value={form.warrantyExpiry}
@@ -289,6 +344,43 @@ export default function AssetsTable({
               placeholder="Notes (optional)"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
+            <div className="flex gap-2">
+              <input
+                value={form.assetCode}
+                onChange={(e) => setForm({ ...form, assetCode: e.target.value })}
+                placeholder="Asset code (optional)"
+                className="w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    assetCode: suggestNextAssetCode(
+                      rows.map((r) => r.asset_code).filter((c): c is string => Boolean(c)),
+                      f.hostelName || null,
+                      f.category
+                    ),
+                  }))
+                }
+                className="whitespace-nowrap rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+              >
+                Suggest
+              </button>
+            </div>
+            {canManageFinance && (
+              <select
+                value={form.paymentMode}
+                onChange={(e) => setForm({ ...form, paymentMode: e.target.value })}
+                className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              >
+                <option value="">Payment mode (if cost entered)</option>
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Other">Other</option>
+              </select>
+            )}
           </div>
 
           {errorMessage && (
@@ -319,8 +411,9 @@ export default function AssetsTable({
                 <tr>
                   <th className="px-4 py-3">Asset</th>
                   <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3">Purchased</th>
-                  <th className="px-4 py-3 text-right">Cost</th>
+                  <th className="px-4 py-3">Status</th>
+                  {canManageFinance && <th className="px-4 py-3 text-right">Cost</th>}
+                  {canManageFinance && <th className="px-4 py-3 text-right">Net Book Value</th>}
                   <th className="px-4 py-3">Warranty Until</th>
                   <th className="px-4 py-3">Condition</th>
                 </tr>
@@ -329,8 +422,16 @@ export default function AssetsTable({
                 {filtered.map((asset) => (
                   <tr key={asset.asset_id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <p className="font-semibold">{asset.name}</p>
-                      <p className="text-xs text-slate-500">{asset.category}</p>
+                      <a
+                        href={`/settings/assets/${asset.asset_id}`}
+                        className="font-semibold text-indigo-600 hover:text-indigo-700"
+                      >
+                        {asset.name}
+                      </a>
+                      <p className="text-xs text-slate-500">
+                        {asset.category}
+                        {asset.asset_code ? ` · ${asset.asset_code}` : ""}
+                      </p>
                     </td>
                     <td className="px-4 py-3 text-slate-500">
                       {[
@@ -341,12 +442,21 @@ export default function AssetsTable({
                         .filter(Boolean)
                         .join(" · ") || "-"}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {formatDate(asset.purchase_date)}
+                    <td className="px-4 py-3 text-slate-500">
+                      {ASSET_STATUS_LABELS[asset.status as AssetStatus] || asset.status}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      {formatMoney(asset.purchase_cost)}
-                    </td>
+                    {canManageFinance && (
+                      <td className="px-4 py-3 text-right">
+                        {formatMoney(asset.purchase_cost)}
+                      </td>
+                    )}
+                    {canManageFinance && (
+                      <td className="px-4 py-3 text-right">
+                        {asset.purchase_cost
+                          ? formatMoney(asset.purchase_cost - (asset.accumulated_depreciation || 0))
+                          : "-"}
+                      </td>
+                    )}
                     <td className="px-4 py-3 whitespace-nowrap">
                       {formatDate(asset.warranty_expiry)}
                     </td>

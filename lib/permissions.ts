@@ -15,6 +15,11 @@ const PERMISSIONS = {
   sendOperationalMessages: ["owner", "operations_manager"],
   sendFinanceMessages: ["owner", "finance_manager"],
   manageMessageTemplates: ["owner"],
+  manageChartOfAccounts: ["owner"],
+  manageAccountingPeriod: ["owner"],
+  manageOpeningBalances: ["owner"],
+  manageJournalEntries: ["owner", "finance_manager"],
+  manageAssetFinance: ["owner", "finance_manager"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
