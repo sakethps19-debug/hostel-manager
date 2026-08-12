@@ -1,5 +1,6 @@
 import ResidentSearchTable from "./ResidentSearchTable";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import { getAllResidentTagRows, dedupeSortedTagLabels } from "@/lib/residentTags";
 
 type ResidentRow = {
   resident_id: number;
@@ -19,20 +20,14 @@ type ResidentRow = {
   photo_storage_path: string | null;
 };
 
-type TagRow = { resident_id: number; tag_label: string };
-
 async function getResidentMasterList(): Promise<ResidentRow[]> {
   return callRpcServer<ResidentRow[]>("get_resident_master_list");
-}
-
-async function getAllResidentTags(): Promise<TagRow[]> {
-  return callRpcServer<TagRow[]>("get_all_resident_tags");
 }
 
 export default async function ResidentsPage() {
   const [residents, tagRows] = await Promise.all([
     getResidentMasterList(),
-    getAllResidentTags(),
+    getAllResidentTagRows(),
   ]);
 
   const tagsByResidentId: Record<number, string[]> = {};
@@ -40,7 +35,7 @@ export default async function ResidentsPage() {
     (tagsByResidentId[row.resident_id] ||= []).push(row.tag_label);
   }
 
-  const allTags = Array.from(new Set(tagRows.map((r) => r.tag_label))).sort();
+  const allTags = dedupeSortedTagLabels(tagRows);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">

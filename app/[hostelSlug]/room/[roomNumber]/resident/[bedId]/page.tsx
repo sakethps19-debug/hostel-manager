@@ -15,6 +15,7 @@ import SendResidentMessageButton from "@/components/SendResidentMessageButton";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getAllResidentTagRows, dedupeSortedTagLabels } from "@/lib/residentTags";
 import {
   getChecklistItems,
   type ChecklistType,
@@ -227,10 +228,7 @@ async function getResidentTags(residentId: number): Promise<TagRow[]> {
 }
 
 async function getAllTagLabels(): Promise<string[]> {
-  const rows = await callRpcServer<{ tag_label: string }[]>(
-    "get_all_resident_tags"
-  );
-  return Array.from(new Set(rows.map((r) => r.tag_label))).sort();
+  return dedupeSortedTagLabels(await getAllResidentTagRows());
 }
 
 type ReferralSourceRow = {
@@ -415,6 +413,7 @@ export default async function ResidentPage({
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManagePayments = hasPermission(role, "managePayments");
   const canManageDocuments = hasPermission(role, "manageDocuments");
+  const canManageResidentsTags = hasPermission(role, "manageResidents");
   const canSendMessages =
     hasPermission(role, "sendOperationalMessages") ||
     hasPermission(role, "sendFinanceMessages");
@@ -441,8 +440,8 @@ export default async function ResidentPage({
     bookingReferral,
     communications,
   ] = await Promise.all([
-    getResidentTags(resident.resident_id),
-    getAllTagLabels(),
+    canManageResidentsTags ? getResidentTags(resident.resident_id) : Promise.resolve([]),
+    canManageResidentsTags ? getAllTagLabels() : Promise.resolve([]),
     getDocumentExpiries(resident.resident_id),
     canManageBookings ? getReferralSources() : Promise.resolve([]),
     canManageBookings
@@ -579,17 +578,19 @@ export default async function ResidentPage({
           </div>
         </section>
 
-        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold">Tags</h2>
+        {canManageResidentsTags && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Tags</h2>
 
-          <div className="mt-4">
-            <ResidentTags
-              residentId={resident.resident_id}
-              initialTags={residentTags}
-              suggestions={allTagLabels}
-            />
-          </div>
-        </section>
+            <div className="mt-4">
+              <ResidentTags
+                residentId={resident.resident_id}
+                initialTags={residentTags}
+                suggestions={allTagLabels}
+              />
+            </div>
+          </section>
+        )}
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold">Communication Notes</h2>
