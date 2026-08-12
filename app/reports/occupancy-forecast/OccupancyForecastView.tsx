@@ -32,7 +32,12 @@ type VacancyRow = {
   monthly_rent: number;
 };
 
-const WEEK_COUNT = 12;
+// Stat cards/lists below cover the full 90-day RPC window (get_upcoming_checkins/
+// vacancies are fetched with p_days: 90), so the week buckets must too - otherwise
+// a check-in/vacancy inside 90 days but past week 12's range (day 83) is counted
+// in the stat cards but silently missing from the projected-occupancy table.
+const FORECAST_DAYS = 90;
+const WEEK_COUNT = Math.ceil(FORECAST_DAYS / 7);
 
 function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
@@ -101,7 +106,7 @@ export default function OccupancyForecastView({
 
     for (let week = 0; week < WEEK_COUNT; week++) {
       const rangeStart = week * 7;
-      const rangeEnd = rangeStart + 6;
+      const rangeEnd = Math.min(rangeStart + 6, FORECAST_DAYS - 1);
 
       const weekCheckins = filteredCheckins.filter(
         (c) => c.days_until >= rangeStart && c.days_until <= rangeEnd
