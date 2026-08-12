@@ -3,7 +3,7 @@ import { requirePermission } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { getHostelList } from "@/lib/hostel";
 import { getLedgerPnl, getLedgerPnlSummary } from "@/lib/accounting/queries";
-import { formatMoney, formatFiscalYear } from "@/lib/format";
+import { formatMoney, formatFiscalYear, todayIsoDateIST } from "@/lib/format";
 import XlsxExportButton from "@/components/XlsxExportButton";
 
 const MONTHS = [
@@ -19,10 +19,10 @@ export default async function LedgerPnlPage({ searchParams }: PageProps) {
   await requirePermission("viewFinancialReports");
   if (!(await isFeatureEnabled("enable_accounting"))) notFound();
 
-  const now = new Date();
+  const [todayYear, todayMonth] = todayIsoDateIST().split("-").map(Number);
   const { month: monthParam, year: yearParam, hostel } = await searchParams;
-  const month = monthParam ? Number(monthParam) : now.getMonth() + 1;
-  const year = yearParam ? Number(yearParam) : now.getFullYear();
+  const month = monthParam ? Number(monthParam) : todayMonth;
+  const year = yearParam ? Number(yearParam) : todayYear;
   const hostelName = hostel || "";
 
   const [rows, summary, hostels] = await Promise.all([

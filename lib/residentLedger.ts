@@ -166,6 +166,13 @@ export function buildResidentLedger({
           ? "Discount / Adjustment"
           : "Other Charge";
 
+      // Only Monthly Rent and Adjustment clear the rent receivable balance.
+      // Other Charge is a separate, unrelated charge (e.g. a fine or fee) -
+      // crediting it against the rent balance would hide a real rent
+      // shortfall behind an unrelated payment.
+      const isRentAccount =
+        payment.payment_type === "Monthly Rent" || payment.payment_type === "Adjustment";
+
       rows.push({
         ...base,
         type: label,
@@ -177,7 +184,7 @@ export function buildResidentLedger({
         debit: 0,
         credit: isReversed ? 0 : Number(payment.amount),
         runningBalance: null,
-        isRentAccount: true,
+        isRentAccount,
       });
     }
   }

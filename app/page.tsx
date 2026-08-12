@@ -115,6 +115,7 @@ export default async function Home({ searchParams }: PageProps) {
     "manageOperationalRecords"
   );
   const canManageExpenses = hasPermission(role, "manageExpenses");
+  const canManageMaintenance = hasPermission(role, "manageMaintenance");
   const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
   const canViewAuditLog = hasPermission(role, "viewAuditLog");
   const canManageUsers = hasPermission(role, "manageUsers");
@@ -237,6 +238,9 @@ export default async function Home({ searchParams }: PageProps) {
         ? [{ label: "Emergency Directory", href: "/emergency-directory", section: "Manage" }]
         : []),
       { label: "Booking History", href: "/history", section: "Manage" },
+      ...(hasPermission(role, "viewAssetRegister") && !canViewFinancialReports
+        ? [{ label: "Asset Register", href: "/settings/assets", section: "Manage" }]
+        : []),
       ...(canManageOperationalRecords
         ? [
             { label: "Enquiries", href: "/enquiries", section: "Manage" },
@@ -486,8 +490,9 @@ export default async function Home({ searchParams }: PageProps) {
             alerts.vacating_30_days_count === 0 &&
             alerts.deposit_pending_count === 0 &&
             alerts.missing_id_proof_count === 0 &&
-            alerts.maintenance_count === 0 &&
-            (today?.enquiries_followup_count ?? 0) === 0 &&
+            (!canManageMaintenance || alerts.maintenance_count === 0) &&
+            (!canManageOperationalRecords ||
+              (today?.enquiries_followup_count ?? 0) === 0) &&
             pendingPoliceVerificationCount === 0 ? (
               <p className="text-sm text-emerald-600">
                 All caught up — nothing needs attention right now.
@@ -530,7 +535,7 @@ export default async function Home({ searchParams }: PageProps) {
                   />
                 )}
 
-                {alerts.maintenance_count > 0 && (
+                {canManageMaintenance && alerts.maintenance_count > 0 && (
                   <AlertCard
                     count={alerts.maintenance_count}
                     label="Beds under maintenance"
@@ -539,14 +544,15 @@ export default async function Home({ searchParams }: PageProps) {
                   />
                 )}
 
-                {(today?.enquiries_followup_count ?? 0) > 0 && (
-                  <AlertCard
-                    count={today!.enquiries_followup_count}
-                    label="Enquiries requiring follow-up"
-                    href="/enquiries"
-                    tone="blue"
-                  />
-                )}
+                {canManageOperationalRecords &&
+                  (today?.enquiries_followup_count ?? 0) > 0 && (
+                    <AlertCard
+                      count={today!.enquiries_followup_count}
+                      label="Enquiries requiring follow-up"
+                      href="/enquiries"
+                      tone="blue"
+                    />
+                  )}
 
                 {pendingPoliceVerificationCount > 0 && (
                   <AlertCard

@@ -66,7 +66,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
   const [hostels, categories, vendors, transfers, documents, maintenanceHistory, disposalRows, depreciationEntries] =
     await Promise.all([
       getHostelList(),
-      getAssetCategories(),
+      getAssetCategories().catch(() => []),
       callRpcServer<VendorRow[]>("get_vendors"),
       callRpcServer<AssetTransferRow[]>("get_asset_transfers", { p_asset_id: assetIdNum }),
       callRpcServer<AssetDocumentRow[]>("get_asset_documents", { p_asset_id: assetIdNum }),

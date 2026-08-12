@@ -41,6 +41,7 @@ export default async function JournalEntryDetailPage({ params }: PageProps) {
 
   const { journalEntryId } = await params;
   const id = Number(journalEntryId);
+  if (!Number.isInteger(id)) notFound();
 
   const entryRows = await callRpcServer<JournalEntryRow[]>("get_journal_entry", { p_journal_entry_id: id });
   const entry = entryRows.length > 0 ? entryRows[0] : null;

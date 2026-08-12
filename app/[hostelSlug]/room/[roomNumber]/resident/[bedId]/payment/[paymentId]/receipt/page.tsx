@@ -105,7 +105,7 @@ export default async function ReceiptPage({ params }: PageProps) {
             {payment.status === "active" && (
               <CopyTextButton
                 label="Copy Confirmation"
-                text={`Hi ${resident.full_name}, we've received your payment of ${formatMoney(payment.amount)} (${payment.payment_type}) on ${formatDate(payment.payment_date)} for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Receipt No. ${payment.receipt_number}. Thank you — VNR Boys Hostel.`}
+                text={`Hi ${resident.full_name}, we've received your payment of ${formatMoney(payment.amount)} (${payment.payment_type}) on ${formatDate(payment.payment_date)} for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Receipt No. ${payment.receipt_number}. Thank you — ${resident.hostel_name}.`}
               />
             )}
             <PrintButton />
@@ -115,7 +115,7 @@ export default async function ReceiptPage({ params }: PageProps) {
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm print:rounded-none print:border-0 print:shadow-none">
           <div className="flex items-start justify-between border-b border-slate-200 pb-6">
             <div>
-              <h1 className="text-2xl font-bold">VNR Boys Hostel</h1>
+              <h1 className="text-2xl font-bold">{resident.hostel_name}</h1>
               <p className="mt-1 text-sm text-slate-500">Payment Receipt</p>
             </div>
 

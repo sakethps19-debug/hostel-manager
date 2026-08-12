@@ -83,7 +83,10 @@ export default function JournalEntriesView({
   const totalCredit = lines
     .filter((l) => l.side === "credit")
     .reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
-  const balanced = lines.every((l) => l.amount) && Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
+  const balanced =
+    lines.every((l) => l.amount && l.accountCode) &&
+    Math.abs(totalDebit - totalCredit) < 0.01 &&
+    totalDebit > 0;
 
   function updateLine(index: number, patch: Partial<LineDraft>) {
     setLines((prev) => prev.map((l, i) => (i === index ? { ...l, ...patch } : l)));
@@ -96,7 +99,7 @@ export default function JournalEntriesView({
       return;
     }
     if (!balanced) {
-      setErrorMessage("Total debits must equal total credits, and every line needs an amount.");
+      setErrorMessage("Total debits must equal total credits, and every line needs an account and an amount.");
       return;
     }
 

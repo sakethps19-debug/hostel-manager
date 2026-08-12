@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { buildResidentLedger } from "@/lib/residentLedger";
+import { requirePermission } from "@/lib/auth";
 import LedgerView from "./LedgerView";
 
 type ResidentSummary = {
@@ -45,6 +46,8 @@ type PageProps = {
 };
 
 export default async function ResidentLedgerPage({ params }: PageProps) {
+  await requirePermission("viewFinancialReports");
+
   const { hostelSlug, bedId } = await params;
 
   const residentRows = await callRpcServer<ResidentSummary[]>(

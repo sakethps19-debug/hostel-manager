@@ -412,6 +412,7 @@ export default async function ResidentPage({
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManagePayments = hasPermission(role, "managePayments");
+  const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
   const canManageDocuments = hasPermission(role, "manageDocuments");
   const canManageResidentsTags = hasPermission(role, "manageResidents");
   const canSendMessages =
@@ -911,12 +912,14 @@ export default async function ResidentPage({
             </h2>
 
             <div className="flex flex-wrap gap-3">
-              <a
-                href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/ledger`}
-                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                View Ledger Statement
-              </a>
+              {canViewFinancialReports && (
+                <a
+                  href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/ledger`}
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  View Ledger Statement
+                </a>
+              )}
 
               {canManagePayments && (
                 <a
@@ -1221,7 +1224,7 @@ export default async function ResidentPage({
           {ledger && ledger.balance_outstanding > 0 && (
             <CopyTextButton
               label="Copy Rent Reminder"
-              text={`Hi ${resident.full_name}, this is a reminder that your rent of ${formatMoney(ledger.balance_outstanding)} is outstanding for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Please clear it at your earliest convenience. Thank you — VNR Boys Hostel.`}
+              text={`Hi ${resident.full_name}, this is a reminder that your rent of ${formatMoney(ledger.balance_outstanding)} is outstanding for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Please clear it at your earliest convenience. Thank you — ${resident.hostel_name}.`}
             />
           )}
 
@@ -1232,7 +1235,7 @@ export default async function ResidentPage({
                 resident.expected_vacate_date
                   ? formatDate(resident.expected_vacate_date)
                   : "coming up"
-              }. Please ensure all dues are cleared and the room is vacated on time. Thank you — VNR Boys Hostel.`}
+              }. Please ensure all dues are cleared and the room is vacated on time. Thank you — ${resident.hostel_name}.`}
             />
           )}
         </section>

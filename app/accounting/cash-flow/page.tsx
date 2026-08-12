@@ -3,7 +3,7 @@ import { requirePermission } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { getHostelList } from "@/lib/hostel";
 import { getCashFlowStatement, getCashBalanceAsOf } from "@/lib/accounting/queries";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, todayIsoDateIST } from "@/lib/format";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -18,10 +18,10 @@ export default async function CashFlowPage({ searchParams }: PageProps) {
   await requirePermission("viewFinancialReports");
   if (!(await isFeatureEnabled("enable_accounting"))) notFound();
 
-  const now = new Date();
+  const [todayYear, todayMonth] = todayIsoDateIST().split("-").map(Number);
   const { month: monthParam, year: yearParam, hostel } = await searchParams;
-  const month = monthParam ? Number(monthParam) : now.getMonth() + 1;
-  const year = yearParam ? Number(yearParam) : now.getFullYear();
+  const month = monthParam ? Number(monthParam) : todayMonth;
+  const year = yearParam ? Number(yearParam) : todayYear;
   const hostelName = hostel || "";
 
   const periodStart = new Date(year, month - 1, 1).toISOString().slice(0, 10);

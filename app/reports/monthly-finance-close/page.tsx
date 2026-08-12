@@ -46,9 +46,9 @@ export default async function MonthlyFinanceClosePage() {
           <h1 className="mt-2 text-4xl font-bold">Monthly Finance Close</h1>
           <p className="mt-2 max-w-2xl text-slate-500">
             Snapshot a month&apos;s P&amp;L, outstanding rent, and deposits
-            held to a permanent record. Closing does not lock or prevent
-            further edits elsewhere in the app — it&apos;s a checkpoint, not
-            an enforcement mechanism.
+            held to a permanent record. Closing also locks that accounting
+            period — new journal entries dated inside a closed month will be
+            rejected until it&apos;s reopened.
           </p>
         </div>
 
