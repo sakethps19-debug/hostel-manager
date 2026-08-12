@@ -81,6 +81,8 @@ declare
   v_due_date date;
   v_journal_entry_id bigint;
 begin
+  perform accounting_require_role(array['owner', 'finance_manager']);
+
   select * into v_booking from bookings where booking_id = p_booking_id;
   if not found then
     raise exception 'post_rent_accrual: booking % not found', p_booking_id;

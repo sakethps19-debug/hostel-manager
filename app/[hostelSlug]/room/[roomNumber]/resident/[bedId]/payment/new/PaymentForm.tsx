@@ -79,7 +79,7 @@ export default function PaymentForm({
     try {
       setSaving(true);
 
-      await callRpcClient("record_payment", {
+      const paymentId = await callRpcClient<number>("record_payment", {
         p_booking_id: bookingId,
         p_amount: numericAmount,
         p_payment_date: paymentDate,
@@ -95,6 +95,16 @@ export default function PaymentForm({
         payment_type: paymentType,
         payment_mode: paymentMode,
       });
+
+      // Books the accounting consequence (Dr Cash/Bank, Cr the relevant
+      // receivable/liability/income account) - best-effort second step,
+      // same pattern as logAuditEvent above; the Reconciliation page's
+      // unjournaled-payment check catches anything that fails to post here.
+      try {
+        await callRpcClient("post_payment_journal", { p_payment_id: paymentId });
+      } catch {
+        // surfaced via the Reconciliation page, not here
+      }
 
       router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();

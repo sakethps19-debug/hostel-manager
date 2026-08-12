@@ -80,6 +80,17 @@ export default function NewExpenseForm({
         hostel_name: hostelName || "Common",
       });
 
+      if (created?.id) {
+        // Books Dr <category account> / Cr Cash-Bank - best-effort second
+        // step, same pattern as logAuditEvent above; the Reconciliation
+        // page's unjournaled-expense check catches anything that fails here.
+        try {
+          await callRpcClient("post_expense_journal", { p_expense_id: created.id });
+        } catch {
+          // surfaced via the Reconciliation page, not here
+        }
+      }
+
       router.push("/expenses");
       router.refresh();
     } catch (error) {

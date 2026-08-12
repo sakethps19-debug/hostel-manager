@@ -15,6 +15,28 @@
 
 begin;
 
+-- Role check helper, used throughout this file and 2026081203/05/06. This
+-- app's Supabase RPCs all run as one shared `authenticated` Postgres role —
+-- the business role (owner/operations_manager/finance_manager) lives in
+-- profiles.role, not in a distinct Postgres role — so "only Owner/Finance
+-- Manager may do X" has to be checked inside the function body against
+-- profiles.role for auth.uid(), the same thing hasPermission()/
+-- requirePermission() do in lib/permissions.ts and lib/auth.ts.
+create or replace function accounting_current_role() returns text as $$
+  select role from profiles where id = auth.uid();
+$$ language sql stable security definer;
+
+create or replace function accounting_require_role(p_allowed_roles text[]) returns void as $$
+declare
+  v_role text;
+begin
+  v_role := accounting_current_role();
+  if v_role is null or not (v_role = any(p_allowed_roles)) then
+    raise exception 'Not authorized: this action requires one of % (current role: %)', p_allowed_roles, coalesce(v_role, 'none');
+  end if;
+end;
+$$ language plpgsql stable security definer;
+
 create or replace function accounting_get_account_id(p_code text) returns bigint as $$
   select account_id from accounting_accounts where code = p_code and is_active;
 $$ language sql stable;

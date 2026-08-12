@@ -21,20 +21,9 @@
 
 begin;
 
-create or replace function accounting_current_role() returns text as $$
-  select role from profiles where id = auth.uid();
-$$ language sql stable security definer;
-
-create or replace function accounting_require_role(p_allowed_roles text[]) returns void as $$
-declare
-  v_role text;
-begin
-  v_role := accounting_current_role();
-  if v_role is null or not (v_role = any(p_allowed_roles)) then
-    raise exception 'Not authorized: this action requires one of % (current role: %)', p_allowed_roles, coalesce(v_role, 'none');
-  end if;
-end;
-$$ language plpgsql stable security definer;
+-- accounting_current_role()/accounting_require_role() are defined in
+-- 2026081202_accounting_functions_core.sql (needed there by the bridge
+-- functions in 2026081203) — not redefined here.
 
 -- ----------------------------------------------------------------------------
 -- Retrofit role checks onto the functions that must be restricted per
