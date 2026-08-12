@@ -442,7 +442,7 @@ export default async function ResidentPage({
   ] = await Promise.all([
     canManageResidentsTags ? getResidentTags(resident.resident_id) : Promise.resolve([]),
     canManageResidentsTags ? getAllTagLabels() : Promise.resolve([]),
-    getDocumentExpiries(resident.resident_id),
+    canManageDocuments ? getDocumentExpiries(resident.resident_id) : Promise.resolve([]),
     canManageBookings ? getReferralSources() : Promise.resolve([]),
     canManageBookings
       ? getBookingReferral(resident.booking_id)
