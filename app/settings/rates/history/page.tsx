@@ -18,7 +18,7 @@ async function getAuditLog(): Promise<AuditLogRow[]> {
 }
 
 export default async function RateHistoryPage() {
-  await requirePermission("manageRates");
+  await requirePermission("viewAuditLog");
 
   const entries = await getAuditLog();
   const rateChanges = entries.filter((e) => e.action === "standard_rate_updated");
