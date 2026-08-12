@@ -27,6 +27,7 @@ type PaymentRow = {
   reference_number: string | null;
   status: string;
   reversed_reason: string | null;
+  notes?: string | null;
 };
 
 function rentEffectiveOn(
@@ -131,11 +132,17 @@ export function buildResidentLedger({
       sortKey: new Date(`${payment.payment_date}T00:00:00`).getTime(),
     };
 
+    // Notes explain WHY a payment happened (especially for "Adjustment",
+    // which is meant to be a non-cash rent discount/waiver, not an ordinary
+    // payment) - shown whenever recorded, so a large or unusual entry on
+    // the statement is never just an unexplained number.
+    const notesSuffix = payment.notes?.trim() ? ` — ${payment.notes.trim()}` : "";
+
     if (payment.payment_type === "Security Deposit") {
       rows.push({
         ...base,
         type: "Deposit Payment",
-        description: `Receipt ${payment.receipt_number} · ${payment.payment_mode}${isReversed ? " (Reversed)" : ""}`,
+        description: `Receipt ${payment.receipt_number} · ${payment.payment_mode}${isReversed ? " (Reversed)" : ""}${notesSuffix}`,
         debit: 0,
         credit: isReversed ? 0 : Number(payment.amount),
         runningBalance: null,
@@ -145,7 +152,7 @@ export function buildResidentLedger({
       rows.push({
         ...base,
         type: "Deposit Refund",
-        description: `Receipt ${payment.receipt_number} · ${payment.payment_mode}${isReversed ? " (Reversed)" : ""}`,
+        description: `Receipt ${payment.receipt_number} · ${payment.payment_mode}${isReversed ? " (Reversed)" : ""}${notesSuffix}`,
         debit: isReversed ? 0 : Number(payment.amount),
         credit: 0,
         runningBalance: null,
@@ -166,7 +173,7 @@ export function buildResidentLedger({
           payment.payment_for_month
             ? ` · for ${new Date(`${payment.payment_for_month}T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`
             : ""
-        }${isReversed ? " (Reversed)" : ""}`,
+        }${isReversed ? " (Reversed)" : ""}${notesSuffix}`,
         debit: 0,
         credit: isReversed ? 0 : Number(payment.amount),
         runningBalance: null,

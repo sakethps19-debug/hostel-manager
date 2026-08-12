@@ -14,6 +14,15 @@ const PAYMENT_TYPES = [
   "Adjustment",
 ];
 
+const PAYMENT_TYPE_HINTS: Record<string, string> = {
+  "Monthly Rent": "A regular rent payment against the resident's monthly rent due.",
+  "Security Deposit": "The refundable deposit collected at move-in.",
+  "Deposit Refund": "Returning some or all of a previously collected security deposit.",
+  "Other Charge": "A real charge collected from the resident for something other than rent (e.g. a fine, a service fee) — money actually changed hands.",
+  Adjustment:
+    "A discount or waiver that reduces what the resident owes WITHOUT any money changing hands — e.g. writing off a late fee. If cash, UPI, or a bank transfer actually happened, use \"Monthly Rent\" or \"Other Charge\" instead, not Adjustment.",
+};
+
 const PAYMENT_MODES = ["Cash", "UPI", "Bank Transfer", "Other"];
 
 function todayIsoDate() {
@@ -155,6 +164,9 @@ export default function PaymentForm({
                   </option>
                 ))}
               </select>
+              {PAYMENT_TYPE_HINTS[paymentType] && (
+                <p className="mt-1.5 text-xs text-slate-500">{PAYMENT_TYPE_HINTS[paymentType]}</p>
+              )}
             </Field>
 
             <Field label="Amount *">
