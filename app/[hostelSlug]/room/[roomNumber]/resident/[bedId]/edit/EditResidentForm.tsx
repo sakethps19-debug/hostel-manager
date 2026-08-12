@@ -35,14 +35,22 @@ type ProfileExtra = {
   emergency_contact_mobile: string | null;
 };
 
+// Text inputs for nullable fields start from `resident.field || ""`, so an
+// untouched null field arrives here as "" rather than null - normalize both
+// sides the same way or every resident with incomplete legacy data logs
+// spurious "changed" entries for fields the user never touched.
+function normalizeDiffValue(value: string | number | null) {
+  return value === "" ? null : value ?? null;
+}
+
 function diffFields(
   before: Record<string, string | number | null>,
   after: Record<string, string | number | null>
 ) {
   const changes: Record<string, { from: string | number | null; to: string | number | null }> = {};
   for (const key of Object.keys(after)) {
-    const beforeValue = before[key] ?? null;
-    const afterValue = after[key] ?? null;
+    const beforeValue = normalizeDiffValue(before[key]);
+    const afterValue = normalizeDiffValue(after[key]);
     if (String(beforeValue) !== String(afterValue)) {
       changes[key] = { from: beforeValue, to: afterValue };
     }

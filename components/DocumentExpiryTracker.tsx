@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import { todayIsoDateIST } from "@/lib/format";
 
 const DOCUMENT_TYPES = ["Agreement", "Police Verification", "Other"];
 
@@ -31,7 +32,8 @@ type ExpiryRow = {
 
 function daysUntil(dateStr: string) {
   const diff =
-    new Date(`${dateStr}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0);
+    new Date(`${dateStr}T00:00:00`).getTime() -
+    new Date(`${todayIsoDateIST()}T00:00:00`).getTime();
   return Math.round(diff / 86400000);
 }
 
