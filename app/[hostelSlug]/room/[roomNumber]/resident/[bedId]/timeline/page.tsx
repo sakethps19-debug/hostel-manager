@@ -153,10 +153,18 @@ export default async function ResidentTimelinePage({ params }: PageProps) {
     });
 
     for (const payment of payments) {
+      const entryNoun =
+        payment.payment_type === "Deposit Refund"
+          ? "Refund"
+          : payment.payment_type === "Adjustment"
+          ? "Adjustment"
+          : "Receipt";
       events.push({
         date: payment.payment_date,
         title:
-          payment.status === "active" ? "Receipt Recorded" : "Receipt Reversed",
+          payment.status === "active"
+            ? `${entryNoun} Recorded`
+            : `${entryNoun} Reversed`,
         detail: `${payment.payment_type} — ${money(payment.amount)}${
           payment.reversed_reason ? ` (${payment.reversed_reason})` : ""
         }`,

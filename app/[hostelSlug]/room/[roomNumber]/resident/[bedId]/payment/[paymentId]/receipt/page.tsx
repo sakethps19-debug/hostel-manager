@@ -75,6 +75,49 @@ function formatMoney(value: number) {
   return `Rs. ${Number(value).toLocaleString("en-IN")}`;
 }
 
+// "Deposit Refund" is money paid OUT to the resident and "Adjustment" is a
+// non-cash write-off - neither is a receipt, so this document's title,
+// serial-number label, and amount label all need to reflect what actually
+// happened instead of always calling it a "Receipt".
+const DOCUMENT_LABELS: Record<
+  string,
+  { title: string; serialLabel: string; amountLabel: string }
+> = {
+  "Monthly Rent": { title: "Rent Receipt", serialLabel: "Receipt No.", amountLabel: "Amount Received" },
+  "Security Deposit": { title: "Advance Receipt", serialLabel: "Receipt No.", amountLabel: "Amount Received" },
+  "Other Charge": { title: "Receipt", serialLabel: "Receipt No.", amountLabel: "Amount Received" },
+  "Deposit Refund": { title: "Refund Voucher", serialLabel: "Voucher No.", amountLabel: "Amount Refunded" },
+  Adjustment: { title: "Adjustment Note", serialLabel: "Entry No.", amountLabel: "Amount Adjusted" },
+};
+
+function documentLabels(paymentType: string) {
+  return (
+    DOCUMENT_LABELS[paymentType] ?? {
+      title: "Receipt",
+      serialLabel: "Receipt No.",
+      amountLabel: "Amount Received",
+    }
+  );
+}
+
+function confirmationText(
+  residentName: string,
+  payment: { amount: number; payment_type: string; payment_date: string; receipt_number: string },
+  hostelName: string,
+  location: string
+) {
+  const amount = formatMoney(payment.amount);
+  const date = formatDate(payment.payment_date);
+
+  if (payment.payment_type === "Deposit Refund") {
+    return `Hi ${residentName}, we've refunded ${amount} to you on ${date} for ${location}. Voucher No. ${payment.receipt_number}. Thank you — ${hostelName}.`;
+  }
+  if (payment.payment_type === "Adjustment") {
+    return `Hi ${residentName}, an adjustment of ${amount} has been applied to your account on ${date} for ${location}. Entry No. ${payment.receipt_number}. Thank you — ${hostelName}.`;
+  }
+  return `Hi ${residentName}, we've received your ${amount} (${payment.payment_type}) on ${date} for ${location}. Receipt No. ${payment.receipt_number}. Thank you — ${hostelName}.`;
+}
+
 export default async function ReceiptPage({ params }: PageProps) {
   const { hostelSlug, roomNumber, bedId, paymentId } = await params;
 
@@ -89,6 +132,8 @@ export default async function ReceiptPage({ params }: PageProps) {
   if (!payment) {
     notFound();
   }
+
+  const labels = documentLabels(payment.payment_type);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900 print:bg-white print:px-0 print:py-0">
@@ -105,7 +150,12 @@ export default async function ReceiptPage({ params }: PageProps) {
             {payment.status === "active" && (
               <CopyTextButton
                 label="Copy Confirmation"
-                text={`Hi ${resident.full_name}, we've received your payment of ${formatMoney(payment.amount)} (${payment.payment_type}) on ${formatDate(payment.payment_date)} for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Receipt No. ${payment.receipt_number}. Thank you — ${resident.hostel_name}.`}
+                text={confirmationText(
+                  resident.full_name,
+                  payment,
+                  resident.hostel_name,
+                  `${resident.hostel_name} (${resident.bed_code || resident.bed_number})`
+                )}
               />
             )}
             <PrintButton />
@@ -116,11 +166,11 @@ export default async function ReceiptPage({ params }: PageProps) {
           <div className="flex items-start justify-between border-b border-slate-200 pb-6">
             <div>
               <h1 className="text-2xl font-bold">{resident.hostel_name}</h1>
-              <p className="mt-1 text-sm text-slate-500">Receipt</p>
+              <p className="mt-1 text-sm text-slate-500">{labels.title}</p>
             </div>
 
             <div className="text-right">
-              <p className="text-sm text-slate-500">Receipt No.</p>
+              <p className="text-sm text-slate-500">{labels.serialLabel}</p>
               <p className="text-lg font-bold">{payment.receipt_number}</p>
               <p className="mt-1 text-sm text-slate-500">
                 {formatDate(payment.payment_date)}
@@ -130,7 +180,7 @@ export default async function ReceiptPage({ params }: PageProps) {
 
           {payment.status === "reversed" && (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              This receipt has been reversed and is void.
+              This entry has been reversed and is void.
             </div>
           )}
 
@@ -154,7 +204,7 @@ export default async function ReceiptPage({ params }: PageProps) {
 
           <div className="mt-6 border-t border-slate-200 pt-6">
             <div className="grid grid-cols-2 gap-5">
-              <ReceiptField label="Receipt Type" value={payment.payment_type} />
+              <ReceiptField label="Transaction Type" value={payment.payment_type} />
               <ReceiptField
                 label="For Month"
                 value={formatMonth(payment.payment_for_month)}
@@ -167,7 +217,7 @@ export default async function ReceiptPage({ params }: PageProps) {
             </div>
 
             <div className="mt-6 rounded-xl bg-slate-50 p-5 print:bg-white print:border print:border-slate-300">
-              <p className="text-sm text-slate-500">Amount Paid</p>
+              <p className="text-sm text-slate-500">{labels.amountLabel}</p>
               <p className="mt-1 text-3xl font-bold">
                 {formatMoney(payment.amount)}
               </p>

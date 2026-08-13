@@ -980,12 +980,12 @@ export default async function ResidentPage({
 
           <div className="mt-8">
             <h3 className="text-sm font-semibold text-slate-700">
-              Receipt History
+              Transaction History
             </h3>
 
             {payments.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500">
-                No receipts recorded yet.
+                No transactions recorded yet.
               </p>
             ) : (
               <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
@@ -1036,7 +1036,7 @@ export default async function ResidentPage({
                               href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/${payment.payment_id}/receipt`}
                               className="font-semibold text-indigo-600 hover:text-indigo-700"
                             >
-                              Receipt →
+                              View →
                             </a>
                           ) : (
                             <span className="text-xs">
