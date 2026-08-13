@@ -50,10 +50,10 @@ export default async function PaymentsReportPage({ searchParams }: PageProps) {
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
             Hostel Management
           </p>
-          <h1 className="mt-2 text-4xl font-bold">Payments Report</h1>
+          <h1 className="mt-2 text-4xl font-bold">Receipts Report</h1>
           <p className="mt-2 text-slate-500">
-            Every recorded payment across all hostels, most recent first.
-            Reversed payments are shown for record-keeping but marked so they
+            Every recorded receipt across all hostels, most recent first.
+            Reversed receipts are shown for record-keeping but marked so they
             aren&apos;t mistaken for active collections.
           </p>
         </div>

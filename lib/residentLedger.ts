@@ -141,7 +141,7 @@ export function buildResidentLedger({
     if (payment.payment_type === "Security Deposit") {
       rows.push({
         ...base,
-        type: "Deposit Payment",
+        type: "Advance Receipt",
         description: `Receipt ${payment.receipt_number} · ${payment.payment_mode}${isReversed ? " (Reversed)" : ""}${notesSuffix}`,
         debit: 0,
         credit: isReversed ? 0 : Number(payment.amount),
@@ -161,7 +161,7 @@ export function buildResidentLedger({
     } else {
       const label =
         payment.payment_type === "Monthly Rent"
-          ? "Rent Payment"
+          ? "Rent Receipt"
           : payment.payment_type === "Adjustment"
           ? "Discount / Adjustment"
           : "Other Charge";

@@ -926,7 +926,7 @@ export default async function ResidentPage({
                   href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/new`}
                   className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
                 >
-                  Record Payment
+                  Record Receipt
                 </a>
               )}
             </div>
@@ -955,17 +955,17 @@ export default async function ResidentPage({
               />
 
               <InfoCard
-                label="Last Payment Date"
+                label="Last Receipt Date"
                 value={
                   ledger.last_payment_date
                     ? formatDate(ledger.last_payment_date)
-                    : "No payments yet"
+                    : "No receipts yet"
                 }
               />
 
               <div className="rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-medium text-slate-400">
-                  Payment Status
+                  Rent Status
                 </p>
                 <span
                   className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${getPaymentStatusClasses(
@@ -980,12 +980,12 @@ export default async function ResidentPage({
 
           <div className="mt-8">
             <h3 className="text-sm font-semibold text-slate-700">
-              Payment History
+              Receipt History
             </h3>
 
             {payments.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500">
-                No payments recorded yet.
+                No receipts recorded yet.
               </p>
             ) : (
               <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">

@@ -80,7 +80,7 @@ export default function DuplicatePaymentWarning({
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
       <p className="font-semibold text-amber-800">
-        This looks like it might be a duplicate of an existing payment.
+        This looks like it might be a duplicate of an existing receipt.
       </p>
 
       <ul className="mt-2 space-y-1 text-sm text-amber-800">
@@ -106,7 +106,7 @@ export default function DuplicatePaymentWarning({
           className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
         />
         <span>
-          I&apos;ve checked and this is a separate, legitimate payment.
+          I&apos;ve checked and this is a separate, legitimate receipt.
         </span>
       </label>
     </div>

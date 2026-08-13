@@ -15,9 +15,9 @@ const PAYMENT_TYPES = [
 ];
 
 const PAYMENT_TYPE_HINTS: Record<string, string> = {
-  "Monthly Rent": "A regular rent payment against the resident's monthly rent due.",
-  "Security Deposit": "The refundable deposit collected at move-in.",
-  "Deposit Refund": "Returning some or all of a previously collected security deposit.",
+  "Monthly Rent": "A regular rent receipt against the resident's monthly rent due.",
+  "Security Deposit": "The refundable advance collected at move-in.",
+  "Deposit Refund": "Returning some or all of a previously collected advance — this is a refund paid to the resident, not a receipt.",
   "Other Charge": "A real charge collected from the resident for something other than rent (e.g. a fine, a service fee) — money actually changed hands.",
   Adjustment:
     "A discount or waiver that reduces what the resident owes WITHOUT any money changing hands — e.g. writing off a late fee. If cash, UPI, or a bank transfer actually happened, use \"Monthly Rent\" or \"Other Charge\" instead, not Adjustment.",
@@ -76,12 +76,12 @@ export default function PaymentForm({
     }
 
     if (!paymentDate) {
-      setErrorMessage("Payment date is required.");
+      setErrorMessage("Receipt date is required.");
       return;
     }
 
     if (!paymentMode) {
-      setErrorMessage("Please select a payment mode.");
+      setErrorMessage("Please select a mode.");
       return;
     }
 
@@ -119,7 +119,7 @@ export default function PaymentForm({
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to record payment."
+        error instanceof Error ? error.message : "Unable to record receipt."
       );
     } finally {
       setSaving(false);
@@ -141,7 +141,7 @@ export default function PaymentForm({
             {hostelName} · {bedLabel}
           </p>
 
-          <h1 className="mt-2 text-4xl font-bold">Record Payment</h1>
+          <h1 className="mt-2 text-4xl font-bold">Record Receipt</h1>
 
           <p className="mt-2 text-slate-500">{residentName}</p>
         </div>
@@ -151,7 +151,7 @@ export default function PaymentForm({
           className="mt-10 space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Payment Type *">
+            <Field label="Receipt Type *">
               <select
                 value={paymentType}
                 onChange={(e) => setPaymentType(e.target.value)}
@@ -181,7 +181,7 @@ export default function PaymentForm({
               />
             </Field>
 
-            <Field label="Payment Date *">
+            <Field label="Receipt Date *">
               <input
                 type="date"
                 value={paymentDate}
@@ -191,7 +191,7 @@ export default function PaymentForm({
               />
             </Field>
 
-            <Field label="Payment For Month">
+            <Field label="For Month">
               <input
                 type="month"
                 value={paymentForMonth}
@@ -200,7 +200,7 @@ export default function PaymentForm({
               />
             </Field>
 
-            <Field label="Payment Mode *">
+            <Field label="Mode *">
               <select
                 value={paymentMode}
                 onChange={(e) => setPaymentMode(e.target.value)}
@@ -232,7 +232,7 @@ export default function PaymentForm({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="input-style"
-              placeholder="Any additional context for this payment"
+              placeholder="Any additional context for this receipt"
             />
           </Field>
 
@@ -264,7 +264,7 @@ export default function PaymentForm({
               disabled={saving || !duplicateOkToProceed}
               className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Record Payment"}
+              {saving ? "Saving..." : "Record Receipt"}
             </button>
           </div>
         </form>

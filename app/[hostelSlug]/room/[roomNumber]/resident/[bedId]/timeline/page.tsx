@@ -156,7 +156,7 @@ export default async function ResidentTimelinePage({ params }: PageProps) {
       events.push({
         date: payment.payment_date,
         title:
-          payment.status === "active" ? "Payment Recorded" : "Payment Reversed",
+          payment.status === "active" ? "Receipt Recorded" : "Receipt Reversed",
         detail: `${payment.payment_type} — ${money(payment.amount)}${
           payment.reversed_reason ? ` (${payment.reversed_reason})` : ""
         }`,

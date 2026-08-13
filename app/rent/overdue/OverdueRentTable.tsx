@@ -178,7 +178,7 @@ export default function OverdueRentTable({
                   <th className="px-4 py-3">Due</th>
                   <th className="px-4 py-3">Paid</th>
                   <th className="px-4 py-3">Outstanding</th>
-                  <th className="px-4 py-3">Last Payment</th>
+                  <th className="px-4 py-3">Last Receipt</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3"></th>
                 </tr>

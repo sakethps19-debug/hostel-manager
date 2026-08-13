@@ -72,10 +72,10 @@ export default function LedgerView({
 
     for (const entry of filtered) {
       if (entry.type === "Monthly Rent Due") totalRentDue += entry.debit;
-      if (entry.type === "Rent Payment") totalRentPaid += entry.credit;
+      if (entry.type === "Rent Receipt") totalRentPaid += entry.credit;
       if (entry.type === "Other Charge") otherCharges += entry.credit;
       if (entry.type === "Deposit Refund") refunds += entry.debit;
-      if (entry.type === "Deposit Payment") depositReceived += entry.credit;
+      if (entry.type === "Advance Receipt") depositReceived += entry.credit;
     }
 
     const currentBalance =

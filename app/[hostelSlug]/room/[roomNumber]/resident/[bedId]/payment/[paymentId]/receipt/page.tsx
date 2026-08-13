@@ -116,7 +116,7 @@ export default async function ReceiptPage({ params }: PageProps) {
           <div className="flex items-start justify-between border-b border-slate-200 pb-6">
             <div>
               <h1 className="text-2xl font-bold">{resident.hostel_name}</h1>
-              <p className="mt-1 text-sm text-slate-500">Payment Receipt</p>
+              <p className="mt-1 text-sm text-slate-500">Receipt</p>
             </div>
 
             <div className="text-right">
@@ -130,7 +130,7 @@ export default async function ReceiptPage({ params }: PageProps) {
 
           {payment.status === "reversed" && (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              This payment has been reversed and is void.
+              This receipt has been reversed and is void.
             </div>
           )}
 
@@ -154,12 +154,12 @@ export default async function ReceiptPage({ params }: PageProps) {
 
           <div className="mt-6 border-t border-slate-200 pt-6">
             <div className="grid grid-cols-2 gap-5">
-              <ReceiptField label="Payment Type" value={payment.payment_type} />
+              <ReceiptField label="Receipt Type" value={payment.payment_type} />
               <ReceiptField
-                label="Payment For Month"
+                label="For Month"
                 value={formatMonth(payment.payment_for_month)}
               />
-              <ReceiptField label="Payment Mode" value={payment.payment_mode} />
+              <ReceiptField label="Mode" value={payment.payment_mode} />
               <ReceiptField
                 label="Reference Number"
                 value={payment.reference_number || "-"}

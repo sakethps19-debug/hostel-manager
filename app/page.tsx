@@ -274,11 +274,11 @@ export default async function Home({ searchParams }: PageProps) {
     <NavDropdown
       label="Finance"
       items={[
-        { label: "Overdue Rent", href: "/rent/overdue", section: "Rent & Payments" },
-        { label: "Rent Calendar", href: "/rent/calendar", section: "Rent & Payments" },
-        { label: "Receivable Ageing", href: "/rent/ageing", section: "Rent & Payments" },
-        { label: "Advance Rent", href: "/reports/advance-rent", section: "Rent & Payments" },
-        { label: "Payments Report", href: "/reports/payments", section: "Rent & Payments" },
+        { label: "Overdue Rent", href: "/rent/overdue", section: "Rent & Receipts" },
+        { label: "Rent Calendar", href: "/rent/calendar", section: "Rent & Receipts" },
+        { label: "Receivable Ageing", href: "/rent/ageing", section: "Rent & Receipts" },
+        { label: "Advance Rent", href: "/reports/advance-rent", section: "Rent & Receipts" },
+        { label: "Receipts Report", href: "/reports/payments", section: "Rent & Receipts" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [
               { label: "Expenses", href: "/expenses", section: "Expenses" },
