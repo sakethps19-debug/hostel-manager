@@ -21,6 +21,17 @@
 --    (resident-documents, asset-documents) - resident photos and ID proofs
 --    had no database-level access control at all beyond whatever might (or
 --    might not) have been configured manually in the Supabase dashboard.
+--
+-- 3. lib/supabase/residentFiles.ts / assetFiles.ts validate file type + size
+--    in application code before calling supabase.storage.upload(), but that
+--    is enforced only by the JS running in the browser - any authenticated
+--    owner/operations_manager (who already has bucket write access under
+--    Part 2's role policies) can call the Storage API directly with an
+--    arbitrary file, fully bypassing a client-side-only check. The INSERT/
+--    UPDATE policies below add a genuine server-side backstop using
+--    Storage's own object metadata (metadata->>'mimetype', ->>'size'),
+--    mirroring the exact type/size limits already defined in application
+--    code so the two layers agree rather than silently drifting apart.
 -- ============================================================================
 
 begin;
@@ -137,11 +148,29 @@ create policy resident_documents_select on storage.objects for select
     and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager')
   );
 
+-- Path convention (buildResidentFilePath in lib/supabase/residentFiles.ts)
+-- is always "<residentId>/<folder>/<file>", folder = 'profile' for photos
+-- or 'documents' for ID proofs - the second path segment tells the policy
+-- which of the two application-level type/size limits to enforce, since
+-- Storage RLS has no other way to know which uploadResidentFile() "kind"
+-- argument the caller used.
 drop policy if exists resident_documents_insert on storage.objects;
 create policy resident_documents_insert on storage.objects for insert
   with check (
     bucket_id = 'resident-documents'
     and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager')
+    and (
+      (
+        (storage.foldername(name))[2] = 'profile'
+        and metadata->>'mimetype' in ('image/jpeg', 'image/png', 'image/webp')
+        and (metadata->>'size')::bigint <= 5 * 1024 * 1024
+      )
+      or (
+        (storage.foldername(name))[2] = 'documents'
+        and metadata->>'mimetype' in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
+        and (metadata->>'size')::bigint <= 10 * 1024 * 1024
+      )
+    )
   );
 
 drop policy if exists resident_documents_update on storage.objects;
@@ -149,6 +178,22 @@ create policy resident_documents_update on storage.objects for update
   using (
     bucket_id = 'resident-documents'
     and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager')
+  )
+  with check (
+    bucket_id = 'resident-documents'
+    and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager')
+    and (
+      (
+        (storage.foldername(name))[2] = 'profile'
+        and metadata->>'mimetype' in ('image/jpeg', 'image/png', 'image/webp')
+        and (metadata->>'size')::bigint <= 5 * 1024 * 1024
+      )
+      or (
+        (storage.foldername(name))[2] = 'documents'
+        and metadata->>'mimetype' in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
+        and (metadata->>'size')::bigint <= 10 * 1024 * 1024
+      )
+    )
   );
 
 drop policy if exists resident_documents_delete on storage.objects;
@@ -170,11 +215,15 @@ create policy asset_documents_storage_select on storage.objects for select
     and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager', 'finance_manager')
   );
 
+-- Mirrors ASSET_DOCUMENT_ACCEPTED_TYPES / MAX_ASSET_DOCUMENT_SIZE_BYTES in
+-- lib/supabase/assetFiles.ts.
 drop policy if exists asset_documents_storage_insert on storage.objects;
 create policy asset_documents_storage_insert on storage.objects for insert
   with check (
     bucket_id = 'asset-documents'
     and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager', 'finance_manager')
+    and metadata->>'mimetype' in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
+    and (metadata->>'size')::bigint <= 10 * 1024 * 1024
   );
 
 drop policy if exists asset_documents_storage_update on storage.objects;
@@ -182,6 +231,12 @@ create policy asset_documents_storage_update on storage.objects for update
   using (
     bucket_id = 'asset-documents'
     and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager', 'finance_manager')
+  )
+  with check (
+    bucket_id = 'asset-documents'
+    and (select role from profiles where id = auth.uid()) in ('owner', 'operations_manager', 'finance_manager')
+    and metadata->>'mimetype' in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
+    and (metadata->>'size')::bigint <= 10 * 1024 * 1024
   );
 
 drop policy if exists asset_documents_storage_delete on storage.objects;

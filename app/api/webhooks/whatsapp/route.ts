@@ -105,9 +105,16 @@ export async function POST(request: Request) {
 
         if (!isNewEvent) continue; // already processed this exact event
 
-        const timestamp = status.timestamp
-          ? new Date(Number(status.timestamp) * 1000).toISOString()
-          : new Date().toISOString();
+        // Guard against a non-numeric/out-of-range timestamp: the event was
+        // already marked "recorded" above, so a thrown error here would
+        // make Meta's automatic retry of this exact same webhook look like
+        // an already-processed duplicate (skipped at the isNewEvent check)
+        // and permanently lose the status update instead of degrading to
+        // "now" and still applying it.
+        const parsedMs = Number(status.timestamp) * 1000;
+        const parsedDate = status.timestamp && Number.isFinite(parsedMs) ? new Date(parsedMs) : null;
+        const timestamp =
+          parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString();
 
         await callRpcServer("apply_whatsapp_delivery_status", {
           p_provider_message_id: status.id,
