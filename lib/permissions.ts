@@ -19,6 +19,7 @@ const PERMISSIONS = {
   sendOperationalMessages: ["owner", "operations_manager"],
   sendFinanceMessages: ["owner", "finance_manager"],
   manageMessageTemplates: ["owner"],
+  manageCommunicationSettings: ["owner"],
   manageChartOfAccounts: ["owner"],
   manageAccountingPeriod: ["owner"],
   manageOpeningBalances: ["owner"],

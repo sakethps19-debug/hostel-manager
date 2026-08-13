@@ -12,6 +12,7 @@ import DocumentExpiryTracker from "@/components/DocumentExpiryTracker";
 import ReferralAttribution from "./ReferralAttribution";
 import ResidentCommunications from "@/components/ResidentCommunications";
 import SendResidentMessageButton from "@/components/SendResidentMessageButton";
+import { isCommsTestMode } from "@/lib/communications/provider";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -1153,6 +1154,7 @@ export default async function ResidentPage({
               monthlyRent={resident.monthly_rent}
               outstanding={ledger?.balance_outstanding ?? null}
               role={role}
+              testMode={isCommsTestMode()}
             />
           )}
 

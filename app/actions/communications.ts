@@ -14,6 +14,8 @@ export type SendResidentMessageInput = {
   templateId: number | null;
   messageBody: string;
   recipientMobile: string;
+  idempotencyKey?: string;
+  overrideLimit?: boolean;
 };
 
 export type SendResidentMessageResult = {
@@ -28,6 +30,17 @@ export type SendResidentMessageResult = {
 export async function sendResidentMessageAction(
   input: SendResidentMessageInput
 ): Promise<SendResidentMessageResult> {
+  // Pre-flight: category permission + the per-resident monthly volume
+  // safeguard, checked BEFORE the provider is ever called. This must not
+  // live inside the log_* RPC below - by the time a message is logged it
+  // may already have been sent (cost incurred), so refusing to log it at
+  // that point would lose the record while the message still went out.
+  await callRpcServer("comms_check_send_allowed", {
+    p_resident_id: input.residentId,
+    p_template_id: input.templateId,
+    p_override: input.overrideLimit ?? false,
+  });
+
   const provider = getCommunicationProvider();
 
   const result = await provider.send({
@@ -47,6 +60,7 @@ export async function sendResidentMessageAction(
     p_provider: result.provider,
     p_provider_message_id: result.status === "sent" ? result.providerMessageId : null,
     p_failure_reason: result.status === "failed" ? result.failureReason : null,
+    p_idempotency_key: input.idempotencyKey ?? null,
   });
 
   await callRpcServer("log_audit_event", {
@@ -80,12 +94,15 @@ export type SendBroadcastInput = {
   targetGroupLabel: string;
   templateBody: string;
   recipients: BroadcastRecipientInput[];
+  idempotencyKey?: string;
+  overrideLimit?: boolean;
 };
 
 export type SendBroadcastResult = {
   broadcastId: number;
   sentCount: number;
   failedCount: number;
+  skippedCount: number;
 };
 
 export async function sendBroadcastAction(
@@ -103,18 +120,53 @@ export async function sendBroadcastAction(
 
   const provider = getCommunicationProvider();
 
+  // Idempotent: a resubmitted "Send" click carrying the same key (double
+  // click, browser retry) reuses this exact broadcast row rather than
+  // creating a second one - see create_message_broadcast in
+  // 2026081211_communications_functions.sql.
   const broadcastId = await callRpcServer<number>("create_message_broadcast", {
     p_channel: input.channel,
     p_template_id: input.templateId,
     p_message_body: input.templateBody,
     p_target_group_label: input.targetGroupLabel,
     p_recipient_count: input.recipients.length,
+    p_idempotency_key: input.idempotencyKey ?? null,
   });
 
   let sentCount = 0;
   let failedCount = 0;
+  let skippedCount = 0;
 
   for (const recipient of input.recipients) {
+    // Pre-flight per recipient, BEFORE the provider is called for them. A
+    // limit-exceeded error here skips only this one recipient - it must
+    // never abort the loop, or one over-limit resident would silently
+    // block delivery to everyone else in the broadcast.
+    try {
+      await callRpcServer("comms_check_send_allowed", {
+        p_resident_id: recipient.residentId,
+        p_template_id: input.templateId,
+        p_override: input.overrideLimit ?? false,
+      });
+    } catch (limitError) {
+      skippedCount += 1;
+      await callRpcServer("log_broadcast_message", {
+        p_broadcast_id: broadcastId,
+        p_resident_id: recipient.residentId,
+        p_booking_id: recipient.bookingId,
+        p_channel: input.channel,
+        p_template_id: input.templateId,
+        p_message_body: recipient.messageBody,
+        p_recipient_mobile: recipient.mobile,
+        p_status: "cancelled",
+        p_provider: "none",
+        p_provider_message_id: null,
+        p_failure_reason:
+          limitError instanceof Error ? limitError.message : "Not allowed to send to this resident",
+      }).catch(() => {});
+      continue;
+    }
+
     const result = await provider.send({
       channel: input.channel,
       recipientMobile: recipient.mobile,
@@ -146,7 +198,7 @@ export async function sendBroadcastAction(
     p_broadcast_id: broadcastId,
     p_sent_count: sentCount,
     p_delivered_count: 0,
-    p_failed_count: failedCount,
+    p_failed_count: failedCount + skippedCount,
     p_status: "completed",
   });
 
@@ -159,8 +211,9 @@ export async function sendBroadcastAction(
       recipient_count: input.recipients.length,
       sent_count: sentCount,
       failed_count: failedCount,
+      skipped_count: skippedCount,
     },
   }).catch(() => {});
 
-  return { broadcastId, sentCount, failedCount };
+  return { broadcastId, sentCount, failedCount, skippedCount };
 }
