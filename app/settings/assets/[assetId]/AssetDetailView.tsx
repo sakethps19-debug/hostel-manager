@@ -740,6 +740,7 @@ export default function AssetDetailView({
           </select>
           <input
             type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
             onChange={(e) => setDocFile(e.target.files?.[0] || null)}
             className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
           />
