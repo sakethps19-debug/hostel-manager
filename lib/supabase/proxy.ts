@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/reset-password"];
 const ALLOWED_WHEN_MUST_CHANGE_PASSWORD = ["/change-password"];
+const ALLOWED_WHEN_MFA_PENDING = ["/mfa-challenge"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -66,6 +67,27 @@ export async function updateSession(request: NextRequest) {
       changePasswordUrl.pathname = "/change-password";
       changePasswordUrl.search = "";
       return NextResponse.redirect(changePasswordUrl);
+    }
+  }
+
+  const isAllowedWhenMfaPending = ALLOWED_WHEN_MFA_PENDING.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  // Verifying a TOTP factor (enrollment or a per-session challenge) elevates
+  // the session to aal2 immediately, so currentLevel === nextLevel again
+  // right afterwards - this redirect only fires for a session that has a
+  // verified factor on the account but hasn't completed that session's
+  // challenge yet (e.g. a fresh sign-in on a device without a valid aal2
+  // cookie), never as an ongoing loop once the user has verified.
+  if (user && !isPublicPath && !isAllowedWhenMustChangePassword && !isAllowedWhenMfaPending) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel) {
+      const mfaUrl = request.nextUrl.clone();
+      mfaUrl.pathname = "/mfa-challenge";
+      mfaUrl.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(mfaUrl);
     }
   }
 
