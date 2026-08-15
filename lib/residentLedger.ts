@@ -55,7 +55,7 @@ export function buildResidentLedger({
   payments,
 }: {
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   currentMonthlyRent: number;
   securityDeposit: number | null;
   rentHistory: RentRevision[];
@@ -88,12 +88,17 @@ export function buildResidentLedger({
   // Monthly rent due schedule, one entry per calendar month from start
   // date through the earlier of today or the booking end date.
   const start = new Date(`${startDate}T00:00:00`);
-  const cap = new Date(
-    Math.min(
-      new Date(`${todayIsoDateIST()}T00:00:00`).getTime(),
-      new Date(`${endDate}T00:00:00`).getTime()
-    )
-  );
+  // A null endDate means an open-ended/ongoing booking (no known checkout
+  // date) - rent accrues up to today in that case, same as get_booking_ledger
+  // does server-side via Postgres's NULL-skipping least().
+  const cap = endDate
+    ? new Date(
+        Math.min(
+          new Date(`${todayIsoDateIST()}T00:00:00`).getTime(),
+          new Date(`${endDate}T00:00:00`).getTime()
+        )
+      )
+    : new Date(`${todayIsoDateIST()}T00:00:00`);
 
   const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
   const capMonth = new Date(cap.getFullYear(), cap.getMonth(), 1);

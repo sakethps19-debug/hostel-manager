@@ -34,7 +34,7 @@ id_proof_number: string | null;
   work_college_address: string | null;
   notes: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   booking_status: string;
@@ -796,7 +796,7 @@ export default async function ResidentPage({
 
               <InfoCard
                 label="End Date"
-                value={formatDate(resident.end_date)}
+                value={resident.end_date ? formatDate(resident.end_date) : "Ongoing"}
               />
 
               <InfoCard
@@ -1167,7 +1167,7 @@ export default async function ResidentPage({
             </a>
           )}
 
-          {canManageBookings && !resident.notice_given_at && (
+          {canManageBookings && !resident.notice_given_at && resident.end_date && (
             <ExtendStayButton
               resident={{
                 booking_id: resident.booking_id,

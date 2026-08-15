@@ -23,7 +23,7 @@ type BookingDetails = {
   bed_number: string;
   bed_code: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   booking_status: string;
@@ -324,7 +324,7 @@ export default async function BookingHistoryDetailsPage({
 
           <Info
             label="End Date"
-            value={formatDate(booking.end_date)}
+            value={booking.end_date ? formatDate(booking.end_date) : "Ongoing"}
           />
 
           <Info

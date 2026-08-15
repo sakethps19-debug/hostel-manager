@@ -12,7 +12,7 @@ type ResidentSummary = {
   bed_code: string | null;
   bed_number: string;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
 };

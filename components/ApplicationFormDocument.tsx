@@ -18,7 +18,7 @@ export type ApplicationFormBooking = {
   bed_number: string;
   bed_code: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   booking_status: string;
@@ -189,7 +189,7 @@ export default function ApplicationFormDocument({
       <SectionTitle>Booking Details</SectionTitle>
       <div className="mt-3 grid grid-cols-4 gap-4">
         <Field label="Check-in / Start Date" value={formatDate(booking.start_date)} />
-        <Field label="Expected End Date" value={formatDate(booking.end_date)} />
+        <Field label="Expected End Date" value={booking.end_date ? formatDate(booking.end_date) : "Ongoing"} />
         <Field
           label="Standard Room Rate"
           value={standardRate != null ? formatMoney(standardRate) : "-"}
