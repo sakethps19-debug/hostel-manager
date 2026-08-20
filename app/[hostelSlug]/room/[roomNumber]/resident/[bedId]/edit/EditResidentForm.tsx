@@ -18,7 +18,7 @@ type ResidentDetails = {
   work_college_address: string | null;
   notes: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   hostel_name: string;
@@ -121,7 +121,7 @@ export default function EditResidentForm({
         setWorkCollegeAddress(resident.work_college_address || "");
         setNotes(resident.notes || "");
         setStartDate(resident.start_date);
-        setEndDate(resident.end_date);
+        setEndDate(resident.end_date ?? "");
         setMonthlyRent(String(resident.monthly_rent));
         setSecurityDeposit(String(resident.security_deposit || 0));
         setEmergencyContactMobile(resident.emergency_contact || "");
@@ -173,7 +173,13 @@ export default function EditResidentForm({
     if (!details) return;
 
     setErrorMessage("");
-    if (!/^\d{10}$/.test(mobileNumber)) {
+    // Format-validated only when present - imported/legacy residents may
+    // genuinely have no mobile number or ID proof on file, and this edit
+    // form must not force that data to be invented just to save an
+    // unrelated change (e.g. a name typo). The normal booking creation
+    // flow (BookingForm.tsx / create_booking) is unaffected and still
+    // requires all of this for a brand new resident.
+    if (mobileNumber && !/^\d{10}$/.test(mobileNumber)) {
       setErrorMessage("Mobile number must contain exactly 10 digits.");
       return;
     }
@@ -183,15 +189,6 @@ export default function EditResidentForm({
       return;
     }
 
-    if (!idProofType) {
-      setErrorMessage("Please select an ID proof type.");
-      return;
-    }
-
-    if (!idProofNumber.trim()) {
-      setErrorMessage("Please enter the ID proof number/value.");
-      return;
-    }
     const rent = Number(monthlyRent);
     const deposit = Number(securityDeposit || 0);
 
@@ -200,12 +197,12 @@ export default function EditResidentForm({
       return;
     }
 
-    if (!startDate || !endDate) {
-      setErrorMessage("Start date and end date are required.");
+    if (!startDate) {
+      setErrorMessage("Start date is required.");
       return;
     }
 
-    if (new Date(endDate) < new Date(startDate)) {
+    if (endDate && new Date(endDate) < new Date(startDate)) {
       setErrorMessage("End date cannot be before start date.");
       return;
     }
@@ -236,7 +233,7 @@ export default function EditResidentForm({
           p_work_college_address: workCollegeAddress,
           p_notes: notes,
           p_start_date: startDate,
-          p_end_date: endDate,
+          p_end_date: endDate || null,
           p_monthly_rent: rent,
           p_security_deposit: deposit,
         });
@@ -390,7 +387,7 @@ export default function EditResidentForm({
                 />
               </Field>
 
-              <Field label="Mobile Number *">
+              <Field label="Mobile Number">
   <input
     type="tel"
     value={mobileNumber}
@@ -406,7 +403,6 @@ export default function EditResidentForm({
     inputMode="numeric"
     pattern="[0-9]{10}"
     maxLength={10}
-    required
   />
 </Field>
 
@@ -535,12 +531,11 @@ export default function EditResidentForm({
             </h2>
 
             <div className="mt-6 grid gap-5 md:grid-cols-2">
-              <Field label="ID Proof Type *">
+              <Field label="ID Proof Type">
                 <select
                   value={idProofType}
                   onChange={(e) => setIdProofType(e.target.value)}
                   className="input-style"
-                  required
                 >
                   <option value="">Select ID proof</option>
                   <option value="Aadhaar Card">Aadhaar Card</option>
@@ -551,13 +546,12 @@ export default function EditResidentForm({
                 </select>
               </Field>
 
-              <Field label="ID Proof Number / Value *">
+              <Field label="ID Proof Number / Value">
                 <input
                   value={idProofNumber}
                   onChange={(e) => setIdProofNumber(e.target.value)}
                   className="input-style"
                   placeholder="Enter ID proof number"
-                  required
                 />
               </Field>
             </div>
@@ -580,13 +574,13 @@ export default function EditResidentForm({
                 />
               </Field>
 
-              <Field label="End Date *">
+              <Field label="End Date">
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="input-style"
-                  required
+                  placeholder="Leave blank if ongoing"
                 />
               </Field>
 

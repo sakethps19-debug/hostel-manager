@@ -38,7 +38,7 @@ type BookingDetails = {
   bed_code: string | null;
   bed_number: string;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   booking_status: string;
   created_at: string;
 };

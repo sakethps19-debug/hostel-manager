@@ -13,7 +13,7 @@ type ResidentDetails = {
   hostel_name: string;
   monthly_rent: number;
   security_deposit: number | null;
-  end_date: string;
+  end_date: string | null;
   booking_status: string;
 };
 

@@ -13,7 +13,7 @@ type ResidentRow = {
   bed_id: number;
   bed_code: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   outstanding_rent: number;
   booking_status: string;

@@ -29,7 +29,7 @@ type VacancyRow = {
   full_name: string;
   room_number: string;
   bed_number: string;
-  end_date: string;
+  end_date: string | null;
   days_left: number;
   monthly_rent: number;
 };

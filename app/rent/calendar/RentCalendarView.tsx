@@ -17,7 +17,7 @@ type LedgerRow = {
   balance_outstanding: number;
   payment_status: string;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
 };
 
 function formatMoney(value: number) {
