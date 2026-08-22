@@ -17,7 +17,7 @@ type BookingHistoryRow = {
   bed_number: string;
   bed_code: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   booking_status: string;
@@ -112,9 +112,15 @@ export default function BookingSearchTable({
         (!startFrom || booking.start_date >= startFrom) &&
         (!startTo || booking.start_date <= startTo);
 
+      // A null end_date is an open-ended/ongoing booking - it has no end
+      // date to compare, so it only matches when neither end-date filter is
+      // active; setting either filter is an explicit request to see
+      // bookings with a known end date in that range, which an ongoing
+      // booking isn't.
       const matchesEndRange =
-        (!endFrom || booking.end_date >= endFrom) &&
-        (!endTo || booking.end_date <= endTo);
+        booking.end_date !== null
+          ? (!endFrom || booking.end_date >= endFrom) && (!endTo || booking.end_date <= endTo)
+          : !endFrom && !endTo;
 
       return (
         matchesName &&
@@ -312,7 +318,7 @@ export default function BookingSearchTable({
                     <p>{formatDate(booking.start_date)}</p>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      to {formatDate(booking.end_date)}
+                      to {booking.end_date ? formatDate(booking.end_date) : "Ongoing"}
                     </p>
                   </td>
 

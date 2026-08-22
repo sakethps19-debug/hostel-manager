@@ -1,6 +1,7 @@
 import { slugifyHostelName } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
+import { ACTIVE_STATUSES } from "@/lib/communications/recipients";
 
 type ResidentRow = {
   resident_id: number;
@@ -33,7 +34,7 @@ type FlaggedResident = {
   fullName: string;
   hostelName: string;
   roomNumber: string;
-  bedId: number;
+  bedId: number | null;
   bedCode: string | null;
   detail?: string;
 };
@@ -62,22 +63,36 @@ function Category({
 
       {items.length > 0 && (
         <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm">
-          {items.map((item) => (
-            <li key={item.residentId}>
-              <a
-                href={`/${slugifyHostelName(item.hostelName)}/room/${item.roomNumber}/resident/${item.bedId}`}
-                className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-              >
-                <span className="text-indigo-600 hover:text-indigo-700">
+          {items.map((item) => {
+            const rowContent = (
+              <>
+                <span className="text-indigo-600 group-hover:text-indigo-700">
                   {item.fullName}
                 </span>
                 <span className="text-xs text-slate-400">
                   {item.hostelName} · {item.bedCode || item.roomNumber}
                   {item.detail ? ` · ${item.detail}` : ""}
                 </span>
-              </a>
-            </li>
-          ))}
+              </>
+            );
+
+            return (
+              <li key={item.residentId}>
+                {item.bedId !== null ? (
+                  <a
+                    href={`/${slugifyHostelName(item.hostelName)}/room/${item.roomNumber}/resident/${item.bedId}`}
+                    className="group flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+                  >
+                    {rowContent}
+                  </a>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5">
+                    {rowContent}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -92,8 +107,8 @@ export default async function DataHealthPage() {
     callRpcServer<EmergencyRow[]>("get_emergency_directory"),
   ]);
 
-  const active = residents.filter(
-    (r) => r.booking_status === "confirmed" || r.booking_status === "checked_in"
+  const active = residents.filter((r) =>
+    (ACTIVE_STATUSES as readonly string[]).includes(r.booking_status)
   );
 
   const toFlagged = (r: ResidentRow, detail?: string): FlaggedResident => ({
@@ -139,11 +154,14 @@ export default async function DataHealthPage() {
       fullName: r.full_name,
       hostelName: r.hostel_name,
       roomNumber: r.room_number,
-      bedId:
-        active.find((a) => a.resident_id === r.resident_id)?.bed_id ?? 0,
+      // get_emergency_directory doesn't return bed_id, only bed_number (a
+      // display label) - fall back to get_resident_master_list for the
+      // link target, but keep the row (with a non-clickable fallback) if
+      // no match is found instead of silently dropping a data-quality gap
+      // from the one page whose purpose is to surface exactly that.
+      bedId: active.find((a) => a.resident_id === r.resident_id)?.bed_id ?? null,
       bedCode: r.bed_code,
-    }))
-    .filter((r) => r.bedId !== 0);
+    }));
 
   const categories: [string, FlaggedResident[]][] = [
     ["Missing Resident Photo", missingPhoto],

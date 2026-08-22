@@ -10,7 +10,7 @@ type FutureBooking = {
   full_name: string;
   mobile_number: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
 };
 
@@ -101,7 +101,7 @@ export default async function ReservationPage({ params }: PageProps) {
             <div>
               <p className="text-xs font-medium text-slate-400">End Date</p>
               <p className="mt-1 font-semibold">
-                {formatDate(booking.end_date)}
+                {booking.end_date ? formatDate(booking.end_date) : "Ongoing"}
               </p>
             </div>
           </div>

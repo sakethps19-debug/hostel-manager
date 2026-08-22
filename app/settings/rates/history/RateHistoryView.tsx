@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 
 type AuditLogRow = {
   audit_id: number;
@@ -23,20 +24,6 @@ type ChangeRow = {
   changedBy: string | null;
   changedAt: string;
 };
-
-function formatMoney(value: number) {
-  return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
-}
-
-function formatDateTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function buildChanges(entries: AuditLogRow[]): ChangeRow[] {
   const groups = new Map<string, AuditLogRow[]>();
@@ -159,13 +146,7 @@ export default function RateHistoryView({
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500">
-                      {row.effectiveDate
-                        ? new Date(`${row.effectiveDate}T00:00:00`).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "-"}
+                      {row.effectiveDate ? formatDate(row.effectiveDate) : "-"}
                     </td>
                     <td className="px-4 py-3">{row.changedBy || "-"}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500">

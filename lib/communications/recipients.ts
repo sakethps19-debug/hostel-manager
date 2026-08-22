@@ -20,7 +20,7 @@ export type RecipientCandidate = {
   isDocumentPending: boolean;
 };
 
-const ACTIVE_STATUSES = ["confirmed", "checked_in"];
+export const ACTIVE_STATUSES = ["confirmed", "checked_in"];
 
 type ResidentMasterRow = {
   resident_id: number;
@@ -33,6 +33,8 @@ type ResidentMasterRow = {
   monthly_rent: number;
   outstanding_rent: number;
   booking_status: string;
+  id_proof_number: string | null;
+  photo_storage_path: string | null;
 };
 
 type BedGridRow = {
@@ -59,10 +61,6 @@ type DepositRow = {
   deposit_received: number;
 };
 
-type ExpiringDocRow = {
-  resident_id: number;
-};
-
 async function getRoomFloorMap(): Promise<Map<string, number>> {
   const hostels = await getHostelList();
   const map = new Map<string, number>();
@@ -86,7 +84,7 @@ async function getRoomFloorMap(): Promise<Map<string, number>> {
 // used elsewhere in the app for its own report page) rather than querying
 // any table directly.
 export async function getRecipientCandidates(): Promise<RecipientCandidate[]> {
-  const [residents, roomFloorMap, ledger, vacancies, checkins, deposits, expiringDocs] =
+  const [residents, roomFloorMap, ledger, vacancies, checkins, deposits] =
     await Promise.all([
       callRpcServer<ResidentMasterRow[]>("get_resident_master_list"),
       getRoomFloorMap(),
@@ -94,7 +92,6 @@ export async function getRecipientCandidates(): Promise<RecipientCandidate[]> {
       callRpcServer<UpcomingVacancyRow[]>("get_upcoming_vacancies", { p_days: 30 }),
       callRpcServer<TodayCheckinRow[]>("get_todays_checkins"),
       callRpcServer<DepositRow[]>("get_deposit_reconciliation"),
-      callRpcServer<ExpiringDocRow[]>("get_expiring_documents"),
     ]);
 
   const overdueIds = new Set(
@@ -105,7 +102,11 @@ export async function getRecipientCandidates(): Promise<RecipientCandidate[]> {
   const depositPendingIds = new Set(
     deposits.filter((r) => r.deposit_agreed > r.deposit_received).map((r) => r.resident_id)
   );
-  const documentPendingIds = new Set(expiringDocs.map((r) => r.resident_id));
+  const documentPendingIds = new Set(
+    residents
+      .filter((r) => !r.id_proof_number || !r.photo_storage_path)
+      .map((r) => r.resident_id)
+  );
 
   return residents.map((r) => ({
     residentId: r.resident_id,

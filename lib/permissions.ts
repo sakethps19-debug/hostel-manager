@@ -4,6 +4,10 @@ const PERMISSIONS = {
   manageBookings: ["owner", "operations_manager"],
   manageResidents: ["owner", "operations_manager"],
   manageMaintenance: ["owner", "operations_manager"],
+  // Asset Register serves both operational (condition/location) and finance
+  // (cost/depreciation) needs - finance_manager couldn't reach the page at
+  // all before this, since it was gated behind manageMaintenance only.
+  viewAssetRegister: ["owner", "operations_manager", "finance_manager"],
   manageOperationalRecords: ["owner", "operations_manager"],
   manageDocuments: ["owner", "operations_manager"],
   managePayments: ["owner", "finance_manager"],
@@ -15,6 +19,12 @@ const PERMISSIONS = {
   sendOperationalMessages: ["owner", "operations_manager"],
   sendFinanceMessages: ["owner", "finance_manager"],
   manageMessageTemplates: ["owner"],
+  manageCommunicationSettings: ["owner"],
+  manageChartOfAccounts: ["owner"],
+  manageAccountingPeriod: ["owner"],
+  manageOpeningBalances: ["owner"],
+  manageJournalEntries: ["owner", "finance_manager"],
+  manageAssetFinance: ["owner", "finance_manager"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

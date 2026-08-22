@@ -15,6 +15,19 @@ function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
 
+function monthsAgoIsoDate(months: number) {
+  const d = new Date();
+  d.setDate(1); // avoid month-end overflow (e.g. Mar 31 - 1 month landing on Mar 3)
+  d.setMonth(d.getMonth() - months);
+  return d.toISOString().slice(0, 10);
+}
+
+const MONTH_PRESETS = [
+  { label: "3 Months", months: 3 },
+  { label: "6 Months", months: 6 },
+  { label: "12 Months", months: 12 },
+];
+
 export default function LedgerView({
   entries,
   residentName,
@@ -28,6 +41,19 @@ export default function LedgerView({
 }) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [activePreset, setActivePreset] = useState<number | null>(null);
+
+  function applyPreset(months: number) {
+    setFromDate(monthsAgoIsoDate(months));
+    setToDate("");
+    setActivePreset(months);
+  }
+
+  function clearRange() {
+    setFromDate("");
+    setToDate("");
+    setActivePreset(null);
+  }
 
   const filtered = useMemo(() => {
     return entries.filter((entry) => {
@@ -46,10 +72,10 @@ export default function LedgerView({
 
     for (const entry of filtered) {
       if (entry.type === "Monthly Rent Due") totalRentDue += entry.debit;
-      if (entry.type === "Rent Payment") totalRentPaid += entry.credit;
+      if (entry.type === "Rent Receipt") totalRentPaid += entry.credit;
       if (entry.type === "Other Charge") otherCharges += entry.credit;
       if (entry.type === "Deposit Refund") refunds += entry.debit;
-      if (entry.type === "Deposit Payment") depositReceived += entry.credit;
+      if (entry.type === "Advance Receipt") depositReceived += entry.credit;
     }
 
     const currentBalance =
@@ -72,7 +98,33 @@ export default function LedgerView({
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4 print:hidden">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap gap-2">
+            {MONTH_PRESETS.map((preset) => (
+              <button
+                key={preset.months}
+                type="button"
+                onClick={() => applyPreset(preset.months)}
+                className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                  activePreset === preset.months
+                    ? "border-indigo-600 bg-indigo-600 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+            {(fromDate || toDate) && (
+              <button
+                type="button"
+                onClick={clearRange}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50"
+              >
+                All Time
+              </button>
+            )}
+          </div>
+
           <label className="block">
             <span className="mb-1 block text-xs font-semibold text-slate-500">
               From
@@ -80,7 +132,10 @@ export default function LedgerView({
             <input
               type="date"
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setActivePreset(null);
+              }}
               className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
             />
           </label>
@@ -92,7 +147,10 @@ export default function LedgerView({
             <input
               type="date"
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setActivePreset(null);
+              }}
               className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
             />
           </label>

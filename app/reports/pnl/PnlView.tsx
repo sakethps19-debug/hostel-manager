@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { formatFiscalYear } from "@/lib/format";
+import { formatFiscalYear, formatMoney } from "@/lib/format";
 
 type PnlRow = {
   hostel_name: string;
@@ -24,10 +24,6 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-
-function money(value: number) {
-  return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
-}
 
 export default function PnlView({
   pnl,
@@ -103,20 +99,20 @@ export default function PnlView({
               >
                 <td className="px-4 py-3">{row.hostel_name}</td>
                 <td className="px-4 py-3 text-right">
-                  {money(row.rent_revenue)}
+                  {formatMoney(row.rent_revenue)}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {money(row.other_revenue)}
+                  {formatMoney(row.other_revenue)}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {money(row.operating_expenses)}
+                  {formatMoney(row.operating_expenses)}
                 </td>
                 <td
                   className={`px-4 py-3 text-right font-semibold ${
                     row.net_surplus >= 0 ? "text-emerald-600" : "text-red-600"
                   }`}
                 >
-                  {money(row.net_surplus)}
+                  {formatMoney(row.net_surplus)}
                 </td>
               </tr>
             ))}
@@ -147,21 +143,21 @@ export default function PnlView({
               <div className="flex justify-between">
                 <span className="text-slate-500">Outstanding Rent</span>
                 <span className="font-semibold text-red-600">
-                  {money(m.outstanding_rent_total)}
+                  {formatMoney(m.outstanding_rent_total)}
                 </span>
               </div>
 
               <div className="flex justify-between">
                 <span className="text-slate-500">Deposits Held</span>
                 <span className="font-semibold">
-                  {money(m.deposits_held_total)}
+                  {formatMoney(m.deposits_held_total)}
                 </span>
               </div>
 
               <div className="flex justify-between">
                 <span className="text-slate-500">Revenue / Occupied Bed</span>
                 <span className="font-semibold">
-                  {money(
+                  {formatMoney(
                     m.occupied_beds > 0
                       ? (pnlByHostel.get(m.hostel_name)?.rent_revenue || 0) /
                           m.occupied_beds

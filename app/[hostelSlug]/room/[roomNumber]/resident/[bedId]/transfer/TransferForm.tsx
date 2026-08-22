@@ -57,7 +57,7 @@ export default function TransferForm({
   currentBedLabel: string;
   currentMonthlyRent: number;
   currentSecurityDeposit: number;
-  currentEndDate: string;
+  currentEndDate: string | null;
   availableBeds: AvailableBedRow[];
   backHref: string;
 }) {
@@ -78,7 +78,7 @@ export default function TransferForm({
   const [newSecurityDeposit, setNewSecurityDeposit] = useState(
     String(currentSecurityDeposit)
   );
-  const [newEndDate, setNewEndDate] = useState(currentEndDate);
+  const [newEndDate, setNewEndDate] = useState(currentEndDate ?? "");
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");

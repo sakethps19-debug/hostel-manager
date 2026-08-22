@@ -28,14 +28,22 @@ function formatMoney(value: number) {
  * anniversary of the booking's start date) that has already passed.
  * This is the confirmed business rule for when rent is due.
  */
+// Builds year/month/day, clamping day to the last day of that month so a
+// startDay of 29-31 lands on the month's actual last day (e.g. Feb 28)
+// instead of silently rolling over into the next month via Date's overflow.
+function clampedMonthDate(year: number, month: number, day: number): Date {
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+  return new Date(year, month, Math.min(day, lastDayOfMonth));
+}
+
 function daysOverdue(startDate: string): number {
   const startDay = new Date(`${startDate}T00:00:00`).getDate();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  let dueDate = new Date(today.getFullYear(), today.getMonth(), startDay);
+  let dueDate = clampedMonthDate(today.getFullYear(), today.getMonth(), startDay);
   if (dueDate > today) {
-    dueDate = new Date(today.getFullYear(), today.getMonth() - 1, startDay);
+    dueDate = clampedMonthDate(today.getFullYear(), today.getMonth() - 1, startDay);
   }
 
   return Math.max(0, Math.round((today.getTime() - dueDate.getTime()) / 86400000));

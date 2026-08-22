@@ -62,6 +62,12 @@ export default function UserMenu({ role }: { role: string | null }) {
           >
             Change Password
           </a>
+          <a
+            href="/security"
+            className="block w-full border-t border-slate-100 px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Two-Factor Authentication
+          </a>
           <button
             onClick={handleLogout}
             className="block w-full border-t border-slate-100 px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"

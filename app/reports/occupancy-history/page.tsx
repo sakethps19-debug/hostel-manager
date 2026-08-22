@@ -66,8 +66,10 @@ export default async function OccupancyHistoryPage() {
           </p>
           <h1 className="mt-2 text-4xl font-bold">Occupancy History</h1>
           <p className="mt-2 text-slate-500">
-            Daily occupancy snapshots per hostel, captured automatically once
-            per day. Historical snapshots are never overwritten.
+            Daily occupancy snapshots per hostel, captured the first time the
+            dashboard is visited each day. Historical snapshots are never
+            overwritten, but a day with no dashboard visits at all has no
+            snapshot.
           </p>
         </div>
 

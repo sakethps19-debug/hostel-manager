@@ -14,7 +14,29 @@ const PAYMENT_TYPES = [
   "Adjustment",
 ];
 
+const PAYMENT_TYPE_HINTS: Record<string, string> = {
+  "Monthly Rent": "A regular rent receipt against the resident's monthly rent due.",
+  "Security Deposit": "The refundable advance collected at move-in.",
+  "Deposit Refund": "Returning some or all of a previously collected advance — this is a refund paid to the resident, not a receipt.",
+  "Other Charge": "A real charge collected from the resident for something other than rent (e.g. a fine, a service fee) — money actually changed hands.",
+  Adjustment:
+    "A discount or waiver that reduces what the resident owes WITHOUT any money changing hands — e.g. writing off a late fee. If cash, UPI, or a bank transfer actually happened, use \"Monthly Rent\" or \"Other Charge\" instead, not Adjustment.",
+};
+
 const PAYMENT_MODES = ["Cash", "UPI", "Bank Transfer", "Other"];
+
+// Only "Monthly Rent"/"Security Deposit"/"Other Charge" are actually money
+// received FROM the resident (a receipt). "Deposit Refund" is money paid
+// OUT to the resident, and "Adjustment" is a non-cash write-off - neither
+// is a receipt, so the page title/submit button must reflect what's
+// actually being recorded instead of always saying "Receipt".
+const ACTION_LABELS: Record<string, string> = {
+  "Monthly Rent": "Record Rent Receipt",
+  "Security Deposit": "Record Advance Receipt",
+  "Other Charge": "Record Receipt",
+  "Deposit Refund": "Record Refund",
+  Adjustment: "Record Adjustment",
+};
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -67,19 +89,19 @@ export default function PaymentForm({
     }
 
     if (!paymentDate) {
-      setErrorMessage("Payment date is required.");
+      setErrorMessage("Date is required.");
       return;
     }
 
     if (!paymentMode) {
-      setErrorMessage("Please select a payment mode.");
+      setErrorMessage("Please select a mode.");
       return;
     }
 
     try {
       setSaving(true);
 
-      await callRpcClient("record_payment", {
+      const paymentId = await callRpcClient<number>("record_payment", {
         p_booking_id: bookingId,
         p_amount: numericAmount,
         p_payment_date: paymentDate,
@@ -96,11 +118,21 @@ export default function PaymentForm({
         payment_mode: paymentMode,
       });
 
+      // Books the accounting consequence (Dr Cash/Bank, Cr the relevant
+      // receivable/liability/income account) - best-effort second step,
+      // same pattern as logAuditEvent above; the Reconciliation page's
+      // unjournaled-payment check catches anything that fails to post here.
+      try {
+        await callRpcClient("post_payment_journal", { p_payment_id: paymentId });
+      } catch {
+        // surfaced via the Reconciliation page, not here
+      }
+
       router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to record payment."
+        error instanceof Error ? error.message : "Unable to save this entry."
       );
     } finally {
       setSaving(false);
@@ -122,7 +154,9 @@ export default function PaymentForm({
             {hostelName} · {bedLabel}
           </p>
 
-          <h1 className="mt-2 text-4xl font-bold">Record Payment</h1>
+          <h1 className="mt-2 text-4xl font-bold">
+            {ACTION_LABELS[paymentType] ?? "Record Receipt"}
+          </h1>
 
           <p className="mt-2 text-slate-500">{residentName}</p>
         </div>
@@ -132,7 +166,7 @@ export default function PaymentForm({
           className="mt-10 space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Payment Type *">
+            <Field label="Transaction Type *">
               <select
                 value={paymentType}
                 onChange={(e) => setPaymentType(e.target.value)}
@@ -145,6 +179,9 @@ export default function PaymentForm({
                   </option>
                 ))}
               </select>
+              {PAYMENT_TYPE_HINTS[paymentType] && (
+                <p className="mt-1.5 text-xs text-slate-500">{PAYMENT_TYPE_HINTS[paymentType]}</p>
+              )}
             </Field>
 
             <Field label="Amount *">
@@ -159,7 +196,7 @@ export default function PaymentForm({
               />
             </Field>
 
-            <Field label="Payment Date *">
+            <Field label="Date *">
               <input
                 type="date"
                 value={paymentDate}
@@ -169,7 +206,7 @@ export default function PaymentForm({
               />
             </Field>
 
-            <Field label="Payment For Month">
+            <Field label="For Month">
               <input
                 type="month"
                 value={paymentForMonth}
@@ -178,7 +215,7 @@ export default function PaymentForm({
               />
             </Field>
 
-            <Field label="Payment Mode *">
+            <Field label="Mode *">
               <select
                 value={paymentMode}
                 onChange={(e) => setPaymentMode(e.target.value)}
@@ -210,7 +247,7 @@ export default function PaymentForm({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="input-style"
-              placeholder="Any additional context for this payment"
+              placeholder="Any additional context for this entry"
             />
           </Field>
 
@@ -242,7 +279,7 @@ export default function PaymentForm({
               disabled={saving || !duplicateOkToProceed}
               className="rounded-xl bg-indigo-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Record Payment"}
+              {saving ? "Saving..." : ACTION_LABELS[paymentType] ?? "Record Receipt"}
             </button>
           </div>
         </form>

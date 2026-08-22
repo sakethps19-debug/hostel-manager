@@ -21,12 +21,14 @@ export default function ResidentTags({
   const [tags, setTags] = useState(initialTags);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   async function addTag(label: string) {
     const trimmed = label.trim();
     if (!trimmed) return;
     if (tags.some((t) => t.tag_label.toLowerCase() === trimmed.toLowerCase())) {
+      setErrorMessage("This resident already has that tag.");
       setNewTag("");
       return;
     }
@@ -56,8 +58,11 @@ export default function ResidentTags({
   }
 
   async function removeTag(tagId: number) {
+    if (removingId !== null) return;
+
     setErrorMessage("");
     const removedLabel = tags.find((t) => t.tag_id === tagId)?.tag_label;
+    setRemovingId(tagId);
 
     try {
       await callRpcClient("remove_resident_tag", { p_tag_id: tagId });
@@ -70,6 +75,8 @@ export default function ResidentTags({
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to remove tag."
       );
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -84,7 +91,8 @@ export default function ResidentTags({
             {tag.tag_label}
             <button
               onClick={() => removeTag(tag.tag_id)}
-              className="text-indigo-400 hover:text-indigo-700"
+              disabled={removingId === tag.tag_id}
+              className="text-indigo-400 hover:text-indigo-700 disabled:opacity-50"
               aria-label={`Remove ${tag.tag_label}`}
             >
               ×

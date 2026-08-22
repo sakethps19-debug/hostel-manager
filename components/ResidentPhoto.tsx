@@ -99,7 +99,7 @@ export default function ResidentPhoto({
 
     try {
       const path = buildResidentFilePath(residentId, "profile", pendingFile.name);
-      await uploadResidentFile(path, pendingFile);
+      await uploadResidentFile(path, pendingFile, "photo");
 
       const documentId = await callRpcClient<number>("add_resident_document", {
         p_resident_id: residentId,

@@ -18,7 +18,7 @@ export type ApplicationFormBooking = {
   bed_number: string;
   bed_code: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   booking_status: string;
@@ -90,7 +90,7 @@ export default function ApplicationFormDocument({
     <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
       <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">VNR Boys Hostel</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{booking.hostel_name}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-slate-600">
             Resident Application / Admission Form
           </p>
@@ -189,7 +189,7 @@ export default function ApplicationFormDocument({
       <SectionTitle>Booking Details</SectionTitle>
       <div className="mt-3 grid grid-cols-4 gap-4">
         <Field label="Check-in / Start Date" value={formatDate(booking.start_date)} />
-        <Field label="Expected End Date" value={formatDate(booking.end_date)} />
+        <Field label="Expected End Date" value={booking.end_date ? formatDate(booking.end_date) : "Ongoing"} />
         <Field
           label="Standard Room Rate"
           value={standardRate != null ? formatMoney(standardRate) : "-"}

@@ -2,11 +2,7 @@ import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { getHostelList } from "@/lib/hostel";
 import { deriveBedStatus } from "@/lib/bedStatus";
-
-type RoomRow = {
-  room_number: string;
-  monthly_rent: number;
-};
+import { formatMoney } from "@/lib/format";
 
 type ResidentRow = {
   hostel_name: string;
@@ -25,16 +21,6 @@ type BedGridRow = {
   notice_given_at: string | null;
   is_future_booking: boolean;
 };
-
-function formatMoney(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
-
-async function getHostelRooms(hostelName: string): Promise<RoomRow[]> {
-  return callRpcServer<RoomRow[]>("get_hostel_rooms", {
-    p_hostel_name: hostelName,
-  });
-}
 
 async function getHostelBedGrid(hostelName: string): Promise<BedGridRow[]> {
   return callRpcServer<BedGridRow[]>("get_hostel_bed_grid", {
@@ -56,29 +42,42 @@ export default async function HostelComparisonPage() {
 
   const rows = await Promise.all(
     hostels.map(async (hostel) => {
-      const [rooms, bedGrid] = await Promise.all([
-        getHostelRooms(hostel.hostel_name),
-        getHostelBedGrid(hostel.hostel_name),
-      ]);
+      const bedGrid = await getHostelBedGrid(hostel.hostel_name);
 
-      const roomRate = new Map(rooms.map((r) => [r.room_number, Number(r.monthly_rent)]));
+      // Bed grid rows already carry each room's standard monthly_rent, so
+      // build the room-rate map from it instead of a separate get_hostel_rooms
+      // round trip.
+      const roomRate = new Map(
+        bedGrid.map((b) => [b.room_number, Number(b.monthly_rent || 0)])
+      );
 
       const hostelResidents = activeResidents.filter(
         (r) => r.hostel_name === hostel.hostel_name
       );
 
+      // Only average in residents whose room has a known standard rate,
+      // matching app/reports/discounts/page.tsx's convention - otherwise an
+      // unresolvable room silently drags the average down via a 0.
+      const residentsWithKnownRate = hostelResidents.filter(
+        (r) => (roomRate.get(r.room_number) || 0) > 0
+      );
+
       const avgAgreedRent =
         hostelResidents.length > 0
-          ? hostelResidents.reduce((sum, r) => sum + Number(r.monthly_rent), 0) /
-            hostelResidents.length
+          ? Math.round(
+              hostelResidents.reduce((sum, r) => sum + Number(r.monthly_rent), 0) /
+                hostelResidents.length
+            )
           : 0;
 
       const avgStandardRate =
-        hostelResidents.length > 0
-          ? hostelResidents.reduce(
-              (sum, r) => sum + (roomRate.get(r.room_number) || 0),
-              0
-            ) / hostelResidents.length
+        residentsWithKnownRate.length > 0
+          ? Math.round(
+              residentsWithKnownRate.reduce(
+                (sum, r) => sum + (roomRate.get(r.room_number) || 0),
+                0
+              ) / residentsWithKnownRate.length
+            )
           : 0;
 
       const discountValue = hostelResidents.reduce((sum, r) => {
@@ -96,8 +95,8 @@ export default async function HostelComparisonPage() {
         (b) => deriveBedStatus(b) === "available"
       );
 
-      const dailyVacancyLoss = vacantBeds.reduce(
-        (sum, b) => sum + Number(b.monthly_rent || 0) / 30,
+      const monthlyVacancyLoss = vacantBeds.reduce(
+        (sum, b) => sum + Number(b.monthly_rent || 0),
         0
       );
 
@@ -112,14 +111,16 @@ export default async function HostelComparisonPage() {
         hostelName: hostel.hostel_name,
         totalBeds: Number(hostel.total_beds),
         occupiedBeds: Number(hostel.occupied_beds),
-        vacantBeds: Number(hostel.vacant_beds),
+        // Derived from the same "available" bed set used for Vacancy Loss
+        // below, rather than get_hostel_dashboard's vacant_beds, so the two
+        // figures on this page never disagree on which beds count as vacant.
+        vacantBeds: vacantBeds.length,
         occupancyPercent,
         avgStandardRate,
         avgAgreedRent,
         discountValue,
         outstanding,
-        dailyVacancyLoss,
-        monthlyVacancyLoss: dailyVacancyLoss * 30,
+        monthlyVacancyLoss,
       };
     })
   );
@@ -131,7 +132,6 @@ export default async function HostelComparisonPage() {
       vacantBeds: acc.vacantBeds + r.vacantBeds,
       discountValue: acc.discountValue + r.discountValue,
       outstanding: acc.outstanding + r.outstanding,
-      dailyVacancyLoss: acc.dailyVacancyLoss + r.dailyVacancyLoss,
       monthlyVacancyLoss: acc.monthlyVacancyLoss + r.monthlyVacancyLoss,
     }),
     {
@@ -140,7 +140,6 @@ export default async function HostelComparisonPage() {
       vacantBeds: 0,
       discountValue: 0,
       outstanding: 0,
-      dailyVacancyLoss: 0,
       monthlyVacancyLoss: 0,
     }
   );

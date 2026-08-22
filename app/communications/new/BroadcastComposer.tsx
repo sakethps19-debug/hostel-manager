@@ -72,9 +72,16 @@ export default function BroadcastComposer({
   const [messageBody, setMessageBody] = useState("");
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [result, setResult] = useState<{ sentCount: number; failedCount: number } | null>(
-    null
-  );
+  const [overrideLimit, setOverrideLimit] = useState(false);
+  // Generated once per send attempt so a double-click on "Send" (or a
+  // browser retry) carries the SAME key both times, letting the server
+  // recognize and reuse the same broadcast instead of creating a second one.
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [result, setResult] = useState<{
+    sentCount: number;
+    failedCount: number;
+    skippedCount: number;
+  } | null>(null);
 
   const floorOptions = useMemo(() => {
     if (!hostelFilter) return [];
@@ -189,18 +196,30 @@ export default function BroadcastComposer({
         channel,
         templateId: templateId ? Number(templateId) : null,
         targetGroupLabel: QUICK_FILTERS.find((f) => f.key === quickFilter)?.label || "Custom selection",
+        templateBody: messageBody,
         recipients: withMobile.map((r) => ({
           residentId: r.residentId,
           bookingId: r.bookingId,
           mobile: r.mobileNumber as string,
           messageBody: renderMessageTemplate(messageBody, candidateVariables(r)),
         })),
+        idempotencyKey,
+        overrideLimit,
       });
 
-      setResult({ sentCount: sendResult.sentCount, failedCount: sendResult.failedCount });
+      // Next broadcast needs a fresh key - reusing this one would make the
+      // server treat a genuinely new broadcast as a resend of this one.
+      setIdempotencyKey(crypto.randomUUID());
+
+      setResult({
+        sentCount: sendResult.sentCount,
+        failedCount: sendResult.failedCount,
+        skippedCount: sendResult.skippedCount,
+      });
       setSelectedIds(new Set());
       setMessageBody("");
       setTemplateId("");
+      setOverrideLimit(false);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to send broadcast."
@@ -386,6 +405,17 @@ export default function BroadcastComposer({
             </div>
           )}
 
+          {role === "owner" && (
+            <label className="mt-3 flex items-center gap-2 text-xs text-indigo-700">
+              <input
+                type="checkbox"
+                checked={overrideLimit}
+                onChange={(e) => setOverrideLimit(e.target.checked)}
+              />
+              Override the monthly per-resident message limit for this broadcast
+            </label>
+          )}
+
           {errorMessage && (
             <p className="mt-3 text-sm font-medium text-red-700">{errorMessage}</p>
           )}
@@ -393,7 +423,11 @@ export default function BroadcastComposer({
           {result && (
             <p className="mt-3 text-sm font-medium text-emerald-700">
               Sent to {result.sentCount} recipients
-              {result.failedCount > 0 ? `, ${result.failedCount} failed.` : "."}
+              {result.failedCount > 0 ? `, ${result.failedCount} failed` : ""}
+              {result.skippedCount > 0
+                ? `, ${result.skippedCount} skipped (monthly message limit)`
+                : ""}
+              .
             </p>
           )}
 

@@ -7,8 +7,10 @@ import NavDropdown from "@/components/NavDropdown";
 import GlobalSearchForm from "@/components/GlobalSearchForm";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, roleLabel, type Role } from "@/lib/permissions";
 import { getFeatureFlags } from "@/lib/featureFlags";
+
+const PREVIEWABLE_ROLES: Role[] = ["finance_manager", "operations_manager"];
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -73,7 +75,11 @@ function formatMoney(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
 
-export default async function Home() {
+type PageProps = {
+  searchParams: Promise<{ viewAs?: string }>;
+};
+
+export default async function Home({ searchParams }: PageProps) {
   await callRpcServer("capture_daily_occupancy_snapshot_if_missing").catch(
     () => {}
   );
@@ -88,7 +94,20 @@ export default async function Home() {
     const flag = featureFlags.find((f) => f.key === key);
     return flag ? flag.enabled : true;
   };
-  const role = await getMyRole();
+  const actualRole = await getMyRole();
+  const { viewAs } = await searchParams;
+  // Owner-only "view as" preview: lets the Owner see what the nav/quick
+  // actions look like for Finance Manager or Operations Manager, without
+  // actually switching accounts. Every hasPermission(role, ...) check below
+  // uses this effective role, so the preview only ever narrows what's shown
+  // - it can't grant the Owner anything they don't already have, and every
+  // linked page still re-checks the REAL session role server-side regardless
+  // of what's clicked here.
+  const previewRole =
+    actualRole === "owner" && PREVIEWABLE_ROLES.includes(viewAs as Role)
+      ? (viewAs as Role)
+      : null;
+  const role = previewRole ?? actualRole;
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManageResidents = hasPermission(role, "manageResidents");
   const canManageOperationalRecords = hasPermission(
@@ -96,6 +115,7 @@ export default async function Home() {
     "manageOperationalRecords"
   );
   const canManageExpenses = hasPermission(role, "manageExpenses");
+  const canManageMaintenance = hasPermission(role, "manageMaintenance");
   const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
   const canViewAuditLog = hasPermission(role, "viewAuditLog");
   const canManageUsers = hasPermission(role, "manageUsers");
@@ -143,6 +163,52 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {actualRole === "owner" && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+            {previewRole ? (
+              <>
+                <span className="font-semibold text-amber-800">
+                  Previewing the nav as {roleLabel(previewRole)} — this only changes what&apos;s shown below;
+                  you&apos;re still signed in as Owner and every page still checks your real access.
+                </span>
+                <a
+                  href="/"
+                  className="ml-auto rounded-lg border border-amber-300 bg-white px-3 py-1 font-semibold text-amber-800 hover:bg-amber-100"
+                >
+                  Exit Preview
+                </a>
+              </>
+            ) : (
+              <form method="get" className="flex flex-wrap items-center gap-2">
+                <label htmlFor="viewAs" className="font-semibold text-amber-800">
+                  Preview dashboard as:
+                </label>
+                <select
+                  id="viewAs"
+                  name="viewAs"
+                  defaultValue=""
+                  className="rounded-lg border border-amber-300 bg-white px-2 py-1.5 text-sm outline-none"
+                >
+                  <option value="" disabled>
+                    Choose a role…
+                  </option>
+                  {PREVIEWABLE_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {roleLabel(r)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-700"
+                >
+                  Preview
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-indigo-600">
@@ -165,7 +231,6 @@ export default async function Home() {
       ...(hasPermission(role, "manageMaintenance")
         ? [
             { label: "Housekeeping", href: "/housekeeping", section: "Manage" },
-            { label: "Asset Register", href: "/settings/assets", section: "Manage" },
             { label: "Purchase Requests", href: "/purchase-requests", section: "Manage" },
           ]
         : []),
@@ -173,6 +238,9 @@ export default async function Home() {
         ? [{ label: "Emergency Directory", href: "/emergency-directory", section: "Manage" }]
         : []),
       { label: "Booking History", href: "/history", section: "Manage" },
+      ...(hasPermission(role, "viewAssetRegister") && !canViewFinancialReports
+        ? [{ label: "Asset Register", href: "/settings/assets", section: "Manage" }]
+        : []),
       ...(canManageOperationalRecords
         ? [
             { label: "Enquiries", href: "/enquiries", section: "Manage" },
@@ -206,11 +274,11 @@ export default async function Home() {
     <NavDropdown
       label="Finance"
       items={[
-        { label: "Overdue Rent", href: "/rent/overdue", section: "Rent & Payments" },
-        { label: "Rent Calendar", href: "/rent/calendar", section: "Rent & Payments" },
-        { label: "Receivable Ageing", href: "/rent/ageing", section: "Rent & Payments" },
-        { label: "Advance Rent", href: "/reports/advance-rent", section: "Rent & Payments" },
-        { label: "Payments Report", href: "/reports/payments", section: "Rent & Payments" },
+        { label: "Overdue Rent", href: "/rent/overdue", section: "Rent & Receipts" },
+        { label: "Rent Calendar", href: "/rent/calendar", section: "Rent & Receipts" },
+        { label: "Receivable Ageing", href: "/rent/ageing", section: "Rent & Receipts" },
+        { label: "Advance Rent", href: "/reports/advance-rent", section: "Rent & Receipts" },
+        { label: "Receipts Report", href: "/reports/payments", section: "Rent & Receipts" },
         ...(canManageExpenses && isFeatureEnabled("enable_expenses")
           ? [
               { label: "Expenses", href: "/expenses", section: "Expenses" },
@@ -230,6 +298,22 @@ export default async function Home() {
         { label: "Referral Performance", href: "/reports/referral-performance", section: "Reports" },
         { label: "Hostel Comparison", href: "/reports/hostel-comparison", section: "Reports" },
         { label: "Deposit Reconciliation", href: "/reports/deposit-reconciliation", section: "Reports" },
+        { label: "Asset Register", href: "/settings/assets", section: "Fixed Assets" },
+        ...(isFeatureEnabled("enable_accounting")
+          ? [
+              { label: "Accounts Receivable", href: "/accounting/receivables", section: "Accounting" },
+              { label: "Accounts Payable", href: "/accounting/payables", section: "Accounting" },
+              { label: "Ledger P&L", href: "/accounting/pnl", section: "Accounting" },
+              { label: "Balance Sheet", href: "/accounting/balance-sheet", section: "Accounting" },
+              { label: "Cash Flow Statement", href: "/accounting/cash-flow", section: "Accounting" },
+              { label: "Net Worth", href: "/accounting/net-worth", section: "Accounting" },
+              { label: "Forecast / Working Capital", href: "/accounting/forecast", section: "Accounting" },
+              { label: "Trial Balance", href: "/accounting/trial-balance", section: "Accounting" },
+              { label: "General Ledger", href: "/accounting/ledger", section: "Accounting" },
+              { label: "Journal Entries", href: "/accounting/journal-entries", section: "Accounting" },
+              { label: "Reconciliation", href: "/accounting/reconciliation", section: "Accounting" },
+            ]
+          : []),
       ]}
     />
   )}
@@ -251,6 +335,12 @@ export default async function Home() {
         { label: "Data Health", href: "/data-health", section: "Settings" },
         { label: "Feature Flags", href: "/settings/feature-flags", section: "Settings" },
         { label: "Import / Export", href: "/settings/data-tools", section: "Settings" },
+        ...(isFeatureEnabled("enable_accounting")
+          ? [
+              { label: "Chart of Accounts", href: "/settings/accounting", section: "Settings" },
+              { label: "Opening Balances", href: "/settings/accounting/opening-balances", section: "Settings" },
+            ]
+          : []),
         ...(canManageRates
           ? [
               { label: "Rates", href: "/settings/rates", section: "Settings" },
@@ -261,7 +351,7 @@ export default async function Home() {
     />
   )}
 
-  <UserMenu role={role} />
+  <UserMenu role={actualRole} />
 
   <NavDropdown
     label="+ Quick Actions"
@@ -274,11 +364,13 @@ export default async function Home() {
       ...(canManageOperationalRecords
         ? [
             { label: "New Enquiry", href: "/enquiries/new" },
-            { label: "Add to Waitlist", href: "/waitlist/new" },
+            ...(isFeatureEnabled("enable_waitlist")
+              ? [{ label: "Add to Waitlist", href: "/waitlist/new" }]
+              : []),
             { label: "New Complaint", href: "/complaints/new" },
           ]
         : []),
-      ...(canManageExpenses
+      ...(canManageExpenses && isFeatureEnabled("enable_expenses")
         ? [{ label: "New Expense", href: "/expenses/new" }]
         : []),
     ]}
@@ -398,8 +490,9 @@ export default async function Home() {
             alerts.vacating_30_days_count === 0 &&
             alerts.deposit_pending_count === 0 &&
             alerts.missing_id_proof_count === 0 &&
-            alerts.maintenance_count === 0 &&
-            (today?.enquiries_followup_count ?? 0) === 0 &&
+            (!canManageMaintenance || alerts.maintenance_count === 0) &&
+            (!canManageOperationalRecords ||
+              (today?.enquiries_followup_count ?? 0) === 0) &&
             pendingPoliceVerificationCount === 0 ? (
               <p className="text-sm text-emerald-600">
                 All caught up — nothing needs attention right now.
@@ -442,7 +535,7 @@ export default async function Home() {
                   />
                 )}
 
-                {alerts.maintenance_count > 0 && (
+                {canManageMaintenance && alerts.maintenance_count > 0 && (
                   <AlertCard
                     count={alerts.maintenance_count}
                     label="Beds under maintenance"
@@ -451,14 +544,15 @@ export default async function Home() {
                   />
                 )}
 
-                {(today?.enquiries_followup_count ?? 0) > 0 && (
-                  <AlertCard
-                    count={today!.enquiries_followup_count}
-                    label="Enquiries requiring follow-up"
-                    href="/enquiries"
-                    tone="blue"
-                  />
-                )}
+                {canManageOperationalRecords &&
+                  (today?.enquiries_followup_count ?? 0) > 0 && (
+                    <AlertCard
+                      count={today!.enquiries_followup_count}
+                      label="Enquiries requiring follow-up"
+                      href="/enquiries"
+                      tone="blue"
+                    />
+                  )}
 
                 {pendingPoliceVerificationCount > 0 && (
                   <AlertCard

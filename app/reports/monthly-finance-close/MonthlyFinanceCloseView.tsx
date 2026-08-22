@@ -79,6 +79,17 @@ export default function MonthlyFinanceCloseView({
         year,
       });
 
+      // Locks the accounting ledger for this period too, if the accounting
+      // module is set up - close_month itself is only a checkpoint/snapshot
+      // and was never enforced as a real posting lock (see its own page
+      // copy), this is what actually blocks new journal entries dated in
+      // this period until it's explicitly reopened below.
+      try {
+        await callRpcClient("lock_accounting_period", { p_month: month, p_year: year });
+      } catch {
+        // accounting module not set up yet - nothing to lock
+      }
+
       window.location.reload();
     } catch (error) {
       setErrorMessage(
@@ -97,6 +108,12 @@ export default function MonthlyFinanceCloseView({
         p_month: row.month,
         p_year: row.year,
       });
+
+      try {
+        await callRpcClient("unlock_accounting_period", { p_month: row.month, p_year: row.year });
+      } catch {
+        // accounting module not set up yet - nothing to unlock
+      }
 
       await logAuditEvent(
         "month_reopened",
