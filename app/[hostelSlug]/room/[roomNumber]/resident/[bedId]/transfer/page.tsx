@@ -49,7 +49,11 @@ export default async function TransferResidentPage({ params }: PageProps) {
 
   const resident = residentRows.length > 0 ? residentRows[0] : null;
 
-  if (!resident || resident.booking_status !== "checked_in") {
+  if (
+    !resident ||
+    (resident.booking_status !== "checked_in" &&
+      resident.booking_status !== "confirmed")
+  ) {
     notFound();
   }
 

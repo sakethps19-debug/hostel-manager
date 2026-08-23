@@ -20,7 +20,9 @@ import { requirePermission } from "@/lib/auth";
 
 async function getActiveResidents(): Promise<ResidentRow[]> {
   const all = await callRpcServer<ResidentRow[]>("get_resident_master_list");
-  return all.filter((r) => r.booking_status === "checked_in");
+  return all.filter(
+    (r) => r.booking_status === "checked_in" || r.booking_status === "confirmed"
+  );
 }
 
 async function getHostelNames(): Promise<string[]> {
