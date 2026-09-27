@@ -19,7 +19,7 @@ type LedgerRow = {
   last_payment_date: string | null;
   payment_status: string;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
 };
 
 async function getRentLedgerAll(): Promise<LedgerRow[]> {

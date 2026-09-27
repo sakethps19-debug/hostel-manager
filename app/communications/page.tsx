@@ -3,6 +3,7 @@ import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { formatDateTime } from "@/lib/format";
+import TestModeBanner from "@/components/TestModeBanner";
 
 type BroadcastRow = {
   broadcast_id: number;
@@ -66,6 +67,15 @@ export default async function CommunicationsPage() {
               </a>
             )}
 
+            {hasPermission(role, "manageCommunicationSettings") && (
+              <a
+                href="/communications/usage-cost"
+                className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Usage &amp; Cost
+              </a>
+            )}
+
             <a
               href="/communications/new"
               className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white"
@@ -74,6 +84,8 @@ export default async function CommunicationsPage() {
             </a>
           </div>
         </div>
+
+        <TestModeBanner />
 
         {setupMissing && (
           <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800">

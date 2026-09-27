@@ -47,6 +47,11 @@ export default function HoldForm({
       return;
     }
 
+    if (prospectMobile && !/^\d{10}$/.test(prospectMobile)) {
+      setErrorMessage("Mobile number must contain exactly 10 digits.");
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -98,9 +103,14 @@ export default function HoldForm({
         </span>
         <input
           value={prospectMobile}
-          onChange={(e) => setProspectMobile(e.target.value)}
+          onChange={(e) =>
+            setProspectMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+          }
           className="input-style"
           placeholder="10-digit mobile number"
+          inputMode="numeric"
+          pattern="[0-9]{10}"
+          maxLength={10}
         />
       </label>
 

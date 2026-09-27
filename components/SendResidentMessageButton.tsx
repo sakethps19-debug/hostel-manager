@@ -50,6 +50,7 @@ export default function SendResidentMessageButton({
   monthlyRent,
   outstanding,
   role,
+  testMode,
 }: {
   residentId: number;
   bookingId: number;
@@ -61,6 +62,7 @@ export default function SendResidentMessageButton({
   monthlyRent: number;
   outstanding: number | null;
   role: string | null;
+  testMode: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -74,6 +76,11 @@ export default function SendResidentMessageButton({
   const [templateId, setTemplateId] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [sending, setSending] = useState(false);
+  // Generated once per send attempt (not per keystroke) so a double-click on
+  // "Send" carries the SAME key both times, letting the server recognize
+  // and dedupe it - regenerated after every attempt for the next one.
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [overrideLimit, setOverrideLimit] = useState(false);
 
   const variables: Record<string, string> = {
     resident_name: fullName,
@@ -149,7 +156,13 @@ export default function SendResidentMessageButton({
         templateId: templateId ? Number(templateId) : null,
         messageBody: messageBody.trim(),
         recipientMobile: mobileNumber,
+        idempotencyKey,
+        overrideLimit,
       });
+
+      // Next attempt needs a fresh key - reusing this one would make the
+      // server treat a genuinely new message as a duplicate of this one.
+      setIdempotencyKey(crypto.randomUUID());
 
       setHistory((prev) => [
         {
@@ -169,6 +182,7 @@ export default function SendResidentMessageButton({
       } else {
         setMessageBody("");
         setTemplateId("");
+        setOverrideLimit(false);
       }
     } catch (error) {
       setErrorMessage(
@@ -193,7 +207,14 @@ export default function SendResidentMessageButton({
   return (
     <div className="w-full rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
       <div className="flex items-center justify-between">
-        <p className="font-semibold text-indigo-800">Send Message</p>
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-indigo-800">Send Message</p>
+          {testMode && (
+            <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold uppercase text-amber-900">
+              Test Mode
+            </span>
+          )}
+        </div>
         <button
           onClick={() => setOpen(false)}
           className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
@@ -270,6 +291,17 @@ export default function SendResidentMessageButton({
               className="w-full rounded-xl border border-indigo-200 px-4 py-2 text-sm outline-none"
             />
           </label>
+
+          {role === "owner" && (
+            <label className="mt-3 flex items-center gap-2 text-xs text-indigo-700">
+              <input
+                type="checkbox"
+                checked={overrideLimit}
+                onChange={(e) => setOverrideLimit(e.target.checked)}
+              />
+              Override the monthly per-resident message limit for this send
+            </label>
+          )}
 
           {errorMessage && (
             <p className="mt-3 text-sm font-medium text-red-700">{errorMessage}</p>

@@ -2,6 +2,7 @@ import { getHostelList } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { deriveBedStatus } from "@/lib/bedStatus";
+import { formatMoney } from "@/lib/format";
 
 type BedGridRow = {
   room_number: string;
@@ -25,10 +26,6 @@ type VacancyRow = {
   hostel_name: string;
   floor_number: number;
 };
-
-function formatMoney(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
 
 type PageProps = {
   searchParams: Promise<{ hostel?: string }>;
@@ -84,8 +81,10 @@ export default async function FloorPerformancePage({ searchParams }: PageProps) 
 
     const avgAgreedRent =
       floorResidents.length > 0
-        ? floorResidents.reduce((sum, r) => sum + Number(r.monthly_rent), 0) /
-          floorResidents.length
+        ? Math.round(
+            floorResidents.reduce((sum, r) => sum + Number(r.monthly_rent), 0) /
+              floorResidents.length
+          )
         : 0;
 
     const vacantBeds = floorBeds.filter((b) => deriveBedStatus(b) === "available");

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
+import { logAuditEvent } from "@/lib/audit";
+import { formatDateTime } from "@/lib/format";
 
 type CommunicationRow = {
   communication_id: number;
@@ -12,16 +14,6 @@ type CommunicationRow = {
 };
 
 const TYPES = ["Call", "WhatsApp", "Email", "In-Person", "Other"];
-
-function formatDateTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function ResidentCommunications({
   residentId,
@@ -37,6 +29,8 @@ export default function ResidentCommunications({
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleAdd() {
+    if (saving) return;
+
     setErrorMessage("");
 
     if (!note.trim()) {
@@ -51,6 +45,10 @@ export default function ResidentCommunications({
         p_resident_id: residentId,
         p_communication_type: communicationType,
         p_note: note.trim(),
+      });
+
+      await logAuditEvent("resident_communication_added", "resident", residentId, {
+        communication_type: communicationType,
       });
 
       setEntries((prev) => [
@@ -79,6 +77,7 @@ export default function ResidentCommunications({
         <select
           value={communicationType}
           onChange={(e) => setCommunicationType(e.target.value)}
+          disabled={saving}
           className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
         >
           {TYPES.map((t) => (
@@ -97,6 +96,7 @@ export default function ResidentCommunications({
               handleAdd();
             }
           }}
+          disabled={saving}
           placeholder="Add a note about a call, WhatsApp message, visit..."
           className="flex-1 min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
         />

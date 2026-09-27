@@ -1,6 +1,14 @@
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { formatMoney, todayIsoDateIST } from "@/lib/format";
+import { isFeatureEnabled } from "@/lib/featureFlags";
+import {
+  getNetWorth,
+  getWorkingCapital,
+  getLedgerPnlSummary,
+  getCashFlowStatement,
+  getCashForecast,
+} from "@/lib/accounting/queries";
 
 type HostelDashboardRow = {
   hostel_id: number;
@@ -105,6 +113,71 @@ export default async function OwnerKpisPage() {
 
   const assetsNeedingRepair = assets.filter((a) => a.condition === "Needs Repair").length;
 
+  // The accounting module ships its own SQL migrations (see
+  // supabase/migrations/) that may not have been applied to this Supabase
+  // project yet - fail soft into "not set up" rather than 500ing the whole
+  // dashboard, matching the pattern used elsewhere (e.g. the Communications
+  // pages) for optional modules with pending migrations.
+  let financialPosition: {
+    netWorth: number;
+    totalAssets: number;
+    totalLiabilities: number;
+    cash: number;
+    receivables: number;
+    payables: number;
+    depositsHeld: number;
+    workingCapital: number;
+    netFixedAssets: number;
+    monthRevenue: number;
+    monthExpenses: number;
+    monthProfit: number;
+    monthCashIn: number;
+    monthCashOut: number;
+    next30Inflow: number;
+    next30Outflow: number;
+    projectedCash30: number;
+  } | null = null;
+
+  if (await isFeatureEnabled("enable_accounting")) {
+    try {
+      const today = todayIsoDateIST();
+      const now = new Date();
+      const [netWorth, workingCapital, pnlSummary, cashFlow, cashForecast] = await Promise.all([
+        getNetWorth(today),
+        getWorkingCapital(today),
+        getLedgerPnlSummary(now.getFullYear(), now.getMonth() + 1),
+        getCashFlowStatement(now.getFullYear(), now.getMonth() + 1),
+        getCashForecast(today, 1),
+      ]);
+
+      const cashIn = cashFlow.filter((r) => r.amount > 0).reduce((s, r) => s + r.amount, 0);
+      const cashOut = cashFlow.filter((r) => r.amount < 0).reduce((s, r) => s + Math.abs(r.amount), 0);
+      const monthForecast = cashForecast[0];
+
+      financialPosition = {
+        netWorth: netWorth?.net_worth ?? 0,
+        totalAssets: netWorth?.total_assets ?? 0,
+        totalLiabilities: netWorth?.total_liabilities ?? 0,
+        cash: workingCapital?.cash ?? 0,
+        receivables: workingCapital?.accounts_receivable ?? 0,
+        payables: workingCapital?.accounts_payable ?? 0,
+        depositsHeld: workingCapital?.deposits_held ?? 0,
+        workingCapital: workingCapital?.working_capital ?? 0,
+        netFixedAssets: (netWorth?.total_assets ?? 0) - (workingCapital?.current_assets ?? 0),
+        monthRevenue: pnlSummary?.total_revenue ?? 0,
+        monthExpenses: pnlSummary?.total_expenses ?? 0,
+        monthProfit: pnlSummary?.net_surplus ?? 0,
+        monthCashIn: cashIn,
+        monthCashOut: cashOut,
+        next30Inflow: monthForecast?.expected_inflow ?? 0,
+        next30Outflow: monthForecast?.expected_outflow ?? 0,
+        projectedCash30: monthForecast?.projected_closing_cash ?? 0,
+      };
+    } catch {
+      financialPosition = null;
+    }
+  }
+
   const cards = [
     statCard(
       "Occupancy",
@@ -184,6 +257,57 @@ export default async function OwnerKpisPage() {
             </div>
           ))}
         </section>
+
+        {financialPosition && (
+          <section className="mt-8">
+            <h2 className="text-lg font-bold">Financial Position</h2>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                statCard("Cash & Bank", formatMoney(financialPosition.cash)),
+                statCard("Accounts Receivable", formatMoney(financialPosition.receivables)),
+                statCard("Accounts Payable", formatMoney(financialPosition.payables)),
+                statCard("Security Deposits Held", formatMoney(financialPosition.depositsHeld)),
+                statCard("Net Fixed Assets", formatMoney(financialPosition.netFixedAssets)),
+                statCard("Working Capital", formatMoney(financialPosition.workingCapital)),
+                statCard("Net Worth", formatMoney(financialPosition.netWorth), "Owner Equity — not a business valuation"),
+                statCard(
+                  "This Month: Revenue / Expenses",
+                  `${formatMoney(financialPosition.monthRevenue)} / ${formatMoney(financialPosition.monthExpenses)}`,
+                  `Profit ${formatMoney(financialPosition.monthProfit)}`
+                ),
+                statCard(
+                  "This Month: Cash In / Out",
+                  `${formatMoney(financialPosition.monthCashIn)} / ${formatMoney(financialPosition.monthCashOut)}`
+                ),
+                statCard(
+                  "Next 30 Days (Forecast)",
+                  `${formatMoney(financialPosition.next30Inflow)} in / ${formatMoney(financialPosition.next30Outflow)} out`,
+                  `Projected cash: ${formatMoney(financialPosition.projectedCash30)}`
+                ),
+              ].map((card) => (
+                <div key={card.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.label}</p>
+                  <p className="mt-2 text-xl font-bold">{card.value}</p>
+                  {card.sub && <p className="mt-1 text-xs text-slate-400">{card.sub}</p>}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <a href="/accounting/balance-sheet" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                Balance Sheet →
+              </a>
+              <a href="/accounting/pnl" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                P&amp;L →
+              </a>
+              <a href="/accounting/net-worth" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                Net Worth →
+              </a>
+              <a href="/accounting/forecast" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                Forecast →
+              </a>
+            </div>
+          </section>
+        )}
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="min-w-full text-left text-sm">

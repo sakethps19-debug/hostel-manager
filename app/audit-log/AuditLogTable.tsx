@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { roleLabel } from "@/lib/permissions";
+import { formatDateTime } from "@/lib/format";
 
 type AuditLogRow = {
   audit_id: number;
@@ -13,16 +14,6 @@ type AuditLogRow = {
   user_role: string | null;
   created_at: string;
 };
-
-function formatDateTime(date: string) {
-  return new Date(date).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function actionLabel(action: string) {
   return action

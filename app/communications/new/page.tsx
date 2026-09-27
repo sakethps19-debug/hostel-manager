@@ -4,6 +4,7 @@ import { hasPermission } from "@/lib/permissions";
 import { getRecipientCandidates } from "@/lib/communications/recipients";
 import { getHostelList } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
+import TestModeBanner from "@/components/TestModeBanner";
 import BroadcastComposer from "./BroadcastComposer";
 
 type TemplateRow = {
@@ -55,6 +56,8 @@ export default async function NewBroadcastPage() {
             message to multiple residents at once.
           </p>
         </div>
+
+        <TestModeBanner />
 
         <BroadcastComposer
           recipients={recipients}

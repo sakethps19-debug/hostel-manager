@@ -12,9 +12,11 @@ import DocumentExpiryTracker from "@/components/DocumentExpiryTracker";
 import ReferralAttribution from "./ReferralAttribution";
 import ResidentCommunications from "@/components/ResidentCommunications";
 import SendResidentMessageButton from "@/components/SendResidentMessageButton";
+import { isCommsTestMode } from "@/lib/communications/provider";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { getMyRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getAllResidentTagRows, dedupeSortedTagLabels } from "@/lib/residentTags";
 import {
   getChecklistItems,
   type ChecklistType,
@@ -32,7 +34,7 @@ id_proof_number: string | null;
   work_college_address: string | null;
   notes: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   monthly_rent: number;
   security_deposit: number | null;
   booking_status: string;
@@ -227,10 +229,7 @@ async function getResidentTags(residentId: number): Promise<TagRow[]> {
 }
 
 async function getAllTagLabels(): Promise<string[]> {
-  const rows = await callRpcServer<{ tag_label: string }[]>(
-    "get_all_resident_tags"
-  );
-  return Array.from(new Set(rows.map((r) => r.tag_label))).sort();
+  return dedupeSortedTagLabels(await getAllResidentTagRows());
 }
 
 type ReferralSourceRow = {
@@ -414,7 +413,12 @@ export default async function ResidentPage({
   const role = await getMyRole();
   const canManageBookings = hasPermission(role, "manageBookings");
   const canManagePayments = hasPermission(role, "managePayments");
+  const canViewFinancialReports = hasPermission(role, "viewFinancialReports");
   const canManageDocuments = hasPermission(role, "manageDocuments");
+  const canManageResidentsTags = hasPermission(role, "manageResidents");
+  const canSendMessages =
+    hasPermission(role, "sendOperationalMessages") ||
+    hasPermission(role, "sendFinanceMessages");
 
   const moveInChecklist = await getBookingChecklist(
     resident.booking_id,
@@ -438,9 +442,9 @@ export default async function ResidentPage({
     bookingReferral,
     communications,
   ] = await Promise.all([
-    getResidentTags(resident.resident_id),
-    getAllTagLabels(),
-    getDocumentExpiries(resident.resident_id),
+    canManageResidentsTags ? getResidentTags(resident.resident_id) : Promise.resolve([]),
+    canManageResidentsTags ? getAllTagLabels() : Promise.resolve([]),
+    canManageDocuments ? getDocumentExpiries(resident.resident_id) : Promise.resolve([]),
     canManageBookings ? getReferralSources() : Promise.resolve([]),
     canManageBookings
       ? getBookingReferral(resident.booking_id)
@@ -576,17 +580,19 @@ export default async function ResidentPage({
           </div>
         </section>
 
-        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold">Tags</h2>
+        {canManageResidentsTags && (
+          <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold">Tags</h2>
 
-          <div className="mt-4">
-            <ResidentTags
-              residentId={resident.resident_id}
-              initialTags={residentTags}
-              suggestions={allTagLabels}
-            />
-          </div>
-        </section>
+            <div className="mt-4">
+              <ResidentTags
+                residentId={resident.resident_id}
+                initialTags={residentTags}
+                suggestions={allTagLabels}
+              />
+            </div>
+          </section>
+        )}
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold">Communication Notes</h2>
@@ -790,7 +796,7 @@ export default async function ResidentPage({
 
               <InfoCard
                 label="End Date"
-                value={formatDate(resident.end_date)}
+                value={resident.end_date ? formatDate(resident.end_date) : "Ongoing"}
               />
 
               <InfoCard
@@ -907,19 +913,21 @@ export default async function ResidentPage({
             </h2>
 
             <div className="flex flex-wrap gap-3">
-              <a
-                href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/ledger`}
-                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                View Ledger Statement
-              </a>
+              {canViewFinancialReports && (
+                <a
+                  href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/ledger`}
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  View Ledger Statement
+                </a>
+              )}
 
               {canManagePayments && (
                 <a
                   href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/new`}
                   className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
                 >
-                  Record Payment
+                  Record Receipt
                 </a>
               )}
             </div>
@@ -948,17 +956,17 @@ export default async function ResidentPage({
               />
 
               <InfoCard
-                label="Last Payment Date"
+                label="Last Receipt Date"
                 value={
                   ledger.last_payment_date
                     ? formatDate(ledger.last_payment_date)
-                    : "No payments yet"
+                    : "No receipts yet"
                 }
               />
 
               <div className="rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-medium text-slate-400">
-                  Payment Status
+                  Rent Status
                 </p>
                 <span
                   className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${getPaymentStatusClasses(
@@ -973,12 +981,12 @@ export default async function ResidentPage({
 
           <div className="mt-8">
             <h3 className="text-sm font-semibold text-slate-700">
-              Payment History
+              Transaction History
             </h3>
 
             {payments.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500">
-                No payments recorded yet.
+                No transactions recorded yet.
               </p>
             ) : (
               <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
@@ -1029,7 +1037,7 @@ export default async function ResidentPage({
                               href={`/${hostelSlug}/room/${roomNumber}/resident/${bedId}/payment/${payment.payment_id}/receipt`}
                               className="font-semibold text-indigo-600 hover:text-indigo-700"
                             >
-                              Receipt →
+                              View →
                             </a>
                           ) : (
                             <span className="text-xs">
@@ -1134,18 +1142,21 @@ export default async function ResidentPage({
             Print Application Form
           </a>
 
-          <SendResidentMessageButton
-            residentId={resident.resident_id}
-            bookingId={resident.booking_id}
-            fullName={resident.full_name}
-            mobileNumber={resident.mobile_number}
-            hostelName={resident.hostel_name}
-            roomNumber={resident.room_number}
-            bedCode={resident.bed_code}
-            monthlyRent={resident.monthly_rent}
-            outstanding={ledger?.balance_outstanding ?? null}
-            role={role}
-          />
+          {canSendMessages && (
+            <SendResidentMessageButton
+              residentId={resident.resident_id}
+              bookingId={resident.booking_id}
+              fullName={resident.full_name}
+              mobileNumber={resident.mobile_number}
+              hostelName={resident.hostel_name}
+              roomNumber={resident.room_number}
+              bedCode={resident.bed_code}
+              monthlyRent={resident.monthly_rent}
+              outstanding={ledger?.balance_outstanding ?? null}
+              role={role}
+              testMode={isCommsTestMode()}
+            />
+          )}
 
           {canManageBookings && !resident.notice_given_at && (
             <a
@@ -1156,7 +1167,7 @@ export default async function ResidentPage({
             </a>
           )}
 
-          {canManageBookings && !resident.notice_given_at && (
+          {canManageBookings && !resident.notice_given_at && resident.end_date && (
             <ExtendStayButton
               resident={{
                 booking_id: resident.booking_id,
@@ -1215,7 +1226,7 @@ export default async function ResidentPage({
           {ledger && ledger.balance_outstanding > 0 && (
             <CopyTextButton
               label="Copy Rent Reminder"
-              text={`Hi ${resident.full_name}, this is a reminder that your rent of ${formatMoney(ledger.balance_outstanding)} is outstanding for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Please clear it at your earliest convenience. Thank you — VNR Boys Hostel.`}
+              text={`Hi ${resident.full_name}, this is a reminder that your rent of ${formatMoney(ledger.balance_outstanding)} is outstanding for ${resident.hostel_name} (${resident.bed_code || resident.bed_number}). Please clear it at your earliest convenience. Thank you — ${resident.hostel_name}.`}
             />
           )}
 
@@ -1226,7 +1237,7 @@ export default async function ResidentPage({
                 resident.expected_vacate_date
                   ? formatDate(resident.expected_vacate_date)
                   : "coming up"
-              }. Please ensure all dues are cleared and the room is vacated on time. Thank you — VNR Boys Hostel.`}
+              }. Please ensure all dues are cleared and the room is vacated on time. Thank you — ${resident.hostel_name}.`}
             />
           )}
         </section>

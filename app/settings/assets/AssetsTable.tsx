@@ -3,47 +3,31 @@
 import { useMemo, useState } from "react";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import { logAuditEvent } from "@/lib/audit";
+import {
+  formatDate as formatDateShared,
+  formatMoney as formatMoneyShared,
+} from "@/lib/format";
+import type { AssetRow, AssetStatus } from "./types";
+import { ASSET_STATUS_LABELS } from "./types";
+import { suggestNextAssetCode } from "@/lib/accounting/assetCode";
 
-type AssetRow = {
-  asset_id: number;
-  name: string;
-  category: string;
-  hostel_name: string | null;
-  room_number: string | null;
-  bed_code: string | null;
-  bed_id: number | null;
-  purchase_date: string | null;
-  purchase_cost: number | null;
-  condition: string;
-  warranty_expiry: string | null;
-  notes: string | null;
-  created_at: string;
-};
+// Fallback list used only if the asset_categories table can't be reached
+// (e.g. accounting migrations not yet applied) - AssetsPage passes the real
+// broad-grouping list fetched from the database as the `categories` prop.
+const FALLBACK_CATEGORIES = ["Furniture", "Electronics", "Other"];
 
-const CATEGORIES = [
-  "Furniture",
-  "Electrical Appliance",
-  "Electronics",
-  "Kitchen Equipment",
-  "Fire Safety",
-  "Plumbing Fixture",
-  "Other",
-];
+const OTHER_CATEGORY_VALUE = "__other__";
 
 const CONDITIONS = ["Good", "Fair", "Needs Repair", "Disposed"];
 
 function formatDate(date: string | null) {
   if (!date) return "-";
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateShared(date);
 }
 
 function formatMoney(value: number | null) {
   if (value === null) return "-";
-  return `Rs. ${Number(value).toLocaleString("en-IN")}`;
+  return formatMoneyShared(value);
 }
 
 function conditionClasses(condition: string) {
@@ -56,6 +40,7 @@ function conditionClasses(condition: string) {
 type FormState = {
   name: string;
   category: string;
+  customCategory: string;
   hostelName: string;
   roomNumber: string;
   bedCode: string;
@@ -63,33 +48,52 @@ type FormState = {
   purchaseCost: string;
   warrantyExpiry: string;
   notes: string;
+  assetCode: string;
+  paymentMode: string;
 };
 
-const EMPTY_FORM: FormState = {
-  name: "",
-  category: "Other",
-  hostelName: "",
-  roomNumber: "",
-  bedCode: "",
-  purchaseDate: "",
-  purchaseCost: "",
-  warrantyExpiry: "",
-  notes: "",
-};
+function emptyForm(categories: string[]): FormState {
+  return {
+    name: "",
+    category: categories[0] ?? OTHER_CATEGORY_VALUE,
+    customCategory: "",
+    hostelName: "",
+    roomNumber: "",
+    bedCode: "",
+    purchaseDate: "",
+    purchaseCost: "",
+    warrantyExpiry: "",
+    notes: "",
+    assetCode: "",
+    paymentMode: "",
+  };
+}
 
 export default function AssetsTable({
   assets,
   hostelNames,
+  categories: categoriesProp,
+  canManageFinance,
 }: {
   assets: AssetRow[];
   hostelNames: string[];
+  categories: string[];
+  canManageFinance: boolean;
 }) {
+  const categories = categoriesProp.length > 0 ? categoriesProp : FALLBACK_CATEGORIES;
+
   const [rows, setRows] = useState(assets);
   const [conditionFilter, setConditionFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(() => emptyForm(categories));
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // The actual category text to save - either the picked broad grouping, or
+  // whatever the owner typed when they picked "Other" (never the literal
+  // sentinel value).
+  const resolvedCategory =
+    form.category === OTHER_CATEGORY_VALUE ? form.customCategory.trim() : form.category;
 
   const filtered = useMemo(
     () => rows.filter((a) => !conditionFilter || a.condition === conditionFilter),
@@ -109,14 +113,24 @@ export default function AssetsTable({
       return;
     }
 
+    if (form.category === OTHER_CATEGORY_VALUE && !resolvedCategory) {
+      setErrorMessage("Please specify what \"Other\" category this asset is.");
+      return;
+    }
+
+    const cost = form.purchaseCost ? Number(form.purchaseCost) : null;
+    if (cost !== null && (Number.isNaN(cost) || cost < 0)) {
+      setErrorMessage("Purchase cost cannot be negative.");
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const cost = form.purchaseCost ? Number(form.purchaseCost) : null;
 
       const id = await callRpcClient<number>("add_asset", {
         p_name: form.name.trim(),
-        p_category: form.category,
+        p_category: resolvedCategory,
         p_hostel_name: form.hostelName || null,
         p_room_number: form.roomNumber || null,
         p_bed_code: form.bedCode || null,
@@ -129,14 +143,37 @@ export default function AssetsTable({
 
       await logAuditEvent("asset_added", "asset", id, {
         name: form.name.trim(),
-        category: form.category,
+        category: resolvedCategory,
       });
+
+      const assetCode = form.assetCode.trim();
+      if (assetCode) {
+        await callRpcClient("set_asset_code", { p_asset_id: id, p_asset_code: assetCode });
+      }
+
+      if (cost && cost > 0) {
+        if (form.paymentMode) {
+          await callRpcClient("update_asset_finance_fields", {
+            p_asset_id: id,
+            p_payment_mode: form.paymentMode,
+          });
+        }
+        // Books the purchase (Dr Fixed Asset or expense / Cr Cash-Bank) — a
+        // best-effort second step after add_asset succeeds, mirroring how
+        // logAuditEvent is already called here; reconcile_journal_postings()
+        // on the Reconciliation page catches any asset that fails to post.
+        try {
+          await callRpcClient("post_asset_purchase_journal", { p_asset_id: id });
+        } catch {
+          // surfaced via the Reconciliation page's unjournaled-asset check, not here
+        }
+      }
 
       setRows((prev) => [
         {
           asset_id: id,
           name: form.name.trim(),
-          category: form.category,
+          category: resolvedCategory,
           hostel_name: form.hostelName || null,
           room_number: form.roomNumber || null,
           bed_code: form.bedCode || null,
@@ -147,11 +184,32 @@ export default function AssetsTable({
           warranty_expiry: form.warrantyExpiry || null,
           notes: form.notes || null,
           created_at: new Date().toISOString(),
+          asset_code: assetCode || null,
+          description: null,
+          floor_number: null,
+          location_notes: null,
+          vendor_id: null,
+          invoice_number: null,
+          payment_mode: form.paymentMode || null,
+          serial_number: null,
+          model: null,
+          brand: null,
+          warranty_start_date: null,
+          useful_life_months: null,
+          depreciation_method: "straight_line",
+          residual_value: 0,
+          depreciation_start_date: null,
+          accumulated_depreciation: 0,
+          status: "in_use",
+          last_service_date: null,
+          next_service_date: null,
+          capitalized: true,
+          gl_account_id: null,
         },
         ...prev,
       ]);
 
-      setForm(EMPTY_FORM);
+      setForm(emptyForm(categories));
       setShowForm(false);
     } catch (error) {
       setErrorMessage(
@@ -163,6 +221,8 @@ export default function AssetsTable({
   }
 
   async function handleConditionChange(assetId: number, condition: string) {
+    setErrorMessage("");
+
     try {
       await callRpcClient("set_asset_condition", {
         p_asset_id: assetId,
@@ -176,8 +236,14 @@ export default function AssetsTable({
       setRows((prev) =>
         prev.map((a) => (a.asset_id === assetId ? { ...a, condition } : a))
       );
-    } catch {
-      // Best-effort UI update failure is surfaced via the row staying unchanged.
+    } catch (error) {
+      // Force a re-render so the controlled <select> reverts to the saved
+      // condition - without this the browser's own selection stays shown
+      // even though rows (and the database) still hold the old value.
+      setRows((prev) => [...prev]);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to update condition."
+      );
     }
   }
 
@@ -198,7 +264,8 @@ export default function AssetsTable({
         </select>
 
         <p className="text-sm text-slate-500">
-          {filtered.length} assets · {formatMoney(totalValue)} total purchase value
+          {filtered.length} assets
+          {canManageFinance ? ` · ${formatMoney(totalValue)} total purchase value` : ""}
         </p>
 
         <button
@@ -209,6 +276,10 @@ export default function AssetsTable({
         </button>
       </div>
 
+      {errorMessage && !showForm && (
+        <p className="mt-3 text-sm font-medium text-red-600">{errorMessage}</p>
+      )}
+
       {showForm && (
         <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -218,17 +289,28 @@ export default function AssetsTable({
               placeholder="Asset name *"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <div>
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value={OTHER_CATEGORY_VALUE}>Other (please specify)</option>
+              </select>
+              {form.category === OTHER_CATEGORY_VALUE && (
+                <input
+                  value={form.customCategory}
+                  onChange={(e) => setForm({ ...form, customCategory: e.target.value })}
+                  placeholder="What is this asset? *"
+                  className="mt-2 w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+                />
+              )}
+            </div>
             <select
               value={form.hostelName}
               onChange={(e) => setForm({ ...form, hostelName: e.target.value })}
@@ -262,16 +344,18 @@ export default function AssetsTable({
               placeholder="Purchase date"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
-            <input
-              type="number"
-              min="0"
-              value={form.purchaseCost}
-              onChange={(e) =>
-                setForm({ ...form, purchaseCost: e.target.value })
-              }
-              placeholder="Purchase cost (optional)"
-              className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
-            />
+            {canManageFinance && (
+              <input
+                type="number"
+                min="0"
+                value={form.purchaseCost}
+                onChange={(e) =>
+                  setForm({ ...form, purchaseCost: e.target.value })
+                }
+                placeholder="Purchase cost (optional)"
+                className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              />
+            )}
             <input
               type="date"
               value={form.warrantyExpiry}
@@ -287,6 +371,43 @@ export default function AssetsTable({
               placeholder="Notes (optional)"
               className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
             />
+            <div className="flex gap-2">
+              <input
+                value={form.assetCode}
+                onChange={(e) => setForm({ ...form, assetCode: e.target.value })}
+                placeholder="Asset code (optional)"
+                className="w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    assetCode: suggestNextAssetCode(
+                      rows.map((r) => r.asset_code).filter((c): c is string => Boolean(c)),
+                      f.hostelName || null,
+                      f.category === OTHER_CATEGORY_VALUE ? f.customCategory.trim() : f.category
+                    ),
+                  }))
+                }
+                className="whitespace-nowrap rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+              >
+                Suggest
+              </button>
+            </div>
+            {canManageFinance && (
+              <select
+                value={form.paymentMode}
+                onChange={(e) => setForm({ ...form, paymentMode: e.target.value })}
+                className="rounded-xl border border-indigo-200 px-3 py-2 text-sm outline-none"
+              >
+                <option value="">Payment mode (if cost entered)</option>
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Other">Other</option>
+              </select>
+            )}
           </div>
 
           {errorMessage && (
@@ -317,8 +438,9 @@ export default function AssetsTable({
                 <tr>
                   <th className="px-4 py-3">Asset</th>
                   <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3">Purchased</th>
-                  <th className="px-4 py-3 text-right">Cost</th>
+                  <th className="px-4 py-3">Status</th>
+                  {canManageFinance && <th className="px-4 py-3 text-right">Cost</th>}
+                  {canManageFinance && <th className="px-4 py-3 text-right">Net Book Value</th>}
                   <th className="px-4 py-3">Warranty Until</th>
                   <th className="px-4 py-3">Condition</th>
                 </tr>
@@ -327,8 +449,16 @@ export default function AssetsTable({
                 {filtered.map((asset) => (
                   <tr key={asset.asset_id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <p className="font-semibold">{asset.name}</p>
-                      <p className="text-xs text-slate-500">{asset.category}</p>
+                      <a
+                        href={`/settings/assets/${asset.asset_id}`}
+                        className="font-semibold text-indigo-600 hover:text-indigo-700"
+                      >
+                        {asset.name}
+                      </a>
+                      <p className="text-xs text-slate-500">
+                        {asset.category}
+                        {asset.asset_code ? ` · ${asset.asset_code}` : ""}
+                      </p>
                     </td>
                     <td className="px-4 py-3 text-slate-500">
                       {[
@@ -339,12 +469,21 @@ export default function AssetsTable({
                         .filter(Boolean)
                         .join(" · ") || "-"}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {formatDate(asset.purchase_date)}
+                    <td className="px-4 py-3 text-slate-500">
+                      {ASSET_STATUS_LABELS[asset.status as AssetStatus] || asset.status}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      {formatMoney(asset.purchase_cost)}
-                    </td>
+                    {canManageFinance && (
+                      <td className="px-4 py-3 text-right">
+                        {formatMoney(asset.purchase_cost)}
+                      </td>
+                    )}
+                    {canManageFinance && (
+                      <td className="px-4 py-3 text-right">
+                        {asset.purchase_cost
+                          ? formatMoney(asset.purchase_cost - (asset.accumulated_depreciation || 0))
+                          : "-"}
+                      </td>
+                    )}
                     <td className="px-4 py-3 whitespace-nowrap">
                       {formatDate(asset.warranty_expiry)}
                     </td>

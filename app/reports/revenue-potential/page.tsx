@@ -2,6 +2,7 @@ import { getHostelList } from "@/lib/hostel";
 import { callRpcServer } from "@/lib/supabase/callRpcServer";
 import { requirePermission } from "@/lib/auth";
 import { deriveBedStatus } from "@/lib/bedStatus";
+import { formatMoney } from "@/lib/format";
 
 type BedGridRow = {
   room_number: string;
@@ -22,10 +23,6 @@ type ResidentRow = {
 type RentSummary = {
   rent_collected_this_month: number;
 };
-
-function formatMoney(value: number) {
-  return `Rs. ${Math.round(value).toLocaleString("en-IN")}`;
-}
 
 export default async function RevenuePotentialPage() {
   await requirePermission("viewFinancialReports");
@@ -59,7 +56,17 @@ export default async function RevenuePotentialPage() {
         0
       );
 
-      const occupiedAtStandard = potentialRevenue - vacancyLoss;
+      // Only beds with an actual resident (occupied or vacating soon) generate
+      // rent - held/reserved/cleaning/maintenance beds have no resident paying,
+      // so they must not be folded into "occupied at standard rate" below.
+      const occupiedBeds = bedGrid.filter((b) => {
+        const status = deriveBedStatus(b);
+        return status === "occupied" || status === "vacating_soon";
+      });
+      const occupiedAtStandard = occupiedBeds.reduce(
+        (sum, b) => sum + Number(b.monthly_rent || 0),
+        0
+      );
 
       const hostelResidents = activeResidents.filter(
         (r) => r.hostel_name === hostel.hostel_name

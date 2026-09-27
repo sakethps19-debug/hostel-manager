@@ -303,7 +303,7 @@ export default function BookingForm({
           "profile",
           photoFile.name
         );
-        await uploadResidentFile(photoPath, photoFile);
+        await uploadResidentFile(photoPath, photoFile, "photo");
         await callRpcClient("add_resident_document", {
           p_resident_id: residentId,
           p_document_type: "Resident Photo",
