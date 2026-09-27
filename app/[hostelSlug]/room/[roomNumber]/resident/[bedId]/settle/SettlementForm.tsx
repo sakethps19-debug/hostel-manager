@@ -107,7 +107,7 @@ export default function SettlementForm({
     try {
       setSaving(true);
 
-      await callRpcClient("finalize_settlement", {
+      await callRpcClient("finalize_settlement_and_vacate", {
         p_booking_id: bookingId,
         p_other_charges: otherChargesNumber,
         p_deductions: deductions.map((d) => ({
@@ -117,8 +117,6 @@ export default function SettlementForm({
         })),
         p_notes: notes,
       });
-
-      await callRpcClient("vacate_bed", { p_booking_id: bookingId });
 
       await logAuditEvent("resident_vacated", "booking", bookingId, {
         refund_amount: refundAmount,
