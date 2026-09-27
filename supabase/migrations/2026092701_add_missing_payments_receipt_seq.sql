@@ -1,0 +1,24 @@
+-- ============================================================================
+-- Fix: committed migration history is missing the CREATE SEQUENCE statement
+-- for payments_receipt_seq.
+--
+-- Found while rebuilding a from-scratch TEST/UAT environment purely from the
+-- committed migrations: record_payment/transfer_resident/
+-- finalize_settlement_and_vacate (2026081219, 2026081229, 2026081230,
+-- 2026081231, 2026081240, 2026081241) all call
+-- nextval('payments_receipt_seq') to generate receipt numbers, but no
+-- committed migration ever creates that sequence - it exists in production
+-- only because it was created out-of-band at some point (dashboard SQL
+-- editor or an uncommitted ad-hoc script), never captured in migration
+-- history. Production is unaffected (the sequence already exists there;
+-- this is a no-op there), but any FUTURE environment built strictly from
+-- `supabase migration up` / `supabase db reset` against a fresh database
+-- would fail the first time it tried to record a payment.
+--
+-- Same root cause as the ~39-base-table / migration-numbering debt already
+-- documented from the earlier hardening sprint (see report section on
+-- migration history) - this is one more instance of pre-existing schema
+-- that predates commit-tracked migrations. Idempotent and additive only.
+-- ============================================================================
+create sequence if not exists public.payments_receipt_seq
+  start with 1 increment by 1 no minvalue no maxvalue cache 1;
