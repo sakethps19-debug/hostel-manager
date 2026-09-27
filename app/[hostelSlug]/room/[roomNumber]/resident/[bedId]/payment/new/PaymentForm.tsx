@@ -1,10 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logAuditEvent } from "@/lib/audit";
 import { callRpcClient } from "@/lib/supabase/callRpcClient";
 import DuplicatePaymentWarning from "@/components/DuplicatePaymentWarning";
+
+type RecordPaymentRow = {
+  payment_id: number;
+  receipt_number: string;
+  is_new: boolean;
+};
 
 const PAYMENT_TYPES = [
   "Monthly Rent",
@@ -77,6 +83,14 @@ export default function PaymentForm({
   const [errorMessage, setErrorMessage] = useState("");
   const [duplicateOkToProceed, setDuplicateOkToProceed] = useState(true);
 
+  // Generated once per mount and reused across retries of the SAME
+  // submission attempt (a resubmitted click after a network error, a
+  // double-click before the button disables) so record_payment can
+  // recognize it as the same request instead of recording it twice. A
+  // deliberately new payment (the resident pays again) happens on a fresh
+  // page load, which gets a fresh key.
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
@@ -101,7 +115,9 @@ export default function PaymentForm({
     try {
       setSaving(true);
 
-      const paymentId = await callRpcClient<number>("record_payment", {
+      const [{ payment_id: paymentId }] = await callRpcClient<
+        RecordPaymentRow[]
+      >("record_payment", {
         p_booking_id: bookingId,
         p_amount: numericAmount,
         p_payment_date: paymentDate,
@@ -110,6 +126,7 @@ export default function PaymentForm({
         p_payment_mode: paymentMode,
         p_reference_number: referenceNumber,
         p_notes: notes,
+        p_idempotency_key: idempotencyKeyRef.current,
       });
 
       await logAuditEvent("payment_recorded", "payment", bookingId, {
