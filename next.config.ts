@@ -38,6 +38,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // This repo's AGENTS.md is hand-maintained (project-specific instructions
+  // pointing at AGENTS.md); disable Next's own auto-managed agent-rules
+  // block so `next dev`/`next build` stop rewriting it into an
+  // uncommitted diff on every run.
+  agentRules: false,
   async headers() {
     return [
       {
