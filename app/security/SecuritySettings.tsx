@@ -21,6 +21,8 @@ export default function SecuritySettings() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [removingFactorId, setRemovingFactorId] = useState<string | null>(null);
+  const [removeCode, setRemoveCode] = useState("");
 
   async function loadFactors() {
     const supabase = createClient();
@@ -123,15 +125,51 @@ export default function SecuritySettings() {
     setCode("");
   }
 
-  async function removeFactor(id: string) {
-    if (!window.confirm("Remove two-factor authentication from this account?")) {
-      return;
-    }
+  function startRemoveFactor(id: string) {
+    setError("");
+    setSuccess("");
+    setRemoveCode("");
+    setRemovingFactorId(id);
+  }
+
+  function cancelRemoveFactor() {
+    setRemovingFactorId(null);
+    setRemoveCode("");
+  }
+
+  // A hijacked authenticated session (stolen cookie/token) must not be able
+  // to silently turn off MFA - unenroll only proceeds after a fresh TOTP
+  // code proves the caller still holds the authenticator device, the same
+  // proof required to sign in with it in the first place.
+  async function confirmRemoveFactor() {
+    if (!removingFactorId) return;
     setBusy(true);
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+      factorId: removingFactorId,
+    });
+
+    if (challengeError || !challenge) {
+      setBusy(false);
+      setError(challengeError?.message || "Unable to verify code.");
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId: removingFactorId,
+      challengeId: challenge.id,
+      code: removeCode,
+    });
+
+    if (verifyError) {
+      setBusy(false);
+      setError(verifyError.message);
+      return;
+    }
+
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: removingFactorId });
 
     setBusy(false);
 
@@ -140,6 +178,8 @@ export default function SecuritySettings() {
       return;
     }
 
+    setRemovingFactorId(null);
+    setRemoveCode("");
     setSuccess("Two-factor authentication removed.");
     loadFactors();
   }
@@ -164,23 +204,58 @@ export default function SecuritySettings() {
       {factors.length > 0 && !enrolling && (
         <div className="space-y-3">
           {factors.map((f) => (
-            <div
-              key={f.id}
-              className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
-            >
-              <div>
-                <p className="text-sm font-semibold text-slate-800">Authenticator app</p>
-                <p className="text-xs text-slate-500">
-                  Enabled {new Date(f.created_at).toLocaleDateString()}
-                </p>
+            <div key={f.id} className="rounded-xl border border-slate-200 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Authenticator app</p>
+                  <p className="text-xs text-slate-500">
+                    Enabled {new Date(f.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                {removingFactorId !== f.id && (
+                  <button
+                    onClick={() => startRemoveFactor(f.id)}
+                    disabled={busy}
+                    className="text-sm font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
-              <button
-                onClick={() => removeFactor(f.id)}
-                disabled={busy}
-                className="text-sm font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
-              >
-                Remove
-              </button>
+
+              {removingFactorId === f.id && (
+                <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                  <p className="text-sm text-slate-600">
+                    Enter a current 6-digit code from your authenticator app to confirm removal.
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoFocus
+                    value={removeCode}
+                    onChange={(e) => setRemoveCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    maxLength={6}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-lg tracking-widest outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="123456"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={confirmRemoveFactor}
+                      disabled={busy || removeCode.length !== 6}
+                      className="flex-1 rounded-xl bg-red-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {busy ? "Removing…" : "Confirm Remove"}
+                    </button>
+                    <button
+                      onClick={cancelRemoveFactor}
+                      disabled={busy}
+                      className="rounded-xl border border-slate-200 px-6 py-3 font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
