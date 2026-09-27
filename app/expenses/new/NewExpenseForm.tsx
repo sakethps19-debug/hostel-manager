@@ -80,16 +80,10 @@ export default function NewExpenseForm({
         hostel_name: hostelName || "Common",
       });
 
-      if (created?.id) {
-        // Books Dr <category account> / Cr Cash-Bank - best-effort second
-        // step, same pattern as logAuditEvent above; the Reconciliation
-        // page's unjournaled-expense check catches anything that fails here.
-        try {
-          await callRpcClient("post_expense_journal", { p_expense_id: created.id });
-        } catch {
-          // surfaced via the Reconciliation page, not here
-        }
-      }
+      // record_expense now posts the accounting journal entry itself, in
+      // the same database transaction as the expense insert - if that
+      // fails, the whole call above throws and no expense was recorded
+      // either. There is no separate journaling step to run here anymore.
 
       router.push("/expenses");
       router.refresh();

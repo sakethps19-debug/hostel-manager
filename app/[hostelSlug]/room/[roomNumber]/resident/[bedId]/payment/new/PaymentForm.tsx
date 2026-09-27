@@ -10,6 +10,7 @@ type RecordPaymentRow = {
   payment_id: number;
   receipt_number: string;
   is_new: boolean;
+  journal_entry_id: number | null;
 };
 
 const PAYMENT_TYPES = [
@@ -115,9 +116,7 @@ export default function PaymentForm({
     try {
       setSaving(true);
 
-      const [{ payment_id: paymentId }] = await callRpcClient<
-        RecordPaymentRow[]
-      >("record_payment", {
+      await callRpcClient<RecordPaymentRow[]>("record_payment", {
         p_booking_id: bookingId,
         p_amount: numericAmount,
         p_payment_date: paymentDate,
@@ -135,15 +134,11 @@ export default function PaymentForm({
         payment_mode: paymentMode,
       });
 
-      // Books the accounting consequence (Dr Cash/Bank, Cr the relevant
-      // receivable/liability/income account) - best-effort second step,
-      // same pattern as logAuditEvent above; the Reconciliation page's
-      // unjournaled-payment check catches anything that fails to post here.
-      try {
-        await callRpcClient("post_payment_journal", { p_payment_id: paymentId });
-      } catch {
-        // surfaced via the Reconciliation page, not here
-      }
+      // record_payment now posts the accounting journal entry itself, in
+      // the same database transaction as the payment insert - if that
+      // fails (unknown account code, a locked accounting period), the
+      // whole call above throws and no payment was recorded either. There
+      // is no separate journaling step to run here anymore.
 
       router.push(`/${hostelSlug}/room/${roomNumber}/resident/${bedId}`);
       router.refresh();

@@ -128,6 +128,13 @@ export default function AssetsTable({
 
     try {
 
+      const assetCode = form.assetCode.trim();
+
+      // add_asset now sets the asset code/payment mode and posts the
+      // purchase's accounting journal entry itself, all in one database
+      // transaction - if journaling fails, the whole asset insert rolls
+      // back too, instead of leaving a committed asset row with a
+      // silently-swallowed accounting failure.
       const id = await callRpcClient<number>("add_asset", {
         p_name: form.name.trim(),
         p_category: resolvedCategory,
@@ -139,35 +146,14 @@ export default function AssetsTable({
         p_condition: "Good",
         p_warranty_expiry: form.warrantyExpiry || null,
         p_notes: form.notes || null,
+        p_asset_code: assetCode || null,
+        p_payment_mode: cost && cost > 0 ? form.paymentMode || null : null,
       });
 
       await logAuditEvent("asset_added", "asset", id, {
         name: form.name.trim(),
         category: resolvedCategory,
       });
-
-      const assetCode = form.assetCode.trim();
-      if (assetCode) {
-        await callRpcClient("set_asset_code", { p_asset_id: id, p_asset_code: assetCode });
-      }
-
-      if (cost && cost > 0) {
-        if (form.paymentMode) {
-          await callRpcClient("update_asset_finance_fields", {
-            p_asset_id: id,
-            p_payment_mode: form.paymentMode,
-          });
-        }
-        // Books the purchase (Dr Fixed Asset or expense / Cr Cash-Bank) — a
-        // best-effort second step after add_asset succeeds, mirroring how
-        // logAuditEvent is already called here; reconcile_journal_postings()
-        // on the Reconciliation page catches any asset that fails to post.
-        try {
-          await callRpcClient("post_asset_purchase_journal", { p_asset_id: id });
-        } catch {
-          // surfaced via the Reconciliation page's unjournaled-asset check, not here
-        }
-      }
 
       setRows((prev) => [
         {
